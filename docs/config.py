@@ -1,0 +1,1 @@
+project = "python-arango-async"
