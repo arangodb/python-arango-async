@@ -1,0 +1,28 @@
+name: Docs
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    name: Docs
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch all tags and branches
+        run: git fetch --prune --unshallow
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install .[dev]
+
+      - name: Generate Sphinx HTML
+        run: python -m sphinx -b html -W docs docs/_build
