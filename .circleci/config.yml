@@ -1,0 +1,28 @@
+version: 2.1
+
+workflows:
+  ci:
+    jobs:
+      - lint
+
+jobs:
+  lint:
+    docker:
+      - image: python:latest
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: pip install .[dev]
+      - run:
+            name: Run black
+            command: black --check --verbose --diff --color --config=pyproject.toml ./arangoasync ./tests/
+      - run:
+          name: Run flake8
+          command: flake8 ./arangoasync ./tests
+      - run:
+          name: Run isort
+          command: isort --check ./arangoasync ./tests
+      - run:
+          name: Run mypy
+          command: mypy ./arangoasync
