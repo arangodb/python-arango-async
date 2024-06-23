@@ -32,14 +32,15 @@ else
     exit 1
 fi
 
-conf_file=""
-if [[ "${version%.*}" == "3.10" ]]; then
-    conf_file="${setup}-3.10"
+if [ "$version" == "latest" ]; then
+    conf_file="${setup}-3.12"
+elif [[ "$version" == *.*.* ]]; then
+    conf_file="${setup}-${version%.*}"
 else
-    conf_file="${setup}"
+    conf_file="${setup}-${version}"
 fi
 
-docker run -d --rm \
+docker run -d \
   --name arango \
   -p 8528:8528 \
   -p 8529:8529 \
