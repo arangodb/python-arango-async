@@ -7,7 +7,7 @@ from enum import Enum, auto
 from typing import Generic, Optional, TypeVar
 
 from typings import Headers, Params
-from version import __version__ as driver_version
+from version import __version__
 
 T = TypeVar("T")
 
@@ -33,7 +33,7 @@ class Request(Generic[T]):
     :type endpoint: str
     :param headers: Request headers.
     :type headers: dict | None
-    :param params: URL (query) parameters.
+    :param params: URL parameters.
     :type params: dict | None
     :param data: Request payload.
     :type data: Any
@@ -42,7 +42,7 @@ class Request(Generic[T]):
 
     :ivar method: HTTP method.
     :vartype method: request.Method
-    :ivar endpoint: API endpoint.
+    :ivar endpoint: API endpoint, for example "_api/version".
     :vartype endpoint: str
     :ivar headers: Request headers.
     :vartype headers: dict | None
@@ -88,7 +88,7 @@ class Request(Generic[T]):
         :returns: Normalized request headers.
         :rtype: dict
         """
-        driver_header = f"arangoasync/{driver_version}"
+        driver_header = f"arangoasync/{__version__}"
         normalized_headers: Headers = {
             "charset": "utf-8",
             "content-type": "application/json",
@@ -103,11 +103,11 @@ class Request(Generic[T]):
 
     @staticmethod
     def _normalize_params(params: Optional[Params]) -> Params:
-        """Normalize URL (query) parameters.
+        """Normalize URL parameters.
 
-        :param params: URL (query) parameters.
+        :param params: URL parameters.
         :type params: dict | None
-        :returns: Normalized URL (query) parameters.
+        :returns: Normalized URL parameters.
         :rtype: dict
         """
         normalized_params: Params = {}

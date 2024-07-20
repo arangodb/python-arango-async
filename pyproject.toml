@@ -40,6 +40,7 @@ dependencies = [
     "packaging>=23.1",
     "setuptools>=42",
     "aiohttp>=3.9",
+    "multidict>=6.0",
 ]
 
 [tool.setuptools.dynamic]
