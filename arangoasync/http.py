@@ -5,14 +5,12 @@ __all__ = [
 ]
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Optional
 
 from aiohttp import BaseConnector, BasicAuth, ClientSession, ClientTimeout, TCPConnector
 
 from arangoasync.request import Request
 from arangoasync.response import Response
-
-T = TypeVar("T")
 
 
 class HTTPClient(ABC):  # pragma: no cover
@@ -53,7 +51,7 @@ class HTTPClient(ABC):  # pragma: no cover
         raise NotImplementedError
 
 
-class AioHTTPClient(HTTPClient, Generic[T]):
+class AioHTTPClient(HTTPClient):
     """HTTP client implemented on top of [aiohttp](https://docs.aiohttp.org/en/stable/).
 
     :param connector: Supports connection pooling.
