@@ -4,12 +4,10 @@ __all__ = [
 ]
 
 from enum import Enum, auto
-from typing import Generic, Optional, TypeVar
+from typing import Optional
 
-from typings import Headers, Params
-from version import __version__
-
-T = TypeVar("T")
+from arangoasync.typings import Headers, Params
+from arangoasync.version import __version__
 
 
 class Method(Enum):
@@ -24,7 +22,7 @@ class Method(Enum):
     OPTIONS = auto()
 
 
-class Request(Generic[T]):
+class Request:
     """HTTP request.
 
     :param method: HTTP method.
@@ -69,14 +67,14 @@ class Request(Generic[T]):
         endpoint: str,
         headers: Optional[Headers] = None,
         params: Optional[Params] = None,
-        data: Optional[T] = None,
+        data: Optional[str] = None,
         deserialize: bool = True,
     ) -> None:
         self.method: Method = method
         self.endpoint: str = endpoint
         self.headers: Headers = self._normalize_headers(headers)
         self.params: Params = self._normalize_params(params)
-        self.data: Optional[T] = data
+        self.data: Optional[str] = data
         self.deserialize: bool = deserialize
 
     @staticmethod

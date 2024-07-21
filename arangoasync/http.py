@@ -5,11 +5,14 @@ __all__ = [
 ]
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Generic, Optional, TypeVar
 
-from aiohttp import BaseConnector, BasicAuth, ClientSession, ClientTimeout, TcpConnector
-from request import Request
-from response import Response
+from aiohttp import BaseConnector, BasicAuth, ClientSession, ClientTimeout, TCPConnector
+
+from arangoasync.request import Request
+from arangoasync.response import Response
+
+T = TypeVar("T")
 
 
 class HTTPClient(ABC):  # pragma: no cover
@@ -50,7 +53,7 @@ class HTTPClient(ABC):  # pragma: no cover
         raise NotImplementedError
 
 
-class AioHTTPClient(HTTPClient):
+class AioHTTPClient(HTTPClient, Generic[T]):
     """HTTP client implemented on top of [aiohttp](https://docs.aiohttp.org/en/stable/).
 
     :param connector: Supports connection pooling.
@@ -79,7 +82,7 @@ class AioHTTPClient(HTTPClient):
         auth: Optional[BasicAuth] = None,
         compression_threshold: int = 1024,
     ) -> None:
-        self._connector = connector or TcpConnector(
+        self._connector = connector or TCPConnector(
             keepalive_timeout=60,  # timeout for connection reusing after releasing
             limit=100,  # total number simultaneous connections
         )
@@ -94,13 +97,14 @@ class AioHTTPClient(HTTPClient):
     def create_session(self, host: str) -> ClientSession:
         """Return a new session given the base host URL.
 
-        :param host: ArangoDB host URL. Typically the address and port of a coordinator,
-            for example "http://127.0.0.1:8529".
+        :param host: ArangoDB host URL. Typically, the address and port of a coordinator
+            (e.g. "http://127.0.0.1:8529").
         :type host: str
         :returns: Session object.
         :rtype: aiohttp.ClientSession
         """
         return ClientSession(
+            base_url=host,
             connector=self._connector,
             timeout=self._timeout,
             auth=self._auth,
@@ -126,7 +130,7 @@ class AioHTTPClient(HTTPClient):
         headers = request.headers
         params = request.params
         data = request.data
-        compress = len(data) >= self._compression_threshold
+        compress = data is not None and len(data) >= self._compression_threshold
 
         async with session.request(
             method.name,

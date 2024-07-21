@@ -2,15 +2,13 @@ __all__ = [
     "Response",
 ]
 
-from typing import Generic, Optional, TypeVar
+from typing import Optional
 
-from request import Method
-from typings import Headers
-
-T = TypeVar("T")
+from arangoasync.request import Method
+from arangoasync.typings import Headers
 
 
-class Response(Generic[T]):
+class Response:
     """HTTP response.
 
     :param method: HTTP method.
@@ -78,7 +76,7 @@ class Response(Generic[T]):
         self.raw_body: bytes = raw_body
 
         # Populated later
-        self.body: Optional[T] = None
+        self.body: Optional[str] = None
         self.error_code: Optional[int] = None
         self.error_message: Optional[str] = None
         self.is_success: Optional[bool] = None

@@ -1,3 +1,9 @@
+import os
+import sys
+
+# Required for autodoc
+sys.path.insert(0, os.path.abspath(".."))
+
 project = "python-arango-async"
 copyright_notice = "ArangoDB"
 author = "Alexandru Petenchea, Anthony Mahanna"
@@ -6,6 +12,14 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
+    "sphinx.ext.intersphinx",
 ]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+html_theme = "sphinx_rtd_theme"
 master_doc = "index"
+
+autodoc_member_order = "bysource"
+
+intersphinx_mapping = {
+    "aiohttp": ("https://docs.aiohttp.org/en/stable/", None),
+}
