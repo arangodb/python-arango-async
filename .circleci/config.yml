@@ -3,10 +3,10 @@ version: 2.1
 executors:
   python-container:
     docker:
-      - image: cimg/python:3.12
+      image: cimg/python:3.12
   python-vm:
     machine:
-      - image: ubuntu-2204:current
+      image: ubuntu-2204:current
 
 workflows:
   ci:
