@@ -5,7 +5,7 @@ __all__ = [
 from typing import Optional
 
 from arangoasync.request import Method
-from arangoasync.typings import Headers
+from arangoasync.typings import ResponseHeaders
 
 
 class Response:
@@ -14,7 +14,7 @@ class Response:
     Parameters:
         method (Method): HTTP method.
         url (str): API URL.
-        headers (dict | None): Response headers.
+        headers (dict): Response headers.
         status_code (int): Response status code.
         status_text (str): Response status text.
         raw_body (bytes): Raw response body.
@@ -22,7 +22,7 @@ class Response:
     Attributes:
         method (Method): HTTP method.
         url (str): API URL.
-        headers (dict | None): Response headers.
+        headers (dict): Response headers.
         status_code (int): Response status code.
         status_text (str): Response status text.
         raw_body (bytes): Raw response body.
@@ -47,14 +47,14 @@ class Response:
         self,
         method: Method,
         url: str,
-        headers: Headers,
+        headers: ResponseHeaders,
         status_code: int,
         status_text: str,
         raw_body: bytes,
     ) -> None:
         self.method: Method = method
         self.url: str = url
-        self.headers: Headers = headers
+        self.headers: ResponseHeaders = headers
         self.status_code: int = status_code
         self.status_text: str = status_text
         self.raw_body: bytes = raw_body

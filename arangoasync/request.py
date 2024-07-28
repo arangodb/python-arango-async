@@ -6,7 +6,7 @@ __all__ = [
 from enum import Enum, auto
 from typing import Optional
 
-from arangoasync.typings import Headers, Params
+from arangoasync.typings import Params, RequestHeaders
 from arangoasync.version import __version__
 
 
@@ -52,18 +52,18 @@ class Request:
         self,
         method: Method,
         endpoint: str,
-        headers: Optional[Headers] = None,
+        headers: Optional[RequestHeaders] = None,
         params: Optional[Params] = None,
         data: Optional[str] = None,
     ) -> None:
         self.method: Method = method
         self.endpoint: str = endpoint
-        self.headers: Headers = self._normalize_headers(headers)
+        self.headers: RequestHeaders = self._normalize_headers(headers)
         self.params: Params = self._normalize_params(params)
         self.data: Optional[str] = data
 
     @staticmethod
-    def _normalize_headers(headers: Optional[Headers]) -> Headers:
+    def _normalize_headers(headers: Optional[RequestHeaders]) -> RequestHeaders:
         """Normalize request headers.
 
         Parameters:
@@ -73,7 +73,7 @@ class Request:
             dict: Normalized request headers.
         """
         driver_header = f"arangoasync/{__version__}"
-        normalized_headers: Headers = {
+        normalized_headers: RequestHeaders = {
             "charset": "utf-8",
             "content-type": "application/json",
             "x-arango-driver": driver_header,
