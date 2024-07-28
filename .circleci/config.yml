@@ -6,7 +6,7 @@ executors:
       - image: cimg/python:3.12
   python-vm:
     machine:
-      - image: ubuntu-2204:current
+      image: ubuntu-2204:current
 
 workflows:
   ci:
@@ -59,7 +59,7 @@ jobs:
           name: Setup ArangoDB
           command: |
             chmod +x starter.sh
-            ./starter.sh ${{ matrix.arangodb_config }} ${{ matrix.arangodb_license }} ${{ matrix.arangodb_version }}
+            ./starter.sh << parameters.arangodb_config >> << parameters.arangodb_license >> << parameters.arangodb_version >>
       - restore_cache:
           key: pip-and-local-cache
       - run:

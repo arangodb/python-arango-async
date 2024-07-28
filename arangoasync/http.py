@@ -156,7 +156,7 @@ class AioHTTPClient(HTTPClient):
                 url=str(response.real_url),
                 headers=response.headers,
                 status_code=response.status,
-                status_text=response.reason,
+                status_text=str(response.reason),
                 raw_body=raw_body,
             )
 
