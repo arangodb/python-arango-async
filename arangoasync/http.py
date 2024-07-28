@@ -15,19 +15,31 @@ from arangoasync.response import Response
 
 class HTTPClient(ABC):  # pragma: no cover
     """Abstract base class for HTTP clients.
+
     Custom HTTP clients should inherit from this class.
+
+    Example:
+        .. code-block:: python
+
+            class MyCustomHTTPClient(HTTPClient):
+                def create_session(self, host):
+                    pass
+                async def send_request(self, session, request):
+                    pass
     """
 
     @abstractmethod
     def create_session(self, host: str) -> Any:
         """Return a new session given the base host URL.
 
-        This method must be overridden by the user.
+        Note:
+            This method must be overridden by the user.
 
-        :param host: ArangoDB host URL.
-        :type host: str
-        :returns: Requests session object.
-        :rtype: Any
+        Args:
+            host (str): ArangoDB host URL.
+
+        Returns:
+            Requests session object.
         """
         raise NotImplementedError
 
@@ -39,37 +51,36 @@ class HTTPClient(ABC):  # pragma: no cover
     ) -> Response:
         """Send an HTTP request.
 
-        This method must be overridden by the user.
+        Note:
+            This method must be overridden by the user.
 
-        :param session: Session object.
-        :type session: Any
-        :param request: HTTP request.
-        :type request: arangoasync.request.Request
-        :returns: HTTP response.
-        :rtype: arangoasync.response.Response
+        Args:
+            session (Any): Client session object.
+            request (Request): HTTP request.
+
+        Returns:
+            Response: HTTP response.
         """
         raise NotImplementedError
 
 
 class AioHTTPClient(HTTPClient):
-    """HTTP client implemented on top of [aiohttp](https://docs.aiohttp.org/en/stable/).
+    """HTTP client implemented on top of aiohttp_.
 
-    :param connector: Supports connection pooling.
-        By default, 100 simultaneous connections are supported, with a 60-second timeout
-        for connection reusing after release.
-    :type connector: aiohttp.BaseConnector | None
-    :param timeout: Timeout settings.
-        300s total timeout by default for a complete request/response operation.
-    :type timeout: aiohttp.ClientTimeout | None
-    :param read_bufsize: Size of read buffer (64KB default).
-    :type read_bufsize: int
-    :param auth: HTTP authentication helper.
-        Should be used for specifying authorization data in client API.
-    :type auth: aiohttp.BasicAuth | None
-    :param compression_threshold: Will compress requests to the server if
-        the size of the request body (in bytes) is at least the value of this
-        option.
-    :type compression_threshold: int
+    Args:
+        connector (aiohttp.BaseConnector | None): Supports connection pooling.
+            By default, 100 simultaneous connections are supported, with a 60-second
+            timeout for connection reusing after release.
+        timeout (aiohttp.ClientTimeout | None): Client timeout settings.
+            300s total timeout by default for a complete request/response operation.
+        read_bufsize (int): Size of read buffer (64KB default).
+        auth (aiohttp.BasicAuth | None): HTTP authentication helper.
+            Should be used for specifying authorization data in client API.
+        compression_threshold (int): Will compress requests to the server if the size
+            of the request body (in bytes) is at least the value of this option.
+
+    .. _aiohttp:
+        https://docs.aiohttp.org/en/stable/
     """
 
     def __init__(
@@ -95,11 +106,12 @@ class AioHTTPClient(HTTPClient):
     def create_session(self, host: str) -> ClientSession:
         """Return a new session given the base host URL.
 
-        :param host: ArangoDB host URL. Typically, the address and port of a coordinator
-            (e.g. "http://127.0.0.1:8529").
-        :type host: str
-        :returns: Session object.
-        :rtype: aiohttp.ClientSession
+        Args:
+            host (str): ArangoDB host URL. Must not include any paths. Typically, this
+                is the address and port of a coordinator (e.g. "http://127.0.0.1:8529").
+
+        Returns:
+            aiohttp.ClientSession: Session object, used to send future requests.
         """
         return ClientSession(
             base_url=host,
@@ -116,12 +128,12 @@ class AioHTTPClient(HTTPClient):
     ) -> Response:
         """Send an HTTP request.
 
-        :param session: Session object.
-        :type session: aiohttp.ClientSession
-        :param request: HTTP request.
-        :type request: arangoasync.request.Request
-        :returns: HTTP response.
-        :rtype: arangoasync.response.Response
+        Args:
+            session (aiohttp.ClientSession): Session object used to make the request.
+            request (Request): HTTP request.
+
+        Returns:
+            Response: HTTP response.
         """
         method = request.method
         endpoint = request.endpoint
