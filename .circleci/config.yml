@@ -59,7 +59,7 @@ jobs:
           name: Setup ArangoDB
           command: |
             chmod +x starter.sh
-            ./starter.sh ${{ parameters.arangodb_config }} ${{ parameters.arangodb_license }} ${{ parameters.arangodb_version }}
+            ./starter.sh << parameters.arangodb_config >> << parameters.arangodb_license >> << parameters.arangodb_version >>
       - restore_cache:
           key: pip-and-local-cache
       - run:
