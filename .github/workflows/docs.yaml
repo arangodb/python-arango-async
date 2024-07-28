@@ -24,5 +24,5 @@ jobs:
       - name: Install dependencies
         run: pip install .[dev]
 
-      - name: Generate Sphinx HTML
-        run: python -m sphinx -b html -W docs docs/_build
+      - name: Run Sphinx doctest
+        run: python -m sphinx -b doctest docs docs/_build

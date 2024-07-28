@@ -12,6 +12,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
+    "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
 ]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
@@ -19,7 +20,12 @@ html_theme = "sphinx_rtd_theme"
 master_doc = "index"
 
 autodoc_member_order = "bysource"
+autodoc_typehints = "none"
 
 intersphinx_mapping = {
     "aiohttp": ("https://docs.aiohttp.org/en/stable/", None),
 }
+
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
+napoleon_attr_annotations = True
