@@ -12,7 +12,6 @@ async def test_AioHTTPClient_simple_request(url):
     request = Request(
         method=Method.GET,
         endpoint="/_api/version",
-        deserialize=False,
     )
     response = await client.send_request(session, request)
     assert response.method == Method.GET
@@ -28,7 +27,6 @@ async def test_AioHTTPClient_auth_pass(url, root, password):
     request = Request(
         method=Method.GET,
         endpoint="/_api/version",
-        deserialize=False,
     )
     response = await client.send_request(session, request)
     assert response.method == Method.GET
