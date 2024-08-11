@@ -9,6 +9,7 @@ from typing import Any, Optional
 
 from aiohttp import BaseConnector, BasicAuth, ClientSession, ClientTimeout, TCPConnector
 
+from arangoasync.auth import Auth
 from arangoasync.request import Request
 from arangoasync.response import Response
 
@@ -74,7 +75,7 @@ class AioHTTPClient(HTTPClient):
         timeout (aiohttp.ClientTimeout | None): Client timeout settings.
             300s total timeout by default for a complete request/response operation.
         read_bufsize (int): Size of read buffer (64KB default).
-        auth (aiohttp.BasicAuth | None): HTTP authentication helper.
+        auth (Auth | None): HTTP authentication helper.
             Should be used for specifying authorization data in client API.
         compression_threshold (int): Will compress requests to the server if the size
             of the request body (in bytes) is at least the value of this option.
@@ -88,7 +89,7 @@ class AioHTTPClient(HTTPClient):
         connector: Optional[BaseConnector] = None,
         timeout: Optional[ClientTimeout] = None,
         read_bufsize: int = 2**16,
-        auth: Optional[BasicAuth] = None,
+        auth: Optional[Auth] = None,
         compression_threshold: int = 1024,
     ) -> None:
         self._connector = connector or TCPConnector(
@@ -100,7 +101,13 @@ class AioHTTPClient(HTTPClient):
             connect=60,  # max number of seconds for acquiring a pool connection
         )
         self._read_bufsize = read_bufsize
-        self._auth = auth
+        self._auth = (
+            BasicAuth(
+                login=auth.username, password=auth.password, encoding=auth.encoding
+            )
+            if auth
+            else None
+        )
         self._compression_threshold = compression_threshold
 
     def create_session(self, host: str) -> ClientSession:

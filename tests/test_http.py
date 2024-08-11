@@ -1,6 +1,6 @@
 import pytest
-from aiohttp import BasicAuth
 
+from arangoasync.auth import Auth
 from arangoasync.http import AioHTTPClient
 from arangoasync.request import Method, Request
 
@@ -18,11 +18,12 @@ async def test_AioHTTPClient_simple_request(url):
     assert response.url == f"{url}/_api/version"
     assert response.status_code == 401
     assert response.status_text == "Unauthorized"
+    await session.close()
 
 
 @pytest.mark.asyncio
 async def test_AioHTTPClient_auth_pass(url, root, password):
-    client = AioHTTPClient(auth=BasicAuth(root, password))
+    client = AioHTTPClient(auth=Auth(root, password))
     session = client.create_session(url)
     request = Request(
         method=Method.GET,
@@ -33,3 +34,4 @@ async def test_AioHTTPClient_auth_pass(url, root, password):
     assert response.url == f"{url}/_api/version"
     assert response.status_code == 200
     assert response.status_text == "OK"
+    await session.close()

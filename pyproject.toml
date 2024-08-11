@@ -41,6 +41,7 @@ dependencies = [
     "setuptools>=42",
     "aiohttp>=3.9",
     "multidict>=6.0",
+    "PyJWT>=2.8.0",
 ]
 
 [tool.setuptools.dynamic]

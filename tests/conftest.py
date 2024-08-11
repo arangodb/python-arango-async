@@ -8,6 +8,7 @@ class GlobalData:
     url: str = None
     root: str = None
     password: str = None
+    sys_db_name: str = "_system"
 
 
 global_data = GlobalData()
@@ -51,3 +52,8 @@ def root():
 @pytest.fixture(autouse=False)
 def password():
     return global_data.password
+
+
+@pytest.fixture(autouse=False)
+def sys_db_name():
+    return global_data.sys_db_name
