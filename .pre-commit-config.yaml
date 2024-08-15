@@ -38,4 +38,4 @@ repos:
       hooks:
         -   id: mypy
             files: ^arangoasync/
-            additional_dependencies: ['types-requests', "types-setuptools"]
+            additional_dependencies: ["types-requests", "types-setuptools"]

@@ -24,6 +24,7 @@ autodoc_typehints = "none"
 
 intersphinx_mapping = {
     "aiohttp": ("https://docs.aiohttp.org/en/stable/", None),
+    "jwt": ("https://pyjwt.readthedocs.io/en/stable/", None),
 }
 
 napoleon_google_docstring = True
