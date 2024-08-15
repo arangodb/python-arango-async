@@ -163,7 +163,7 @@ class BasicConnection(BaseConnection):
         ):
             request.data = self._compression.compress(request.data)
             request.headers["content-encoding"] = self._compression.content_encoding()
-        if self._compression.accept_encoding():
+        if self._compression.accept_encoding() is not None:
             request.headers["accept-encoding"] = self._compression.accept_encoding()
 
         if self._auth:
