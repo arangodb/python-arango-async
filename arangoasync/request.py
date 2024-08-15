@@ -6,6 +6,7 @@ __all__ = [
 from enum import Enum, auto
 from typing import Optional
 
+from arangoasync.auth import Auth
 from arangoasync.typings import Params, RequestHeaders
 from arangoasync.version import __version__
 
@@ -30,14 +31,16 @@ class Request:
         endpoint (str): API endpoint.
         headers (dict | None): Request headers.
         params (dict | None): URL parameters.
-        data (str | None): Request payload.
+        data (bytes | None): Request payload.
+        auth (Auth | None): Authentication.
 
     Attributes:
         method (Method): HTTP method.
         endpoint (str): API endpoint.
         headers (dict | None): Request headers.
         params (dict | None): URL parameters.
-        data (str | None): Request payload.
+        data (bytes | None): Request payload.
+        auth (Auth | None): Authentication.
     """
 
     __slots__ = (
@@ -46,6 +49,7 @@ class Request:
         "headers",
         "params",
         "data",
+        "auth",
     )
 
     def __init__(
@@ -54,13 +58,15 @@ class Request:
         endpoint: str,
         headers: Optional[RequestHeaders] = None,
         params: Optional[Params] = None,
-        data: Optional[str] = None,
+        data: Optional[bytes] = None,
+        auth: Optional[Auth] = None,
     ) -> None:
         self.method: Method = method
         self.endpoint: str = endpoint
         self.headers: RequestHeaders = self._normalize_headers(headers)
         self.params: Params = self._normalize_params(params)
-        self.data: Optional[str] = data
+        self.data: Optional[bytes] = data
+        self.auth: Optional[Auth] = auth
 
     @staticmethod
     def _normalize_headers(headers: Optional[RequestHeaders]) -> RequestHeaders:

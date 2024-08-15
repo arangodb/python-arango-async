@@ -7,8 +7,6 @@ from dataclasses import dataclass
 
 import jwt
 
-from arangoasync.exceptions import JWTExpiredError
-
 
 @dataclass
 class Auth:
@@ -32,6 +30,7 @@ class JwtToken:
         token (str | bytes): JWT token.
 
     Raises:
+        TypeError: If the token type is not str or bytes.
         JWTExpiredError: If the token expired.
     """
 
@@ -49,29 +48,27 @@ class JwtToken:
         """Set token.
 
         Raises:
-            JWTExpiredError: If the token expired.
+            jwt.ExpiredSignatureError: If the token expired.
         """
         self._token = token
         self._validate()
 
     def _validate(self) -> None:
         """Validate the token."""
-        if type(self._token) is not str:
-            raise TypeError("Token must be a string")
-        try:
-            jwt_payload = jwt.decode(
-                self._token,
-                issuer="arangodb",
-                algorithms=["HS256"],
-                options={
-                    "require_exp": True,
-                    "require_iat": True,
-                    "verify_iat": True,
-                    "verify_exp": True,
-                    "verify_signature": False,
-                },
-            )
-        except jwt.ExpiredSignatureError:
-            raise JWTExpiredError("JWT token has expired")
+        if type(self._token) not in (str, bytes):
+            raise TypeError("Token must be str or bytes")
+
+        jwt_payload = jwt.decode(
+            self._token,
+            issuer="arangodb",
+            algorithms=["HS256"],
+            options={
+                "require_exp": True,
+                "require_iat": True,
+                "verify_iat": True,
+                "verify_exp": True,
+                "verify_signature": False,
+            },
+        )
 
         self._token_exp = jwt_payload["exp"]
