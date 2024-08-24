@@ -13,22 +13,21 @@ def test_DefaultHTTPClient():
 
 
 @pytest.mark.asyncio
-async def test_AioHTTPClient_wrong_url():
+async def test_AioHTTPClient_wrong_url(client_session):
     client = AioHTTPClient()
-    session = client.create_session("http://www.fasdfdsafadawe3523523532plmcom.tgzs")
+    session = client_session(client, "http://localhost:0000")
     request = Request(
         method=Method.GET,
         endpoint="/_api/version",
     )
     with pytest.raises(ClientConnectionError):
         await client.send_request(session, request)
-    await session.close()
 
 
 @pytest.mark.asyncio
-async def test_AioHTTPClient_simple_request(url):
+async def test_AioHTTPClient_simple_request(client_session, url):
     client = AioHTTPClient()
-    session = client.create_session(url)
+    session = client_session(client, url)
     request = Request(
         method=Method.GET,
         endpoint="/_api/version",
@@ -38,13 +37,12 @@ async def test_AioHTTPClient_simple_request(url):
     assert response.url == f"{url}/_api/version"
     assert response.status_code == 401
     assert response.status_text == "Unauthorized"
-    await session.close()
 
 
 @pytest.mark.asyncio
-async def test_AioHTTPClient_auth_pass(url, root, password):
+async def test_AioHTTPClient_auth_pass(client_session, url, root, password):
     client = AioHTTPClient()
-    session = client.create_session(url)
+    session = client_session(client, url)
     request = Request(
         method=Method.GET,
         endpoint="/_api/version",
@@ -55,4 +53,3 @@ async def test_AioHTTPClient_auth_pass(url, root, password):
     assert response.url == f"{url}/_api/version"
     assert response.status_code == 200
     assert response.status_text == "OK"
-    await session.close()
