@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import pytest
+import pytest_asyncio
 
 
 @dataclass
@@ -57,3 +58,18 @@ def password():
 @pytest.fixture(autouse=False)
 def sys_db_name():
     return global_data.sys_db_name
+
+
+@pytest_asyncio.fixture
+async def client_session():
+    sessions = []
+
+    def get_client_session(client, url):
+        s = client.create_session(url)
+        sessions.append(s)
+        return s
+
+    yield get_client_session
+
+    for session in sessions:
+        await session.close()

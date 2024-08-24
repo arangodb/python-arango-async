@@ -8,9 +8,9 @@ from arangoasync.resolver import DefaultHostResolver
 
 
 @pytest.mark.asyncio
-async def test_BasicConnection_ping_failed(url, sys_db_name):
+async def test_BasicConnection_ping_failed(client_session, url, sys_db_name):
     client = AioHTTPClient()
-    session = client.create_session(url)
+    session = client_session(client, url)
     resolver = DefaultHostResolver(1)
 
     connection = BasicConnection(
@@ -22,13 +22,14 @@ async def test_BasicConnection_ping_failed(url, sys_db_name):
 
     with pytest.raises(ServerConnectionError):
         await connection.ping()
-    await session.close()
 
 
 @pytest.mark.asyncio
-async def test_BasicConnection_ping_success(url, sys_db_name, root, password):
+async def test_BasicConnection_ping_success(
+    client_session, url, sys_db_name, root, password
+):
     client = AioHTTPClient()
-    session = client.create_session(url)
+    session = client_session(client, url)
     resolver = DefaultHostResolver(1)
 
     connection = BasicConnection(
@@ -41,4 +42,3 @@ async def test_BasicConnection_ping_success(url, sys_db_name, root, password):
 
     status_code = await connection.ping()
     assert status_code == 200
-    await session.close()

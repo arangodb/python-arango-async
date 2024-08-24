@@ -81,7 +81,6 @@ class BaseConnection(ABC):
             ConnectionAbortedError: If can't connect to host(s) within limit.
         """
 
-        ex_host_index = -1
         host_index = self._host_resolver.get_host_index()
         for tries in range(self._host_resolver.max_tries):
             try:
