@@ -3,14 +3,18 @@ __all__ = [
     "BasicConnection",
 ]
 
+import json
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 
-from arangoasync.auth import Auth
+import jwt
+
+from arangoasync.auth import Auth, JwtToken
 from arangoasync.compression import CompressionManager, DefaultCompressionManager
 from arangoasync.exceptions import (
     ClientConnectionError,
     ConnectionAbortedError,
+    JWTRefreshError,
     ServerConnectionError,
 )
 from arangoasync.http import HTTPClient
@@ -63,6 +67,7 @@ class BaseConnection(ABC):
         Raises:
             ServerConnectionError: If the response status code is not successful.
         """
+        # TODO needs refactoring such that it does not throw
         resp.is_success = 200 <= resp.status_code < 300
         if resp.status_code in {401, 403}:
             raise ServerConnectionError(resp, request, "Authentication failed.")
@@ -154,7 +159,18 @@ class BasicConnection(BaseConnection):
         self._auth = auth
 
     async def send_request(self, request: Request) -> Response:
-        """Send an HTTP request to the ArangoDB server."""
+        """Send an HTTP request to the ArangoDB server.
+
+        Args:
+            request (Request): HTTP request.
+
+        Returns:
+            Response: HTTP response
+
+        Raises:
+            ArangoClientError: If an error occurred from the client side.
+            ArangoServerError: If an error occurred from the server side.
+        """
         if request.data is not None and self._compression.needs_compression(
             request.data
         ):
@@ -169,3 +185,126 @@ class BasicConnection(BaseConnection):
             request.auth = self._auth
 
         return await self.process_request(request)
+
+
+class JwtConnection(BaseConnection):
+    """Connection to a specific ArangoDB database, using JWT authentication.
+
+    Allows for basic authentication to be used (username and password),
+    together with JWT.
+
+    Args:
+        sessions (list): List of client sessions.
+        host_resolver (HostResolver): Host resolver.
+        http_client (HTTPClient): HTTP client.
+        db_name (str): Database name.
+        compression (CompressionManager | None): Compression manager.
+        auth (Auth | None): Authentication information.
+        token (JwtToken | None): JWT token.
+
+    Raises:
+        ValueError: If neither token nor auth is provided.
+    """
+
+    def __init__(
+        self,
+        sessions: List[Any],
+        host_resolver: HostResolver,
+        http_client: HTTPClient,
+        db_name: str,
+        compression: Optional[CompressionManager] = None,
+        auth: Optional[Auth] = None,
+        token: Optional[JwtToken] = None,
+    ) -> None:
+        super().__init__(sessions, host_resolver, http_client, db_name, compression)
+        self._auth = auth
+        self._expire_leeway: int = 0
+        self._token: Optional[JwtToken] = None
+        self._auth_header: Optional[str] = None
+        self.set_token(token)
+
+        if self._token is None and self._auth is None:
+            raise ValueError("Either token or auth must be provided.")
+
+    async def refresh_token(self) -> None:
+        """Refresh the JWT token.
+
+        Raises:
+            JWTRefreshError: If the token can't be refreshed.
+        """
+        if self._auth is None:
+            raise JWTRefreshError("Auth must be provided to refresh the token.")
+
+        data = json.dumps(
+            dict(username=self._auth.username, password=self._auth.password),
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+        request = Request(
+            method=Method.POST,
+            endpoint="/_open/auth",
+            data=data.encode("utf-8"),
+        )
+
+        try:
+            resp = await self.process_request(request)
+        except ConnectionAbortedError as e:
+            raise JWTRefreshError(str(e)) from e
+        except ServerConnectionError as e:
+            raise JWTRefreshError(str(e)) from e
+
+        if not resp.is_success:
+            raise JWTRefreshError(
+                f"Failed to refresh the JWT token: "
+                f"{resp.status_code} {resp.status_text}"
+            )
+
+        token = json.loads(resp.raw_body)
+        try:
+            self.set_token(JwtToken(token["jwt"]))
+        except jwt.ExpiredSignatureError as e:
+            raise JWTRefreshError(
+                "Failed to refresh the JWT token: got an expired token"
+            ) from e
+
+    def set_token(self, value: Optional[JwtToken]) -> None:
+        """Set the JWT token.
+
+        Args:
+            value (JwtToken | None): JWT token.
+                Setting it to None will cause the token to be automatically
+                refreshed on the next request, if auth information is provided.
+        """
+        self._token = value
+        self._auth_header = f"bearer {self._token.token}" if self._token else None
+
+    async def send_request(self, request: Request) -> Response:
+        """Send an HTTP request to the ArangoDB server.
+
+        Args:
+            request (Request): HTTP request.
+
+        Returns:
+            Response: HTTP response
+
+        Raises:
+            ArangoClientError: If an error occurred from the client side.
+            ArangoServerError: If an error occurred from the server side.
+        """
+        if self._auth_header is not None:
+            request.headers["authorization"] = self._auth_header
+        else:
+            await self.refresh_token()
+
+        try:
+            resp = await self.process_request(request)
+            if (
+                resp.status_code == 401
+                and self._token is not None
+                and self._token.needs_refresh(self._expire_leeway)
+            ):
+                await self.refresh_token()
+            return await self.process_request(request)
+        except ServerConnectionError as e:
+            # TODO modify after refactoring of prep_response, so we can inspect response
+            raise e

@@ -80,5 +80,9 @@ class JWTExpiredError(ArangoClientError):
     """JWT token has expired."""
 
 
+class JWTRefreshError(ArangoClientError):
+    """Failed to refresh the JWT token."""
+
+
 class ServerConnectionError(ArangoServerError):
     """Failed to connect to ArangoDB server."""
