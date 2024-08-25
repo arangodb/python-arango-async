@@ -83,7 +83,10 @@ async def test_BasicConnection_with_compression(
     assert request.headers["accept-encoding"] == "deflate"
 
 
-def test_BasicConnection_prep_response_bad_response(client_session, url, sys_db_name):
+@pytest.mark.asyncio
+async def test_BasicConnection_prep_response_bad_response(
+    client_session, url, sys_db_name
+):
     client = AioHTTPClient()
     session = client_session(client, url)
     resolver = DefaultHostResolver(1)
