@@ -77,6 +77,7 @@ jobs:
           name: Run pytest
           command: |
             mkdir test-results
+            mkdir htmlcov
 
             args=("--junitxml=test-results/junit.xml" "--log-cli-level=DEBUG" "--host" "localhost" "--port=8529")
             if [ << parameters.arangodb_config >> = "cluster" ]; then
@@ -88,7 +89,10 @@ jobs:
             fi
 
             echo "Running pytest with args: ${args[@]}"
-            pytest --cov=arango --cov-report=xml --cov-report term-missing --color=yes --code-highlight=yes "${args[@]}"
+            pytest --cov=arangoasync --cov-report=html:htmlcov --color=yes --code-highlight=yes "${args[@]}"
+      - store_artifacts:
+          path: htmlcov
+          destination: coverage-report
       - store_artifacts:
           path: test-results
       - store_test_results:
