@@ -53,6 +53,7 @@ class CompressionManager(ABC):  # pragma: no cover
         """
         raise NotImplementedError
 
+    @property
     @abstractmethod
     def content_encoding(self) -> str:
         """Return the content encoding.
@@ -65,6 +66,7 @@ class CompressionManager(ABC):  # pragma: no cover
         """
         raise NotImplementedError
 
+    @property
     @abstractmethod
     def accept_encoding(self) -> str | None:
         """Return the accept encoding.
@@ -101,18 +103,38 @@ class DefaultCompressionManager(CompressionManager):
         self._content_encoding = ContentEncoding.DEFLATE.name.lower()
         self._accept_encoding = accept.name.lower() if accept else None
 
+    @property
+    def threshold(self) -> int:
+        return self._threshold
+
+    @threshold.setter
+    def threshold(self, value: int) -> None:
+        self._threshold = value
+
+    @property
+    def level(self) -> int:
+        return self._level
+
+    @level.setter
+    def level(self, value: int) -> None:
+        self._level = value
+
+    @property
+    def accept_encoding(self) -> str | None:
+        return self._accept_encoding
+
+    @accept_encoding.setter
+    def accept_encoding(self, value: AcceptEncoding | None) -> None:
+        self._accept_encoding = value.name.lower() if value else None
+
+    @property
+    def content_encoding(self) -> str:
+        return self._content_encoding
+
     def needs_compression(self, data: str | bytes) -> bool:
         return self._threshold != -1 and len(data) >= self._threshold
 
     def compress(self, data: str | bytes) -> bytes:
-        if data is not None:
-            if isinstance(data, bytes):
-                return zlib.compress(data, self._level)
-            return zlib.compress(data.encode("utf-8"), self._level)
-        return b""
-
-    def content_encoding(self) -> str:
-        return self._content_encoding
-
-    def accept_encoding(self) -> str | None:
-        return self._accept_encoding
+        if isinstance(data, bytes):
+            return zlib.compress(data, self._level)
+        return zlib.compress(data.encode("utf-8"), self._level)
