@@ -63,17 +63,13 @@ class Request:
     ) -> None:
         self.method: Method = method
         self.endpoint: str = endpoint
-        self.headers: RequestHeaders = self._normalize_headers(headers)
-        self.params: Params = self._normalize_params(params)
+        self.headers: RequestHeaders = headers or dict()
+        self.params: Params = params or dict()
         self.data: Optional[bytes] = data
         self.auth: Optional[Auth] = auth
 
-    @staticmethod
-    def _normalize_headers(headers: Optional[RequestHeaders]) -> RequestHeaders:
+    def normalized_headers(self) -> RequestHeaders:
         """Normalize request headers.
-
-        Parameters:
-            headers (dict | None): Request headers.
 
         Returns:
             dict: Normalized request headers.
@@ -85,26 +81,22 @@ class Request:
             "x-arango-driver": driver_header,
         }
 
-        if headers is not None:
-            for key, value in headers.items():
+        if self.headers is not None:
+            for key, value in self.headers.items():
                 normalized_headers[key.lower()] = value
 
         return normalized_headers
 
-    @staticmethod
-    def _normalize_params(params: Optional[Params]) -> Params:
+    def normalized_params(self) -> Params:
         """Normalize URL parameters.
-
-        Parameters:
-            params (dict | None): URL parameters.
 
         Returns:
             dict: Normalized URL parameters.
         """
         normalized_params: Params = {}
 
-        if params is not None:
-            for key, value in params.items():
+        if self.params is not None:
+            for key, value in self.params.items():
                 if isinstance(value, bool):
                     value = int(value)
                 normalized_params[key] = str(value)

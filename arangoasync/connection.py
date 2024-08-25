@@ -64,8 +64,10 @@ class BaseConnection(ABC):
             ServerConnectionError: If the response status code is not successful.
         """
         resp.is_success = 200 <= resp.status_code < 300
+        if resp.status_code in {401, 403}:
+            raise ServerConnectionError(resp, request, "Authentication failed.")
         if not resp.is_success:
-            raise ServerConnectionError(resp, request)
+            raise ServerConnectionError(resp, request, "Bad server response.")
         return resp
 
     async def process_request(self, request: Request) -> Response:
@@ -110,10 +112,6 @@ class BaseConnection(ABC):
         """
         request = Request(method=Method.GET, endpoint="/_api/collection")
         resp = await self.send_request(request)
-        if resp.status_code in {401, 403}:
-            raise ServerConnectionError(resp, request, "Authentication failed.")
-        if not resp.is_success:
-            raise ServerConnectionError(resp, request, "Bad server response.")
         return resp.status_code
 
     @abstractmethod
@@ -161,9 +159,9 @@ class BasicConnection(BaseConnection):
             request.data
         ):
             request.data = self._compression.compress(request.data)
-            request.headers["content-encoding"] = self._compression.content_encoding()
+            request.headers["content-encoding"] = self._compression.content_encoding
 
-        accept_encoding: str | None = self._compression.accept_encoding()
+        accept_encoding: str | None = self._compression.accept_encoding
         if accept_encoding is not None:
             request.headers["accept-encoding"] = accept_encoding
 

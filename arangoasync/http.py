@@ -151,8 +151,8 @@ class AioHTTPClient(HTTPClient):
             async with session.request(
                 request.method.name,
                 request.endpoint,
-                headers=request.headers,
-                params=request.params,
+                headers=request.normalized_headers(),
+                params=request.normalized_params(),
                 data=request.data,
                 auth=auth,
             ) as response:
