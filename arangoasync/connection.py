@@ -12,8 +12,9 @@ import jwt
 from arangoasync.auth import Auth, JwtToken
 from arangoasync.compression import CompressionManager, DefaultCompressionManager
 from arangoasync.exceptions import (
+    AuthHeaderError,
+    ClientConnectionAbortedError,
     ClientConnectionError,
-    ConnectionAbortedError,
     JWTRefreshError,
     ServerConnectionError,
 )
@@ -102,7 +103,7 @@ class BaseConnection(ABC):
                     self._host_resolver.change_host()
                     host_index = self._host_resolver.get_host_index()
 
-        raise ConnectionAbortedError(
+        raise ClientConnectionAbortedError(
             f"Can't connect to host(s) within limit ({self._host_resolver.max_tries})"
         )
 
@@ -226,6 +227,27 @@ class JwtConnection(BaseConnection):
         if self._token is None and self._auth is None:
             raise ValueError("Either token or auth must be provided.")
 
+    @property
+    def token(self) -> Optional[JwtToken]:
+        """Get the JWT token.
+
+        Returns:
+            JwtToken | None: JWT token.
+        """
+        return self._token
+
+    @token.setter
+    def token(self, token: Optional[JwtToken]) -> None:
+        """Set the JWT token.
+
+        Args:
+            token (JwtToken | None): JWT token.
+                Setting it to None will cause the token to be automatically
+                refreshed on the next request, if auth information is provided.
+        """
+        self._token = token
+        self._auth_header = f"bearer {self._token.token}" if self._token else None
+
     async def refresh_token(self) -> None:
         """Refresh the JWT token.
 
@@ -248,7 +270,7 @@ class JwtConnection(BaseConnection):
 
         try:
             resp = await self.process_request(request)
-        except ConnectionAbortedError as e:
+        except ClientConnectionAbortedError as e:
             raise JWTRefreshError(str(e)) from e
         except ServerConnectionError as e:
             raise JWTRefreshError(str(e)) from e
@@ -267,27 +289,6 @@ class JwtConnection(BaseConnection):
                 "Failed to refresh the JWT token: got an expired token"
             ) from e
 
-    @property
-    def token(self) -> Optional[JwtToken]:
-        """Get the JWT token.
-
-        Returns:
-            JwtToken | None: JWT token.
-        """
-        return self._token
-
-    @token.setter
-    def token(self, token: Optional[JwtToken]) -> None:
-        """Set the JWT token.
-
-        Args:
-            token (JwtToken | None): JWT token.
-                Setting it to None will cause the token to be automatically
-                refreshed on the next request, if auth information is provided.
-        """
-        self._token = token
-        self._auth_header = f"bearer {self._token.token}" if self._token else None
-
     async def send_request(self, request: Request) -> Response:
         """Send an HTTP request to the ArangoDB server.
 
@@ -303,6 +304,10 @@ class JwtConnection(BaseConnection):
         """
         if self._auth_header is None:
             await self.refresh_token()
+
+        if self._auth_header is None:
+            raise AuthHeaderError("Failed to generate authorization header.")
+
         request.headers["authorization"] = self._auth_header
 
         try:

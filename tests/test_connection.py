@@ -6,8 +6,8 @@ from arangoasync.auth import Auth
 from arangoasync.compression import AcceptEncoding, DefaultCompressionManager
 from arangoasync.connection import BasicConnection, JwtConnection
 from arangoasync.exceptions import (
+    ClientConnectionAbortedError,
     ClientConnectionError,
-    ConnectionAbortedError,
     ServerConnectionError,
 )
 from arangoasync.http import AioHTTPClient
@@ -128,7 +128,7 @@ async def test_BasicConnection_process_request_connection_aborted(
         auth=Auth(username=root, password=password),
     )
 
-    with pytest.raises(ConnectionAbortedError):
+    with pytest.raises(ClientConnectionAbortedError):
         await connection.process_request(request)
 
 
