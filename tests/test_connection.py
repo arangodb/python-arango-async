@@ -2,7 +2,7 @@ import zlib
 
 import pytest
 
-from arangoasync.auth import Auth, JwtToken
+from arangoasync.auth import Auth
 from arangoasync.compression import AcceptEncoding, DefaultCompressionManager
 from arangoasync.connection import BasicConnection, JwtConnection
 from arangoasync.exceptions import (
@@ -134,22 +134,30 @@ async def test_BasicConnection_process_request_connection_aborted(
 
 @pytest.mark.asyncio
 async def test_JwtConnection_ping_success(
-    client_session, url, sys_db_name, root, password, token
+    client_session, url, sys_db_name, root, password
 ):
     client = AioHTTPClient()
     session = client_session(client, url)
     resolver = DefaultHostResolver(1)
-    token = JwtToken(token)
 
-    connection = JwtConnection(
+    connection1 = JwtConnection(
         sessions=[session],
         host_resolver=resolver,
         http_client=client,
         db_name=sys_db_name,
         auth=Auth(username=root, password=password),
-        token=token,
     )
+    assert connection1.db_name == sys_db_name
+    status_code = await connection1.ping()
+    assert status_code == 200
 
-    assert connection.db_name == sys_db_name
-    status_code = await connection.ping()
+    connection2 = JwtConnection(
+        sessions=[session],
+        host_resolver=resolver,
+        http_client=client,
+        db_name=sys_db_name,
+        token=connection1.token,
+    )
+    assert connection2.db_name == sys_db_name
+    status_code = await connection2.ping()
     assert status_code == 200

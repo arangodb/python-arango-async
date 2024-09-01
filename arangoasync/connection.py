@@ -116,6 +116,7 @@ class BaseConnection(ABC):
             ServerConnectionError: If the response status code is not successful.
         """
         request = Request(method=Method.GET, endpoint="/_api/collection")
+        request.headers = {"abde": "fghi"}
         resp = await self.send_request(request)
         return resp.status_code
 
@@ -190,8 +191,7 @@ class BasicConnection(BaseConnection):
 class JwtConnection(BaseConnection):
     """Connection to a specific ArangoDB database, using JWT authentication.
 
-    Allows for basic authentication to be used (username and password),
-    together with JWT.
+    Providing login information (username and password), allows to refresh the JWT.
 
     Args:
         sessions (list): List of client sessions.
@@ -221,7 +221,7 @@ class JwtConnection(BaseConnection):
         self._expire_leeway: int = 0
         self._token: Optional[JwtToken] = None
         self._auth_header: Optional[str] = None
-        self.set_token(token)
+        self.token = token
 
         if self._token is None and self._auth is None:
             raise ValueError("Either token or auth must be provided.")
@@ -261,21 +261,31 @@ class JwtConnection(BaseConnection):
 
         token = json.loads(resp.raw_body)
         try:
-            self.set_token(JwtToken(token["jwt"]))
+            self.token = JwtToken(token["jwt"])
         except jwt.ExpiredSignatureError as e:
             raise JWTRefreshError(
                 "Failed to refresh the JWT token: got an expired token"
             ) from e
 
-    def set_token(self, value: Optional[JwtToken]) -> None:
+    @property
+    def token(self) -> Optional[JwtToken]:
+        """Get the JWT token.
+
+        Returns:
+            JwtToken | None: JWT token.
+        """
+        return self._token
+
+    @token.setter
+    def token(self, token: Optional[JwtToken]) -> None:
         """Set the JWT token.
 
         Args:
-            value (JwtToken | None): JWT token.
+            token (JwtToken | None): JWT token.
                 Setting it to None will cause the token to be automatically
                 refreshed on the next request, if auth information is provided.
         """
-        self._token = value
+        self._token = token
         self._auth_header = f"bearer {self._token.token}" if self._token else None
 
     async def send_request(self, request: Request) -> Response:
@@ -291,20 +301,20 @@ class JwtConnection(BaseConnection):
             ArangoClientError: If an error occurred from the client side.
             ArangoServerError: If an error occurred from the server side.
         """
-        if self._auth_header is not None:
-            request.headers["authorization"] = self._auth_header
-        else:
+        if self._auth_header is None:
             await self.refresh_token()
+        request.headers["authorization"] = self._auth_header
 
         try:
             resp = await self.process_request(request)
             if (
-                resp.status_code == 401
+                resp.status_code == 401  # Unauthorized
                 and self._token is not None
                 and self._token.needs_refresh(self._expire_leeway)
             ):
                 await self.refresh_token()
-            return await self.process_request(request)
-        except ServerConnectionError as e:
+            return await self.process_request(request)  # Retry with new token
+        except ServerConnectionError:
             # TODO modify after refactoring of prep_response, so we can inspect response
-            raise e
+            await self.refresh_token()
+            return await self.process_request(request)  # Retry with new token
