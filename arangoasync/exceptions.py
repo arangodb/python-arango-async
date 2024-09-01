@@ -68,7 +68,7 @@ class ArangoServerError(ArangoError):
         self.http_headers = resp.headers
 
 
-class ConnectionAbortedError(ArangoClientError):
+class ClientConnectionAbortedError(ArangoClientError):
     """The connection was aborted."""
 
 
@@ -76,8 +76,16 @@ class ClientConnectionError(ArangoClientError):
     """The request was unable to reach the server."""
 
 
+class AuthHeaderError(ArangoClientError):
+    """The authentication header could not be determined."""
+
+
 class JWTExpiredError(ArangoClientError):
     """JWT token has expired."""
+
+
+class JWTRefreshError(ArangoClientError):
+    """Failed to refresh the JWT token."""
 
 
 class ServerConnectionError(ArangoServerError):

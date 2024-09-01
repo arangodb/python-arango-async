@@ -120,11 +120,11 @@ class DefaultCompressionManager(CompressionManager):
         self._level = value
 
     @property
-    def accept_encoding(self) -> str | None:
+    def accept_encoding(self) -> Optional[str]:
         return self._accept_encoding
 
     @accept_encoding.setter
-    def accept_encoding(self, value: AcceptEncoding | None) -> None:
+    def accept_encoding(self, value: Optional[AcceptEncoding]) -> None:
         self._accept_encoding = value.name.lower() if value else None
 
     @property

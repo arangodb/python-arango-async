@@ -3,6 +3,7 @@ __all__ = [
     "JwtToken",
 ]
 
+import time
 from dataclasses import dataclass
 
 import jwt
@@ -27,24 +28,24 @@ class JwtToken:
     """JWT token.
 
     Args:
-        token (str | bytes): JWT token.
+        token (str): JWT token.
 
     Raises:
         TypeError: If the token type is not str or bytes.
-        JWTExpiredError: If the token expired.
+        jwt.ExpiredSignatureError: If the token expired.
     """
 
-    def __init__(self, token: str | bytes) -> None:
+    def __init__(self, token: str) -> None:
         self._token = token
         self._validate()
 
     @property
-    def token(self) -> str | bytes:
+    def token(self) -> str:
         """Get token."""
         return self._token
 
     @token.setter
-    def token(self, token: str | bytes) -> None:
+    def token(self, token: str) -> None:
         """Set token.
 
         Raises:
@@ -53,9 +54,22 @@ class JwtToken:
         self._token = token
         self._validate()
 
+    def needs_refresh(self, leeway: int = 0) -> bool:
+        """Check if the token needs to be refreshed.
+
+        Args:
+            leeway (int): Leeway in seconds, before official expiration,
+                when to consider the token expired.
+
+        Returns:
+            bool: True if the token needs to be refreshed, False otherwise.
+        """
+        refresh: bool = int(time.time()) > self._token_exp - leeway
+        return refresh
+
     def _validate(self) -> None:
         """Validate the token."""
-        if type(self._token) not in (str, bytes):
+        if type(self._token) is not str:
             raise TypeError("Token must be str or bytes")
 
         jwt_payload = jwt.decode(

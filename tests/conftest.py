@@ -3,12 +3,16 @@ from dataclasses import dataclass
 import pytest
 import pytest_asyncio
 
+from tests.helpers import generate_jwt
+
 
 @dataclass
 class GlobalData:
     url: str = None
     root: str = None
     password: str = None
+    secret: str = None
+    token: str = None
     sys_db_name: str = "_system"
 
 
@@ -28,6 +32,9 @@ def pytest_addoption(parser):
     parser.addoption(
         "--password", action="store", default="passwd", help="ArangoDB password"
     )
+    parser.addoption(
+        "--secret", action="store", default="secret", help="ArangoDB JWT secret"
+    )
 
 
 def pytest_configure(config):
@@ -38,6 +45,8 @@ def pytest_configure(config):
     global_data.url = url
     global_data.root = config.getoption("root")
     global_data.password = config.getoption("password")
+    global_data.secret = generate_jwt(config.getoption("secret"))
+    global_data.token = generate_jwt(global_data.secret)
 
 
 @pytest.fixture(autouse=False)
@@ -53,6 +62,11 @@ def root():
 @pytest.fixture(autouse=False)
 def password():
     return global_data.password
+
+
+@pytest.fixture(autouse=False)
+def token():
+    return global_data.token
 
 
 @pytest.fixture(autouse=False)
