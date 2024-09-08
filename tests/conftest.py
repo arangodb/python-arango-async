@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import pytest
 import pytest_asyncio
 
-from tests.helpers import generate_jwt
+from arangoasync.auth import JwtToken
 
 
 @dataclass
@@ -45,8 +45,8 @@ def pytest_configure(config):
     global_data.url = url
     global_data.root = config.getoption("root")
     global_data.password = config.getoption("password")
-    global_data.secret = generate_jwt(config.getoption("secret"))
-    global_data.token = generate_jwt(global_data.secret)
+    global_data.secret = config.getoption("secret")
+    global_data.token = JwtToken.generate_token(global_data.secret)
 
 
 @pytest.fixture(autouse=False)
@@ -76,6 +76,7 @@ def sys_db_name():
 
 @pytest_asyncio.fixture
 async def client_session():
+    """Make sure we close all sessions after the test is done."""
     sessions = []
 
     def get_client_session(client, url):

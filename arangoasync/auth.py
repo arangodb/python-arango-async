@@ -5,6 +5,7 @@ __all__ = [
 
 import time
 from dataclasses import dataclass
+from typing import Optional
 
 import jwt
 
@@ -38,6 +39,38 @@ class JwtToken:
     def __init__(self, token: str) -> None:
         self._token = token
         self._validate()
+
+    @staticmethod
+    def generate_token(
+        secret: str | bytes,
+        iat: Optional[int] = None,
+        exp: int = 3600,
+        iss: str = "arangodb",
+        server_id: str = "client",
+    ) -> "JwtToken":
+        """Generate and return a JWT token.
+
+        Args:
+            secret (str | bytes): JWT secret.
+            iat (int): Time the token was issued in seconds. Defaults to current time.
+            exp (int): Time to expire in seconds.
+            iss (str): Issuer.
+            server_id (str): Server ID.
+
+        Returns:
+            str: JWT token.
+        """
+        iat = iat or int(time.time())
+        token = jwt.encode(
+            payload={
+                "iat": iat,
+                "exp": iat + exp,
+                "iss": iss,
+                "server_id": server_id,
+            },
+            key=secret,
+        )
+        return JwtToken(token)
 
     @property
     def token(self) -> str:
