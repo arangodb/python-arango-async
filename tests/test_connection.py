@@ -149,7 +149,8 @@ async def test_BasicConnection_process_request_connection_aborted(
     assert tries == max_tries
 
 
-def test_JwtConnection_no_auth(client_session, url, sys_db_name):
+@pytest.mark.asyncio
+async def test_JwtConnection_no_auth(client_session, url, sys_db_name):
     client = AioHTTPClient()
     session = client_session(client, url)
     resolver = DefaultHostResolver(1)
