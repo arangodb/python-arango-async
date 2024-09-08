@@ -102,3 +102,6 @@ class Request:
                 normalized_params[key] = str(value)
 
         return normalized_params
+
+    def __repr__(self) -> str:
+        return f"<{self.method.name} {self.endpoint}>"
