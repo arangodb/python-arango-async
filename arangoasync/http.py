@@ -5,6 +5,7 @@ __all__ = [
 ]
 
 from abc import ABC, abstractmethod
+from ssl import SSLContext, create_default_context
 from typing import Any, Optional
 
 from aiohttp import (
@@ -82,6 +83,10 @@ class AioHTTPClient(HTTPClient):
         timeout (aiohttp.ClientTimeout | None): Client timeout settings.
             300s total timeout by default for a complete request/response operation.
         read_bufsize (int): Size of read buffer (64KB default).
+        ssl_context (ssl.SSLContext | bool): SSL validation mode.
+            `True` for default SSL checks (see :func:`ssl.create_default_context`).
+            `False` disables SSL checks.
+            Additionally, you can pass a custom :class:`ssl.SSLContext`.
 
     .. _aiohttp:
         https://docs.aiohttp.org/en/stable/
@@ -92,6 +97,7 @@ class AioHTTPClient(HTTPClient):
         connector: Optional[BaseConnector] = None,
         timeout: Optional[ClientTimeout] = None,
         read_bufsize: int = 2**16,
+        ssl_context: bool | SSLContext = True,
     ) -> None:
         self._connector = connector or TCPConnector(
             keepalive_timeout=60,  # timeout for connection reusing after releasing
@@ -102,6 +108,9 @@ class AioHTTPClient(HTTPClient):
             connect=60,  # max number of seconds for acquiring a pool connection
         )
         self._read_bufsize = read_bufsize
+        self._ssl_context = (
+            ssl_context if ssl_context is not True else create_default_context()
+        )
 
     def create_session(self, host: str) -> ClientSession:
         """Return a new session given the base host URL.
@@ -155,6 +164,7 @@ class AioHTTPClient(HTTPClient):
                 params=request.normalized_params(),
                 data=request.data,
                 auth=auth,
+                ssl=self._ssl_context,
             ) as response:
                 raw_body = await response.read()
                 return Response(

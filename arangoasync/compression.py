@@ -72,7 +72,7 @@ class CompressionManager(ABC):  # pragma: no cover
         """Return the accept encoding.
 
         This is the value of the Accept-Encoding header in the HTTP request.
-        Currently, only deflate and "gzip" are supported.
+        Currently, only "deflate" and "gzip" are supported.
 
         Returns:
             str: Accept encoding

@@ -33,7 +33,7 @@ class JwtToken:
 
     Raises:
         TypeError: If the token type is not str or bytes.
-        jwt.ExpiredSignatureError: If the token expired.
+        jwt.exceptions.ExpiredSignatureError: If the token expired.
     """
 
     def __init__(self, token: str) -> None:
@@ -82,7 +82,7 @@ class JwtToken:
         """Set token.
 
         Raises:
-            jwt.ExpiredSignatureError: If the token expired.
+            jwt.exceptions.ExpiredSignatureError: If the token expired.
         """
         self._token = token
         self._validate()

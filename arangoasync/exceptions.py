@@ -80,10 +80,6 @@ class AuthHeaderError(ArangoClientError):
     """The authentication header could not be determined."""
 
 
-class JWTExpiredError(ArangoClientError):
-    """JWT token has expired."""
-
-
 class JWTRefreshError(ArangoClientError):
     """Failed to refresh the JWT token."""
 
