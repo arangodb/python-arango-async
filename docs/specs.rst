@@ -4,14 +4,20 @@ API Specification
 This page contains the specification for all classes and methods available in
 python-arango-async.
 
+.. automodule:: arangoasync.client
+    :members:
+
 .. automodule:: arangoasync.auth
+    :members:
+
+.. automodule:: arangoasync.compression
     :members:
 
 .. automodule:: arangoasync.connection
     :members:
 
 .. automodule:: arangoasync.exceptions
-    :members: ArangoError, ArangoClientError
+    :members:
 
 .. automodule:: arangoasync.http
     :members:

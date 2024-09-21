@@ -15,7 +15,8 @@ class HostResolver(ABC):
 
     Args:
         host_count (int): Number of hosts.
-        max_tries (int): Maximum number of attempts to try a host.
+        max_tries (int | None): Maximum number of attempts to try a host.
+            Will default to 3 times the number of hosts if not provided.
 
     Raises:
         ValueError: If max_tries is less than host_count.
@@ -42,7 +43,7 @@ class HostResolver(ABC):
         raise NotImplementedError
 
     def change_host(self) -> None:
-        """If there aer multiple hosts available, switch to the next one."""
+        """If there are multiple hosts available, switch to the next one."""
         self._index = (self._index + 1) % self.host_count
 
     @property
@@ -57,7 +58,10 @@ class HostResolver(ABC):
 
 
 class SingleHostResolver(HostResolver):
-    """Single host resolver. Always returns the same host index."""
+    """Single host resolver.
+
+    Always returns the same host index, unless prompted to change.
+    """
 
     def __init__(self, host_count: int, max_tries: Optional[int] = None) -> None:
         super().__init__(host_count, max_tries)

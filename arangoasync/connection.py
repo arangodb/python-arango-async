@@ -1,6 +1,7 @@
 __all__ = [
     "BaseConnection",
     "BasicConnection",
+    "Connection",
     "JwtConnection",
     "JwtSuperuserConnection",
 ]
@@ -244,9 +245,9 @@ class JwtConnection(BaseConnection):
         super().__init__(sessions, host_resolver, http_client, db_name, compression)
         self._auth = auth
         self._expire_leeway: int = 0
-        self._token: Optional[JwtToken] = None
+        self._token: Optional[JwtToken] = token
         self._auth_header: Optional[str] = None
-        self.token = token
+        self.token = self._token
 
         if self._token is None and self._auth is None:
             raise ValueError("Either token or auth must be provided.")
@@ -323,6 +324,7 @@ class JwtConnection(BaseConnection):
             Response: HTTP response
 
         Raises:
+            AuthHeaderError: If the authentication header could not be generated.
             ArangoClientError: If an error occurred from the client side.
             ArangoServerError: If an error occurred from the server side.
         """
@@ -372,9 +374,9 @@ class JwtSuperuserConnection(BaseConnection):
     ) -> None:
         super().__init__(sessions, host_resolver, http_client, db_name, compression)
         self._expire_leeway: int = 0
-        self._token: Optional[JwtToken] = None
+        self._token: Optional[JwtToken] = token
         self._auth_header: Optional[str] = None
-        self.token = token
+        self.token = self._token
 
     @property
     def token(self) -> Optional[JwtToken]:
@@ -407,6 +409,7 @@ class JwtSuperuserConnection(BaseConnection):
             Response: HTTP response
 
         Raises:
+            AuthHeaderError: If the authentication header could not be generated.
             ArangoClientError: If an error occurred from the client side.
             ArangoServerError: If an error occurred from the server side.
         """
@@ -417,3 +420,6 @@ class JwtSuperuserConnection(BaseConnection):
         resp = await self.process_request(request)
         self.raise_for_status(request, resp)
         return resp
+
+
+Connection = BasicConnection | JwtConnection | JwtSuperuserConnection
