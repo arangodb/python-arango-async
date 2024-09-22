@@ -86,17 +86,16 @@ class DefaultCompressionManager(CompressionManager):
     Args:
         threshold (int): Will compress requests to the server if
         the size of the request body (in bytes) is at least the value of this option.
-        Setting it to -1 will disable request compression (default).
+        Setting it to -1 will disable request compression.
         level (int): Compression level. Defaults to 6.
-        accept (str | None): Accepted encoding. By default, there is
-        no compression of responses.
+        accept (str | None): Accepted encoding. Can be disabled by setting it to `None`.
     """
 
     def __init__(
         self,
-        threshold: int = -1,
+        threshold: int = 1024,
         level: int = 6,
-        accept: Optional[AcceptEncoding] = None,
+        accept: Optional[AcceptEncoding] = AcceptEncoding.DEFLATE,
     ) -> None:
         self._threshold = threshold
         self._level = level
@@ -132,7 +131,7 @@ class DefaultCompressionManager(CompressionManager):
         return self._content_encoding
 
     def needs_compression(self, data: str | bytes) -> bool:
-        return self._threshold != -1 and len(data) >= self._threshold
+        return len(data) >= self._threshold
 
     def compress(self, data: str | bytes) -> bytes:
         if isinstance(data, bytes):

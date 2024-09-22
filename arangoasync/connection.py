@@ -14,7 +14,7 @@ import jwt
 
 from arangoasync import errno, logger
 from arangoasync.auth import Auth, JwtToken
-from arangoasync.compression import CompressionManager, DefaultCompressionManager
+from arangoasync.compression import CompressionManager
 from arangoasync.exceptions import (
     AuthHeaderError,
     ClientConnectionAbortedError,
@@ -52,7 +52,7 @@ class BaseConnection(ABC):
         self._host_resolver = host_resolver
         self._http_client = http_client
         self._db_name = db_name
-        self._compression = compression or DefaultCompressionManager()
+        self._compression = compression
 
     @property
     def db_name(self) -> str:
@@ -99,6 +99,38 @@ class BaseConnection(ABC):
                     resp.error_code = body.get("errorNum")
                     resp.error_message = body.get("errorMessage")
         return resp
+
+    def compress_request(self, request: Request) -> bool:
+        """Compress request if needed.
+
+        Additionally, the server may be instructed to compress the response.
+        The decision to compress the request is based on the compression strategy
+        passed during the connection initialization.
+        The request headers and may be modified as a result of this operation.
+
+        Args:
+            request (Request): Request to be compressed.
+
+        Returns:
+            bool: True if compression settings were applied.
+        """
+        if self._compression is None:
+            return False
+
+        result: bool = False
+        if request.data is not None and self._compression.needs_compression(
+            request.data
+        ):
+            request.data = self._compression.compress(request.data)
+            request.headers["content-encoding"] = self._compression.content_encoding
+            result = True
+
+        accept_encoding: str | None = self._compression.accept_encoding
+        if accept_encoding is not None:
+            request.headers["accept-encoding"] = accept_encoding
+            result = True
+
+        return result
 
     async def process_request(self, request: Request) -> Response:
         """Process request, potentially trying multiple hosts.
@@ -198,15 +230,7 @@ class BasicConnection(BaseConnection):
             ArangoClientError: If an error occurred from the client side.
             ArangoServerError: If an error occurred from the server side.
         """
-        if request.data is not None and self._compression.needs_compression(
-            request.data
-        ):
-            request.data = self._compression.compress(request.data)
-            request.headers["content-encoding"] = self._compression.content_encoding
-
-        accept_encoding: str | None = self._compression.accept_encoding
-        if accept_encoding is not None:
-            request.headers["accept-encoding"] = accept_encoding
+        self.compress_request(request)
 
         if self._auth:
             request.auth = self._auth
@@ -335,6 +359,7 @@ class JwtConnection(BaseConnection):
             raise AuthHeaderError("Failed to generate authorization header.")
 
         request.headers["authorization"] = self._auth_header
+        self.compress_request(request)
 
         resp = await self.process_request(request)
         if (
@@ -416,6 +441,7 @@ class JwtSuperuserConnection(BaseConnection):
         if self._auth_header is None:
             raise AuthHeaderError("Failed to generate authorization header.")
         request.headers["authorization"] = self._auth_header
+        self.compress_request(request)
 
         resp = await self.process_request(request)
         self.raise_for_status(request, resp)
