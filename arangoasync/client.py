@@ -43,7 +43,7 @@ class ArangoClient:
             responses. Enable it by passing an instance of
             :class:`DefaultCompressionManager
             <arangoasync.compression.DefaultCompressionManager>`
-            or a subclass of :class:`CompressionManager
+            or a custom subclass of :class:`CompressionManager
             <arangoasync.compression.CompressionManager>`.
 
     Raises:
@@ -143,8 +143,8 @@ class ArangoClient:
             auth (Auth | None): Login information.
             token (JwtToken | None): JWT token.
             verify (bool): Verify the connection by sending a test request.
-            compression (CompressionManager | None): Supersedes the client-level
-                compression settings.
+            compression (CompressionManager | None): If set, supersedes the
+                client-level compression settings.
 
         Returns:
             Database: Database API wrapper.
