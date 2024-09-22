@@ -55,7 +55,7 @@ async def test_client_attributes(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_client_bad_auth_method(url, sys_db_name, root, password):
+async def test_client_bad_auth_method(url, sys_db_name):
     async with ArangoClient(hosts=url) as client:
         with pytest.raises(ValueError):
             await client.db(sys_db_name, auth_method="invalid")
@@ -89,7 +89,7 @@ async def test_client_jwt_auth(url, sys_db_name, root, password):
     # successful authentication with auth only
     async with ArangoClient(hosts=url) as client:
         db = await client.db(sys_db_name, auth_method="jwt", auth=auth, verify=True)
-        token = db.conn.token
+        token = db.connection.token
 
     # successful authentication with token only
     async with ArangoClient(hosts=url) as client:

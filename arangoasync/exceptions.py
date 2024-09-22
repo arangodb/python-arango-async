@@ -86,3 +86,7 @@ class JWTRefreshError(ArangoClientError):
 
 class ServerConnectionError(ArangoServerError):
     """Failed to connect to ArangoDB server."""
+
+
+class ServerStatusError(ArangoServerError):
+    """Failed to retrieve server status."""

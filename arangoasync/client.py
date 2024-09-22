@@ -11,7 +11,7 @@ from arangoasync.connection import (
     JwtConnection,
     JwtSuperuserConnection,
 )
-from arangoasync.database import Database
+from arangoasync.database import StandardDatabase
 from arangoasync.http import DefaultHTTPClient, HTTPClient
 from arangoasync.resolver import HostResolver, get_resolver
 from arangoasync.version import __version__
@@ -124,7 +124,7 @@ class ArangoClient:
         token: Optional[JwtToken] = None,
         verify: bool = False,
         compression: Optional[CompressionManager] = None,
-    ) -> Database:
+    ) -> StandardDatabase:
         """Connects to a database and returns and API wrapper.
 
         Args:
@@ -147,7 +147,7 @@ class ArangoClient:
                 client-level compression settings.
 
         Returns:
-            Database: Database API wrapper.
+            StandardDatabase: Database API wrapper.
 
         Raises:
             ValueError: If the authentication is invalid.
@@ -198,4 +198,4 @@ class ArangoClient:
         if verify:
             await connection.ping()
 
-        return Database(connection)
+        return StandardDatabase(connection)
