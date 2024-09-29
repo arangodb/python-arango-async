@@ -3,14 +3,15 @@ __all__ = [
     "StandardDatabase",
 ]
 
-import json
-from typing import Any
 
 from arangoasync.connection import Connection
 from arangoasync.exceptions import ServerStatusError
 from arangoasync.executor import ApiExecutor, DefaultApiExecutor
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
+from arangoasync.serialization import Deserializer, Serializer
+from arangoasync.typings import Result
+from arangoasync.wrapper import ServerStatusInformation
 
 
 class Database:
@@ -29,25 +30,31 @@ class Database:
         """Return the name of the current database."""
         return self.connection.db_name
 
-    # TODO - user real return type
-    async def status(self) -> Any:
+    @property
+    def serializer(self) -> Serializer:
+        """Return the serializer."""
+        return self._executor.serializer
+
+    @property
+    def deserializer(self) -> Deserializer:
+        """Return the deserializer."""
+        return self._executor.deserializer
+
+    async def status(self) -> Result[ServerStatusInformation]:
         """Query the server status.
 
         Returns:
-            Json: Server status.
+            ServerStatusInformation: Server status.
 
         Raises:
             ServerSatusError: If retrieval fails.
         """
         request = Request(method=Method.GET, endpoint="/_admin/status")
 
-        # TODO
-        # - introduce specific return type for response_handler
-        # - introduce specific serializer and deserializer
-        def response_handler(resp: Response) -> Any:
+        def response_handler(resp: Response) -> ServerStatusInformation:
             if not resp.is_success:
                 raise ServerStatusError(resp, request)
-            return json.loads(resp.raw_body)
+            return ServerStatusInformation(self.deserializer.from_bytes(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
 

@@ -3,6 +3,7 @@ from typing import Callable, TypeVar
 from arangoasync.connection import Connection
 from arangoasync.request import Request
 from arangoasync.response import Response
+from arangoasync.serialization import Deserializer, Serializer
 
 T = TypeVar("T")
 
@@ -26,6 +27,14 @@ class DefaultApiExecutor:
     @property
     def context(self) -> str:
         return "default"
+
+    @property
+    def serializer(self) -> Serializer:
+        return self._conn.serializer
+
+    @property
+    def deserializer(self) -> Deserializer:
+        return self._conn.deserializer
 
     async def execute(
         self, request: Request, response_handler: Callable[[Response], T]
