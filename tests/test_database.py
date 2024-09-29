@@ -5,7 +5,7 @@ from arangoasync.client import ArangoClient
 
 
 @pytest.mark.asyncio
-async def test_client_basic_auth(url, sys_db_name, root, password):
+async def test_database_misc_methods(url, sys_db_name, root, password):
     auth = Auth(username=root, password=password)
 
     # TODO create a test database and user

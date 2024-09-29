@@ -10,7 +10,13 @@ python-arango-async.
 .. automodule:: arangoasync.auth
     :members:
 
+.. automodule:: arangoasync.database
+    :members:
+
 .. automodule:: arangoasync.compression
+    :members:
+
+.. automodule:: arangoasync.serialization
     :members:
 
 .. automodule:: arangoasync.connection
@@ -29,4 +35,7 @@ python-arango-async.
     :members:
 
 .. automodule:: arangoasync.response
+    :members:
+
+.. automodule:: arangoasync.wrapper
     :members:

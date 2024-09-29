@@ -6,11 +6,11 @@ __all__ = [
     "JwtSuperuserConnection",
 ]
 
-import json
 from abc import ABC, abstractmethod
+from json import JSONDecodeError
 from typing import Any, List, Optional
 
-import jwt
+from jwt import ExpiredSignatureError
 
 from arangoasync import errno, logger
 from arangoasync.auth import Auth, JwtToken
@@ -26,6 +26,12 @@ from arangoasync.http import HTTPClient
 from arangoasync.request import Method, Request
 from arangoasync.resolver import HostResolver
 from arangoasync.response import Response
+from arangoasync.serialization import (
+    DefaultDeserializer,
+    DefaultSerializer,
+    Deserializer,
+    Serializer,
+)
 
 
 class BaseConnection(ABC):
@@ -37,6 +43,10 @@ class BaseConnection(ABC):
         http_client (HTTPClient): HTTP client.
         db_name (str): Database name.
         compression (CompressionManager | None): Compression manager.
+        serializer (Serializer | None): For custom serialization.
+            Leave `None` for default.
+        deserializer (Deserializer | None): For custom deserialization.
+            Leave `None` for default.
     """
 
     def __init__(
@@ -46,6 +56,8 @@ class BaseConnection(ABC):
         http_client: HTTPClient,
         db_name: str,
         compression: Optional[CompressionManager] = None,
+        serializer: Optional[Serializer] = None,
+        deserializer: Optional[Deserializer] = None,
     ) -> None:
         self._sessions = sessions
         self._db_endpoint = f"/_db/{db_name}"
@@ -53,11 +65,23 @@ class BaseConnection(ABC):
         self._http_client = http_client
         self._db_name = db_name
         self._compression = compression
+        self._serializer = serializer or DefaultSerializer()
+        self._deserializer = deserializer or DefaultDeserializer()
 
     @property
     def db_name(self) -> str:
         """Return the database name."""
         return self._db_name
+
+    @property
+    def serializer(self) -> Serializer:
+        """Return the serializer."""
+        return self._serializer
+
+    @property
+    def deserializer(self) -> Deserializer:
+        """Return the deserializer."""
+        return self._deserializer
 
     @staticmethod
     def raise_for_status(request: Request, resp: Response) -> None:
@@ -75,8 +99,7 @@ class BaseConnection(ABC):
         if not resp.is_success:
             raise ServerConnectionError(resp, request, "Bad server response.")
 
-    @staticmethod
-    def prep_response(request: Request, resp: Response) -> Response:
+    def prep_response(self, request: Request, resp: Response) -> Response:
         """Prepare response for return.
 
         Args:
@@ -89,8 +112,8 @@ class BaseConnection(ABC):
         resp.is_success = 200 <= resp.status_code < 300
         if not resp.is_success:
             try:
-                body = json.loads(resp.raw_body)
-            except json.JSONDecodeError as e:
+                body = self._deserializer.from_bytes(resp.raw_body)
+            except JSONDecodeError as e:
                 logger.debug(
                     f"Failed to decode response body: {e} (from request {request})"
                 )
@@ -202,6 +225,8 @@ class BasicConnection(BaseConnection):
         http_client (HTTPClient): HTTP client.
         db_name (str): Database name.
         compression (CompressionManager | None): Compression manager.
+        serializer (Serializer | None): For custom serialization.
+        deserializer (Deserializer | None): For custom deserialization.
         auth (Auth | None): Authentication information.
     """
 
@@ -212,9 +237,19 @@ class BasicConnection(BaseConnection):
         http_client: HTTPClient,
         db_name: str,
         compression: Optional[CompressionManager] = None,
+        serializer: Optional[Serializer] = None,
+        deserializer: Optional[Deserializer] = None,
         auth: Optional[Auth] = None,
     ) -> None:
-        super().__init__(sessions, host_resolver, http_client, db_name, compression)
+        super().__init__(
+            sessions,
+            host_resolver,
+            http_client,
+            db_name,
+            compression,
+            serializer,
+            deserializer,
+        )
         self._auth = auth
 
     async def send_request(self, request: Request) -> Response:
@@ -249,6 +284,8 @@ class JwtConnection(BaseConnection):
         http_client (HTTPClient): HTTP client.
         db_name (str): Database name.
         compression (CompressionManager | None): Compression manager.
+        serializer (Serializer | None): For custom serialization.
+        deserializer (Deserializer | None): For custom deserialization.
         auth (Auth | None): Authentication information.
         token (JwtToken | None): JWT token.
 
@@ -263,10 +300,20 @@ class JwtConnection(BaseConnection):
         http_client: HTTPClient,
         db_name: str,
         compression: Optional[CompressionManager] = None,
+        serializer: Optional[Serializer] = None,
+        deserializer: Optional[Deserializer] = None,
         auth: Optional[Auth] = None,
         token: Optional[JwtToken] = None,
     ) -> None:
-        super().__init__(sessions, host_resolver, http_client, db_name, compression)
+        super().__init__(
+            sessions,
+            host_resolver,
+            http_client,
+            db_name,
+            compression,
+            serializer,
+            deserializer,
+        )
         self._auth = auth
         self._expire_leeway: int = 0
         self._token: Optional[JwtToken] = token
@@ -306,10 +353,8 @@ class JwtConnection(BaseConnection):
         if self._auth is None:
             raise JWTRefreshError("Auth must be provided to refresh the token.")
 
-        auth_data = json.dumps(
+        auth_data = self._serializer.to_str(
             dict(username=self._auth.username, password=self._auth.password),
-            separators=(",", ":"),
-            ensure_ascii=False,
         )
         request = Request(
             method=Method.POST,
@@ -330,10 +375,10 @@ class JwtConnection(BaseConnection):
                 f"{resp.status_code} {resp.status_text}"
             )
 
-        token = json.loads(resp.raw_body)
+        token = self._deserializer.from_bytes(resp.raw_body)
         try:
             self.token = JwtToken(token["jwt"])
-        except jwt.ExpiredSignatureError as e:
+        except ExpiredSignatureError as e:
             raise JWTRefreshError(
                 "Failed to refresh the JWT token: got an expired token"
             ) from e
@@ -385,6 +430,8 @@ class JwtSuperuserConnection(BaseConnection):
         http_client (HTTPClient): HTTP client.
         db_name (str): Database name.
         compression (CompressionManager | None): Compression manager.
+        serializer (Serializer | None): For custom serialization.
+        deserializer (Deserializer | None): For custom deserialization.
         token (JwtToken | None): JWT token.
     """
 
@@ -395,10 +442,19 @@ class JwtSuperuserConnection(BaseConnection):
         http_client: HTTPClient,
         db_name: str,
         compression: Optional[CompressionManager] = None,
+        serializer: Optional[Serializer] = None,
+        deserializer: Optional[Deserializer] = None,
         token: Optional[JwtToken] = None,
     ) -> None:
-        super().__init__(sessions, host_resolver, http_client, db_name, compression)
-        self._expire_leeway: int = 0
+        super().__init__(
+            sessions,
+            host_resolver,
+            http_client,
+            db_name,
+            compression,
+            serializer,
+            deserializer,
+        )
         self._token: Optional[JwtToken] = token
         self._auth_header: Optional[str] = None
         self.token = self._token

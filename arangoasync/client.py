@@ -14,6 +14,12 @@ from arangoasync.connection import (
 from arangoasync.database import StandardDatabase
 from arangoasync.http import DefaultHTTPClient, HTTPClient
 from arangoasync.resolver import HostResolver, get_resolver
+from arangoasync.serialization import (
+    DefaultDeserializer,
+    DefaultSerializer,
+    Deserializer,
+    Serializer,
+)
 from arangoasync.version import __version__
 
 
@@ -45,6 +51,14 @@ class ArangoClient:
             <arangoasync.compression.DefaultCompressionManager>`
             or a custom subclass of :class:`CompressionManager
             <arangoasync.compression.CompressionManager>`.
+        serializer (Serializer | None): Custom serializer implementation.
+            Leave as `None` to use the default serializer.
+            See :class:`DefaultSerializer
+            <arangoasync.serialization.DefaultSerializer>`.
+        deserializer (Deserializer | None): Custom deserializer implementation.
+            Leave as `None` to use the default deserializer.
+            See :class:`DefaultDeserializer
+            <arangoasync.serialization.DefaultDeserializer>`.
 
     Raises:
         ValueError: If the `host_resolver` is not supported.
@@ -56,6 +70,8 @@ class ArangoClient:
         host_resolver: str | HostResolver = "default",
         http_client: Optional[HTTPClient] = None,
         compression: Optional[CompressionManager] = None,
+        serializer: Optional[Serializer] = None,
+        deserializer: Optional[Deserializer] = None,
     ) -> None:
         self._hosts = [hosts] if isinstance(hosts, str) else hosts
         self._host_resolver = (
@@ -68,6 +84,8 @@ class ArangoClient:
             self._http_client.create_session(host) for host in self._hosts
         ]
         self._compression = compression
+        self._serializer = serializer or DefaultSerializer()
+        self._deserializer = deserializer or DefaultDeserializer()
 
     def __repr__(self) -> str:
         return f"<ArangoClient {','.join(self._hosts)}>"
@@ -124,6 +142,8 @@ class ArangoClient:
         token: Optional[JwtToken] = None,
         verify: bool = False,
         compression: Optional[CompressionManager] = None,
+        serializer: Optional[Serializer] = None,
+        deserializer: Optional[Deserializer] = None,
     ) -> StandardDatabase:
         """Connects to a database and returns and API wrapper.
 
@@ -145,6 +165,10 @@ class ArangoClient:
             verify (bool): Verify the connection by sending a test request.
             compression (CompressionManager | None): If set, supersedes the
                 client-level compression settings.
+            serializer (Serializer | None): If set, supersedes the client-level
+                serializer.
+            deserializer (Deserializer | None): If set, supersedes the client-level
+                deserializer.
 
         Returns:
             StandardDatabase: Database API wrapper.
@@ -163,6 +187,8 @@ class ArangoClient:
                 http_client=self._http_client,
                 db_name=name,
                 compression=compression or self._compression,
+                serializer=serializer or self._serializer,
+                deserializer=deserializer or self._deserializer,
                 auth=auth,
             )
         elif auth_method == "jwt":
@@ -176,6 +202,8 @@ class ArangoClient:
                 http_client=self._http_client,
                 db_name=name,
                 compression=compression or self._compression,
+                serializer=serializer or self._serializer,
+                deserializer=deserializer or self._deserializer,
                 auth=auth,
                 token=token,
             )
@@ -190,6 +218,8 @@ class ArangoClient:
                 http_client=self._http_client,
                 db_name=name,
                 compression=compression or self._compression,
+                serializer=serializer or self._serializer,
+                deserializer=deserializer or self._deserializer,
                 token=token,
             )
         else:
