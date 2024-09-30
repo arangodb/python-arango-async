@@ -68,6 +68,22 @@ class ArangoServerError(ArangoError):
         self.http_headers = resp.headers
 
 
+class AuthHeaderError(ArangoClientError):
+    """The authentication header could not be determined."""
+
+
+class CollectionCreateError(ArangoServerError):
+    """Failed to create collection."""
+
+
+class CollectionDeleteError(ArangoServerError):
+    """Failed to delete collection."""
+
+
+class CollectionListError(ArangoServerError):
+    """Failed to retrieve collections."""
+
+
 class ClientConnectionAbortedError(ArangoClientError):
     """The connection was aborted."""
 
@@ -76,12 +92,28 @@ class ClientConnectionError(ArangoClientError):
     """The request was unable to reach the server."""
 
 
-class AuthHeaderError(ArangoClientError):
-    """The authentication header could not be determined."""
+class DeserializationError(ArangoClientError):
+    """Failed to deserialize the server response."""
+
+
+class DocumentGetError(ArangoServerError):
+    """Failed to retrieve document."""
+
+
+class DocumentParseError(ArangoClientError):
+    """Failed to parse document input."""
+
+
+class DocumentRevisionError(ArangoServerError):
+    """The expected and actual document revisions mismatched."""
 
 
 class JWTRefreshError(ArangoClientError):
     """Failed to refresh the JWT token."""
+
+
+class SerializationError(ArangoClientError):
+    """Failed to serialize the request."""
 
 
 class ServerConnectionError(ArangoServerError):

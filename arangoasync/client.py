@@ -20,6 +20,7 @@ from arangoasync.serialization import (
     Deserializer,
     Serializer,
 )
+from arangoasync.typings import Json, Jsons
 from arangoasync.version import __version__
 
 
@@ -51,14 +52,18 @@ class ArangoClient:
             <arangoasync.compression.DefaultCompressionManager>`
             or a custom subclass of :class:`CompressionManager
             <arangoasync.compression.CompressionManager>`.
-        serializer (Serializer | None): Custom serializer implementation.
+        serializer (Serializer | None): Custom JSON serializer implementation.
             Leave as `None` to use the default serializer.
             See :class:`DefaultSerializer
             <arangoasync.serialization.DefaultSerializer>`.
-        deserializer (Deserializer | None): Custom deserializer implementation.
+            For custom serialization of collection documents, see :class:`Collection
+            <arangoasync.collection.Collection>`.
+        deserializer (Deserializer | None): Custom JSON deserializer implementation.
             Leave as `None` to use the default deserializer.
             See :class:`DefaultDeserializer
             <arangoasync.serialization.DefaultDeserializer>`.
+            For custom deserialization of collection documents, see :class:`Collection
+            <arangoasync.collection.Collection>`.
 
     Raises:
         ValueError: If the `host_resolver` is not supported.
@@ -70,8 +75,8 @@ class ArangoClient:
         host_resolver: str | HostResolver = "default",
         http_client: Optional[HTTPClient] = None,
         compression: Optional[CompressionManager] = None,
-        serializer: Optional[Serializer] = None,
-        deserializer: Optional[Deserializer] = None,
+        serializer: Optional[Serializer[Json]] = None,
+        deserializer: Optional[Deserializer[Json, Jsons]] = None,
     ) -> None:
         self._hosts = [hosts] if isinstance(hosts, str) else hosts
         self._host_resolver = (
@@ -84,8 +89,10 @@ class ArangoClient:
             self._http_client.create_session(host) for host in self._hosts
         ]
         self._compression = compression
-        self._serializer = serializer or DefaultSerializer()
-        self._deserializer = deserializer or DefaultDeserializer()
+        self._serializer: Serializer[Json] = serializer or DefaultSerializer()
+        self._deserializer: Deserializer[Json, Jsons] = (
+            deserializer or DefaultDeserializer()
+        )
 
     def __repr__(self) -> str:
         return f"<ArangoClient {','.join(self._hosts)}>"
@@ -142,8 +149,8 @@ class ArangoClient:
         token: Optional[JwtToken] = None,
         verify: bool = False,
         compression: Optional[CompressionManager] = None,
-        serializer: Optional[Serializer] = None,
-        deserializer: Optional[Deserializer] = None,
+        serializer: Optional[Serializer[Json]] = None,
+        deserializer: Optional[Deserializer[Json, Jsons]] = None,
     ) -> StandardDatabase:
         """Connects to a database and returns and API wrapper.
 
@@ -178,6 +185,7 @@ class ArangoClient:
             ServerConnectionError: If `verify` is `True` and the connection fails.
         """
         connection: Connection
+
         if auth_method == "basic":
             if auth is None:
                 raise ValueError("Basic authentication requires the `auth` parameter")

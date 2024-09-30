@@ -4,6 +4,7 @@ from arangoasync.connection import Connection
 from arangoasync.request import Request
 from arangoasync.response import Response
 from arangoasync.serialization import Deserializer, Serializer
+from arangoasync.typings import Json, Jsons
 
 T = TypeVar("T")
 
@@ -29,11 +30,11 @@ class DefaultApiExecutor:
         return "default"
 
     @property
-    def serializer(self) -> Serializer:
+    def serializer(self) -> Serializer[Json]:
         return self._conn.serializer
 
     @property
-    def deserializer(self) -> Deserializer:
+    def deserializer(self) -> Deserializer[Json, Jsons]:
         return self._conn.deserializer
 
     async def execute(
