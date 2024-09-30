@@ -7,7 +7,6 @@ __all__ = [
 ]
 
 from abc import ABC, abstractmethod
-from json import JSONDecodeError
 from typing import Any, List, Optional
 
 from jwt import ExpiredSignatureError
@@ -19,7 +18,9 @@ from arangoasync.exceptions import (
     AuthHeaderError,
     ClientConnectionAbortedError,
     ClientConnectionError,
+    DeserializationError,
     JWTRefreshError,
+    SerializationError,
     ServerConnectionError,
 )
 from arangoasync.http import HTTPClient
@@ -32,6 +33,7 @@ from arangoasync.serialization import (
     Deserializer,
     Serializer,
 )
+from arangoasync.typings import Json, Jsons
 
 
 class BaseConnection(ABC):
@@ -43,10 +45,10 @@ class BaseConnection(ABC):
         http_client (HTTPClient): HTTP client.
         db_name (str): Database name.
         compression (CompressionManager | None): Compression manager.
-        serializer (Serializer | None): For custom serialization.
+        serializer (Serializer | None): For overriding the default JSON serialization.
             Leave `None` for default.
-        deserializer (Deserializer | None): For custom deserialization.
-            Leave `None` for default.
+        deserializer (Deserializer | None): For overriding the default JSON
+            deserialization. Leave `None` for default.
     """
 
     def __init__(
@@ -56,8 +58,8 @@ class BaseConnection(ABC):
         http_client: HTTPClient,
         db_name: str,
         compression: Optional[CompressionManager] = None,
-        serializer: Optional[Serializer] = None,
-        deserializer: Optional[Deserializer] = None,
+        serializer: Optional[Serializer[Json]] = None,
+        deserializer: Optional[Deserializer[Json, Jsons]] = None,
     ) -> None:
         self._sessions = sessions
         self._db_endpoint = f"/_db/{db_name}"
@@ -65,8 +67,10 @@ class BaseConnection(ABC):
         self._http_client = http_client
         self._db_name = db_name
         self._compression = compression
-        self._serializer = serializer or DefaultSerializer()
-        self._deserializer = deserializer or DefaultDeserializer()
+        self._serializer: Serializer[Json] = serializer or DefaultSerializer()
+        self._deserializer: Deserializer[Json, Jsons] = (
+            deserializer or DefaultDeserializer()
+        )
 
     @property
     def db_name(self) -> str:
@@ -74,12 +78,12 @@ class BaseConnection(ABC):
         return self._db_name
 
     @property
-    def serializer(self) -> Serializer:
+    def serializer(self) -> Serializer[Json]:
         """Return the serializer."""
         return self._serializer
 
     @property
-    def deserializer(self) -> Deserializer:
+    def deserializer(self) -> Deserializer[Json, Jsons]:
         """Return the deserializer."""
         return self._deserializer
 
@@ -112,8 +116,8 @@ class BaseConnection(ABC):
         resp.is_success = 200 <= resp.status_code < 300
         if not resp.is_success:
             try:
-                body = self._deserializer.from_bytes(resp.raw_body)
-            except JSONDecodeError as e:
+                body = self._deserializer.loads(resp.raw_body)
+            except DeserializationError as e:
                 logger.debug(
                     f"Failed to decode response body: {e} (from request {request})"
                 )
@@ -225,8 +229,8 @@ class BasicConnection(BaseConnection):
         http_client (HTTPClient): HTTP client.
         db_name (str): Database name.
         compression (CompressionManager | None): Compression manager.
-        serializer (Serializer | None): For custom serialization.
-        deserializer (Deserializer | None): For custom deserialization.
+        serializer (Serializer | None): Override default JSON serialization.
+        deserializer (Deserializer | None): Override default JSON deserialization.
         auth (Auth | None): Authentication information.
     """
 
@@ -237,8 +241,8 @@ class BasicConnection(BaseConnection):
         http_client: HTTPClient,
         db_name: str,
         compression: Optional[CompressionManager] = None,
-        serializer: Optional[Serializer] = None,
-        deserializer: Optional[Deserializer] = None,
+        serializer: Optional[Serializer[Json]] = None,
+        deserializer: Optional[Deserializer[Json, Jsons]] = None,
         auth: Optional[Auth] = None,
     ) -> None:
         super().__init__(
@@ -300,8 +304,8 @@ class JwtConnection(BaseConnection):
         http_client: HTTPClient,
         db_name: str,
         compression: Optional[CompressionManager] = None,
-        serializer: Optional[Serializer] = None,
-        deserializer: Optional[Deserializer] = None,
+        serializer: Optional[Serializer[Json]] = None,
+        deserializer: Optional[Deserializer[Json, Jsons]] = None,
         auth: Optional[Auth] = None,
         token: Optional[JwtToken] = None,
     ) -> None:
@@ -353,13 +357,17 @@ class JwtConnection(BaseConnection):
         if self._auth is None:
             raise JWTRefreshError("Auth must be provided to refresh the token.")
 
-        auth_data = self._serializer.to_str(
-            dict(username=self._auth.username, password=self._auth.password),
-        )
+        auth_data = dict(username=self._auth.username, password=self._auth.password)
+        try:
+            auth = self._serializer.dumps(auth_data)
+        except SerializationError as e:
+            logger.debug(f"Failed to serialize auth data: {auth_data}")
+            raise JWTRefreshError(str(e)) from e
+
         request = Request(
             method=Method.POST,
             endpoint="/_open/auth",
-            data=auth_data.encode("utf-8"),
+            data=auth.encode("utf-8"),
         )
 
         try:
@@ -375,7 +383,7 @@ class JwtConnection(BaseConnection):
                 f"{resp.status_code} {resp.status_text}"
             )
 
-        token = self._deserializer.from_bytes(resp.raw_body)
+        token = self._deserializer.loads(resp.raw_body)
         try:
             self.token = JwtToken(token["jwt"])
         except ExpiredSignatureError as e:
@@ -442,8 +450,8 @@ class JwtSuperuserConnection(BaseConnection):
         http_client: HTTPClient,
         db_name: str,
         compression: Optional[CompressionManager] = None,
-        serializer: Optional[Serializer] = None,
-        deserializer: Optional[Deserializer] = None,
+        serializer: Optional[Serializer[Json]] = None,
+        deserializer: Optional[Deserializer[Json, Jsons]] = None,
         token: Optional[JwtToken] = None,
     ) -> None:
         super().__init__(

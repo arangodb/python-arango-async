@@ -1,15 +1,23 @@
 __all__ = [
+    "Json",
+    "Jsons",
     "RequestHeaders",
     "ResponseHeaders",
     "Params",
     "Result",
 ]
 
-from typing import MutableMapping, TypeVar, Union
+from typing import Any, Dict, List, MutableMapping, TypeVar, Union
 
 from multidict import CIMultiDictProxy, MultiDict
 
 from arangoasync.job import AsyncJob
+
+Json = Dict[str, Any]
+Json.__doc__ = """Type definition for request/response body"""
+
+Jsons = List[Json]
+Jsons.__doc__ = """Type definition for a list of JSON objects"""
 
 RequestHeaders = MutableMapping[str, str] | MultiDict[str]
 RequestHeaders.__doc__ = """Type definition for request HTTP headers"""

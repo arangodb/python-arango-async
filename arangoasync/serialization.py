@@ -7,45 +7,53 @@ __all__ = [
     "DefaultDeserializer",
 ]
 
+import json
 from abc import ABC, abstractmethod
-from json import dumps, loads
-from typing import Any
+from typing import Generic, TypeVar
+
+from arangoasync.exceptions import DeserializationError, SerializationError
+from arangoasync.typings import Json, Jsons
+
+T = TypeVar("T")
+U = TypeVar("U")
 
 
-class Serializer(ABC):  # pragma: no cover
+class Serializer(ABC, Generic[T]):  # pragma: no cover
     """Abstract base class for serialization.
 
     Custom serialization classes should inherit from this class.
+    Please be mindful of the performance implications.
     """
 
     @abstractmethod
-    def to_str(self, data: Any) -> str:
+    def dumps(self, data: T) -> str:
         """Serialize any generic data.
-
-        This method impacts all serialization operations within the client.
-        Please be mindful of the performance implications.
 
         Args:
             data: Data to serialize.
 
         Returns:
             str: Serialized data.
+
+        Raises:
+            SerializationError: If the data cannot be serialized.
         """
         raise NotImplementedError
 
 
-class Deserializer(ABC):  # pragma: no cover
+class Deserializer(ABC, Generic[T, U]):  # pragma: no cover
     """Abstract base class for deserialization.
 
     Custom deserialization classes should inherit from this class.
+    Please be mindful of the performance implications.
     """
 
     @abstractmethod
-    def from_bytes(self, data: bytes) -> Any:
-        """Deserialize generic response data that does not represent documents.
+    def loads(self, data: bytes) -> T:
+        """Deserialize response data.
 
-        This is to be used when the response is not a document, but some other
-        information (for example, server status).
+        Will be called on generic server data (such as server status) and
+        single documents.
 
         Args:
             data (bytes): Data to deserialize.
@@ -54,42 +62,52 @@ class Deserializer(ABC):  # pragma: no cover
             Deserialized data.
 
         Raises:
-            json.JSONDecodeError: If the data cannot be deserialized.
+            DeserializationError: If the data cannot be deserialized.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def from_doc(self, data: bytes) -> Any:
-        """Deserialize document data.
+    def loads_many(self, data: bytes) -> U:
+        """Deserialize response data.
 
-        This is to be used when the response represents (a) document(s).
-        The implementation **must** support deserializing both a single documents
-        and a list of documents.
+        Will only be called when deserializing a list of documents.
 
         Args:
             data (bytes): Data to deserialize.
 
         Returns:
             Deserialized data.
+
+        Raises:
+            DeserializationError: If the data cannot be deserialized.
         """
         raise NotImplementedError
 
 
-class JsonSerializer(Serializer):
+class JsonSerializer(Serializer[Json]):
     """JSON serializer."""
 
-    def to_str(self, data: Any) -> str:
-        return dumps(data, separators=(",", ":"))
+    def dumps(self, data: T) -> str:
+        try:
+            return json.dumps(data, separators=(",", ":"))
+        except Exception as e:
+            raise SerializationError("Failed to serialize data to JSON.") from e
 
 
-class JsonDeserializer(Deserializer):
+class JsonDeserializer(Deserializer[Json, Jsons]):
     """JSON deserializer."""
 
-    def from_bytes(self, data: bytes) -> Any:
-        return loads(data)
+    def loads(self, data: bytes) -> Json:
+        try:
+            return json.loads(data)  # type: ignore[no-any-return]
+        except Exception as e:
+            raise DeserializationError("Failed to deserialize data from JSON.") from e
 
-    def from_doc(self, data: bytes) -> Any:
-        return loads(data)
+    def loads_many(self, data: bytes) -> Jsons:
+        try:
+            return json.loads(data)  # type: ignore[no-any-return]
+        except Exception as e:
+            raise DeserializationError("Failed to deserialize data from JSON.") from e
 
 
 DefaultSerializer = JsonSerializer

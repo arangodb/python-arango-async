@@ -58,14 +58,14 @@ class Request:
         endpoint: str,
         headers: Optional[RequestHeaders] = None,
         params: Optional[Params] = None,
-        data: Optional[bytes] = None,
+        data: Optional[bytes | str] = None,
         auth: Optional[Auth] = None,
     ) -> None:
         self.method: Method = method
         self.endpoint: str = endpoint
         self.headers: RequestHeaders = headers or dict()
         self.params: Params = params or dict()
-        self.data: Optional[bytes] = data
+        self.data: Optional[bytes | str] = data
         self.auth: Optional[Auth] = auth
 
     def normalized_headers(self) -> RequestHeaders:
