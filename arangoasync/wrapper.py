@@ -72,6 +72,7 @@ class KeyOptions(JsonWrapper):
 
     Example:
         .. code-block:: json
+
             {
                 "type": "autoincrement",
                 "increment": 5,
@@ -137,6 +138,7 @@ class User(JsonWrapper):
 
     Example:
         .. code-block:: json
+
             {
                 "username": "john",
                 "password": "secret",
