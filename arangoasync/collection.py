@@ -195,9 +195,9 @@ class StandardCollection(Collection[T, U, V]):
         def response_handler(resp: Response) -> Optional[U]:
             if resp.is_success:
                 return self._doc_deserializer.loads(resp.raw_body)
-            elif resp.error_code == HTTP_NOT_FOUND:
+            elif resp.status_code == HTTP_NOT_FOUND:
                 return None
-            elif resp.error_code == HTTP_PRECONDITION_FAILED:
+            elif resp.status_code == HTTP_PRECONDITION_FAILED:
                 raise DocumentRevisionError(resp, request)
             else:
                 raise DocumentGetError(resp, request)

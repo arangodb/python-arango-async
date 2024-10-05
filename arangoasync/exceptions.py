@@ -92,6 +92,18 @@ class ClientConnectionError(ArangoClientError):
     """The request was unable to reach the server."""
 
 
+class DatabaseCreateError(ArangoServerError):
+    """Failed to create database."""
+
+
+class DatabaseDeleteError(ArangoServerError):
+    """Failed to delete database."""
+
+
+class DatabaseListError(ArangoServerError):
+    """Failed to retrieve databases."""
+
+
 class DeserializationError(ArangoClientError):
     """Failed to deserialize the server response."""
 
