@@ -8,11 +8,14 @@ from typing import Optional, Sequence, TypeVar, cast
 
 from arangoasync.collection import CollectionType, StandardCollection
 from arangoasync.connection import Connection
-from arangoasync.errno import HTTP_NOT_FOUND
+from arangoasync.errno import HTTP_FORBIDDEN, HTTP_NOT_FOUND
 from arangoasync.exceptions import (
     CollectionCreateError,
     CollectionDeleteError,
     CollectionListError,
+    DatabaseCreateError,
+    DatabaseDeleteError,
+    DatabaseListError,
     ServerStatusError,
 )
 from arangoasync.executor import ApiExecutor, DefaultApiExecutor
@@ -20,7 +23,7 @@ from arangoasync.request import Method, Request
 from arangoasync.response import Response
 from arangoasync.serialization import Deserializer, Serializer
 from arangoasync.typings import Json, Jsons, Params, Result
-from arangoasync.wrapper import KeyOptions, ServerStatusInformation
+from arangoasync.wrapper import KeyOptions, ServerStatusInformation, User
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -73,6 +76,137 @@ class Database:
             if not resp.is_success:
                 raise ServerStatusError(resp, request)
             return ServerStatusInformation(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def has_database(self, name: str) -> Result[bool]:
+        """Check if a database exists.
+
+        Args:
+            name (str): Database name.
+
+        Returns:
+            bool: `True` if the database exists, `False` otherwise.
+
+        Raises:
+            DatabaseListError: If failed to retrieve the list of databases.
+        """
+        request = Request(method=Method.GET, endpoint="/_api/database")
+
+        def response_handler(resp: Response) -> bool:
+            if not resp.is_success:
+                raise DatabaseListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return name in body["result"]
+
+        return await self._executor.execute(request, response_handler)
+
+    async def create_database(
+        self,
+        name: str,
+        users: Optional[Sequence[Json | User]] = None,
+        replication_factor: Optional[int | str] = None,
+        write_concern: Optional[int] = None,
+        sharding: Optional[bool] = None,
+    ) -> Result[bool]:
+        """Create a new database.
+
+        Args:
+            name (str): Database name.
+            users (list | None): Optional list of users with access to the new
+                database, where each user is of :class:`User
+                <arangoasync.wrapper.User>` type, or a dictionary with fields
+                "username", "password" and "active". If not set, the default user
+                **root** will be used to ensure that the new database will be
+                accessible after it is created.
+            replication_factor (int | str | None): Default replication factor for new
+                collections created in this database. Special values include
+                “satellite”, which will replicate the collection to every DB-Server
+                (Enterprise Edition only), and 1, which disables replication. Used
+                for clusters only.
+            write_concern (int | None): Default write concern for collections created
+            in this database. Determines how many copies of each shard are required
+            to be in sync on different DB-Servers. If there are less than these many
+            copies in the cluster a shard will refuse to write. Writes to shards with
+            enough up-to-date copies will succeed at the same time, however. Value of
+            this parameter can not be larger than the value of **replication_factor**.
+            Used for clusters only.
+            sharding (str | None): Sharding method used for new collections in this
+                database. Allowed values are: "", "flexible" and "single". The first
+                two are equivalent. Used for clusters only.
+
+        Returns:
+            bool: True if the database was created successfully.
+
+        Raises:
+            DatabaseCreateError: If creation fails.
+        """
+        data: Json = {"name": name}
+
+        options: Json = {}
+        if replication_factor is not None:
+            options["replicationFactor"] = replication_factor
+        if write_concern is not None:
+            options["writeConcern"] = write_concern
+        if sharding is not None:
+            options["sharding"] = sharding
+        if options:
+            data["options"] = options
+
+        if users is not None:
+            data["users"] = [
+                {
+                    "username": user["username"],
+                    "passwd": user["password"],
+                    "active": user.get("active", True),
+                    "extra": user.get("extra", {}),
+                }
+                for user in users
+            ]
+
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/database",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> bool:
+            if resp.is_success:
+                return True
+            raise DatabaseCreateError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete_database(
+        self, name: str, ignore_missing: bool = False
+    ) -> Result[bool]:
+        """Delete a database.
+
+        Args:
+            name (str): Database name.
+            ignore_missing (bool): Do not raise an exception on missing database.
+
+        Returns:
+            bool: True if the database was deleted successfully, `False` if the
+                database was not found but **ignore_missing** was set to `True`.
+
+        Raises:
+            DatabaseDeleteError: If deletion fails.
+        """
+        request = Request(method=Method.DELETE, endpoint=f"/_api/database/{name}")
+
+        def response_handler(resp: Response) -> bool:
+            if resp.is_success:
+                return True
+            if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
+                return False
+            if resp.status_code == HTTP_FORBIDDEN:
+                raise DatabaseDeleteError(
+                    resp,
+                    request,
+                    "This request can only be executed in the _system database.",
+                )
+            raise DatabaseDeleteError(resp, request)
 
         return await self._executor.execute(request, response_handler)
 
@@ -231,7 +365,7 @@ class Database:
             data["isSystem"] = is_system
         if key_options is not None:
             if isinstance(key_options, dict):
-                key_options = KeyOptions(key_options)
+                key_options = KeyOptions(data=key_options)
             key_options.validate()
             data["keyOptions"] = key_options.to_dict()
         if schema is not None:
@@ -311,7 +445,7 @@ class Database:
             nonlocal ignore_missing
             if resp.is_success:
                 return True
-            if resp.error_code == HTTP_NOT_FOUND and ignore_missing:
+            if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
                 return False
             raise CollectionDeleteError(resp, request)
 

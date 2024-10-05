@@ -109,10 +109,10 @@ async def test_BasicConnection_prep_response_bad_response(
     with pytest.raises(ServerConnectionError):
         connection.raise_for_status(request, response)
 
-    error = b'{"error": true, "errorMessage": "msg", "errorNum": 404}'
+    error = b'{"error": true, "errorMessage": "msg", "errorNum": 1234}'
     response = Response(Method.GET, url, {}, 0, "ERROR", error)
     connection.prep_response(request, response)
-    assert response.error_code == 404
+    assert response.error_code == 1234
     assert response.error_message == "msg"
 
 

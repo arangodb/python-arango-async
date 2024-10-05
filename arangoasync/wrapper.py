@@ -54,18 +54,7 @@ class KeyOptions(JsonWrapper):
 
     https://docs.arangodb.com/stable/develop/http-api/collections/#create-a-collection_body_keyOptions
 
-    Example:
-        .. code-block:: json
-
-            "keyOptions": {
-                "type": "autoincrement",
-                "increment": 5,
-                "allowUserKeys": true
-            }
-
     Args:
-        data (dict | None): Key options. If this parameter is specified, the
-            other parameters are ignored.
         allow_user_keys (bool): If set to `True`, then you are allowed to supply own
             key values in the `_key` attribute of documents. If set to `False`, then
             the key generator is solely responsible for generating keys and an error
@@ -78,15 +67,26 @@ class KeyOptions(JsonWrapper):
             generator. Not allowed for other key generator types.
         offset (int | None): The initial offset value for the "autoincrement" key
             generator. Not allowed for other key generator types.
+        data (dict | None): Key options. If this parameter is specified, the
+            other parameters are ignored.
+
+    Example:
+        .. code-block:: json
+
+            {
+                "type": "autoincrement",
+                "increment": 5,
+                "allowUserKeys": true
+            }
     """
 
     def __init__(
         self,
-        data: Optional[Json] = None,
         allow_user_keys: bool = True,
         generator_type: str = "traditional",
         increment: Optional[int] = None,
         offset: Optional[int] = None,
+        data: Optional[Json] = None,
     ) -> None:
         if data is None:
             data = {
@@ -121,6 +121,61 @@ class KeyOptions(JsonWrapper):
             raise ValueError(
                 '"offset" value is only allowed for "autoincrement" ' "key generator"
             )
+
+
+class User(JsonWrapper):
+    """User information.
+
+    https://docs.arangodb.com/stable/develop/http-api/users/#get-a-user
+
+    Args:
+        username (str): The name of the user.
+        password (str | None): The user password as a string. Note that user
+            password is not returned back by the server.
+        active (bool): `True` if user is active, `False` otherwise.
+        extra (dict | None): Additional user information. For internal use only.
+            Should not be set or modified by end users.
+
+    Example:
+        .. code-block:: json
+
+            {
+                "username": "john",
+                "password": "secret",
+                "active": true,
+                "extra": {}
+            }
+    """
+
+    def __init__(
+        self,
+        username: str,
+        password: Optional[str] = None,
+        active: bool = True,
+        extra: Optional[Json] = None,
+    ) -> None:
+        data = {"username": username, "active": active}
+        if password is not None:
+            data["password"] = password
+        if extra is not None:
+            data["extra"] = extra
+        super().__init__(data)
+
+    @property
+    def username(self) -> str:
+        return self._data.get("username")  # type: ignore[return-value]
+
+    @property
+    def password(self) -> Optional[str]:
+        return self._data.get("password")
+
+    @property
+    def active(self) -> bool:
+        return self._data.get("active")  # type: ignore[return-value]
+
+    @property
+    def extra(self) -> Optional[Json]:
+        return self._data.get("extra")
 
 
 class ServerStatusInformation(JsonWrapper):
