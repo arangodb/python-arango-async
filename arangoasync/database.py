@@ -20,7 +20,7 @@ from arangoasync.request import Method, Request
 from arangoasync.response import Response
 from arangoasync.serialization import Deserializer, Serializer
 from arangoasync.typings import Json, Jsons, Params, Result
-from arangoasync.wrapper import ServerStatusInformation
+from arangoasync.wrapper import KeyOptions, ServerStatusInformation
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -140,7 +140,7 @@ class Database:
         computed_values: Optional[Jsons] = None,
         distribute_shards_like: Optional[str] = None,
         is_system: Optional[bool] = False,
-        key_options: Optional[Json] = None,
+        key_options: Optional[KeyOptions | Json] = None,
         schema: Optional[Json] = None,
         shard_keys: Optional[Sequence[str]] = None,
         sharding_strategy: Optional[str] = None,
@@ -179,7 +179,10 @@ class Database:
                 way as the shards of the other collection.
             is_system (bool | None): If `True`, create a system collection.
                 In this case, the collection name should start with an underscore.
-            key_options (dict | None): Additional options for key generation.
+            key_options (KeyOptions | dict | None): Additional options for key
+                generation. You may use a :class:`KeyOptions
+                <arangoasync.wrapper.KeyOptions>` object for easier configuration,
+                or pass a dictionary directly.
             schema (dict | None): Optional object that specifies the collection
                 level schema for documents.
             shard_keys (list | None): In a cluster, this attribute determines which
@@ -204,6 +207,7 @@ class Database:
             StandardCollection: Collection API wrapper.
 
         Raises:
+            ValueError: If parameters are invalid.
             CollectionCreateError: If the operation fails.
         """
         data: Json = {"name": name}
@@ -226,7 +230,10 @@ class Database:
         if is_system is not None:
             data["isSystem"] = is_system
         if key_options is not None:
-            data["keyOptions"] = key_options
+            if isinstance(key_options, dict):
+                key_options = KeyOptions(key_options)
+            key_options.validate()
+            data["keyOptions"] = key_options.to_dict()
         if schema is not None:
             data["schema"] = schema
         if shard_keys is not None:
@@ -304,9 +311,8 @@ class Database:
             nonlocal ignore_missing
             if resp.is_success:
                 return True
-            if resp.error_code == HTTP_NOT_FOUND:
-                if ignore_missing:
-                    return False
+            if resp.error_code == HTTP_NOT_FOUND and ignore_missing:
+                return False
             raise CollectionDeleteError(resp, request)
 
         return await self._executor.execute(request, response_handler)

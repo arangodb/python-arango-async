@@ -1,8 +1,10 @@
-from arangoasync.wrapper import Wrapper
+import pytest
+
+from arangoasync.wrapper import JsonWrapper, KeyOptions
 
 
 def test_basic_wrapper():
-    wrapper = Wrapper({"a": 1, "b": 2})
+    wrapper = JsonWrapper({"a": 1, "b": 2})
     assert wrapper["a"] == 1
     assert wrapper["b"] == 2
 
@@ -12,7 +14,7 @@ def test_basic_wrapper():
     del wrapper["a"]
     assert "a" not in wrapper
 
-    wrapper = Wrapper({"a": 1, "b": 2})
+    wrapper = JsonWrapper({"a": 1, "b": 2})
     keys = list(iter(wrapper))
     assert keys == ["a", "b"]
     assert len(wrapper) == 2
@@ -20,8 +22,8 @@ def test_basic_wrapper():
     assert "a" in wrapper
     assert "c" not in wrapper
 
-    assert repr(wrapper) == "Wrapper({'a': 1, 'b': 2})"
-    wrapper = Wrapper({"a": 1, "b": 2})
+    assert repr(wrapper) == "JsonWrapper({'a': 1, 'b': 2})"
+    wrapper = JsonWrapper({"a": 1, "b": 2})
     assert str(wrapper) == "{'a': 1, 'b': 2}"
     assert wrapper == {"a": 1, "b": 2}
 
@@ -30,3 +32,19 @@ def test_basic_wrapper():
 
     items = list(wrapper.items())
     assert items == [("a", 1), ("b", 2)]
+    assert wrapper.to_dict() == {"a": 1, "b": 2}
+
+
+def test_KeyOptions():
+    options = KeyOptions(generator_type="autoincrement")
+    options.validate()
+    with pytest.raises(ValueError, match="Invalid key generator type 'invalid_type'"):
+        KeyOptions(generator_type="invalid_type").validate()
+    with pytest.raises(ValueError, match='"increment" value'):
+        KeyOptions(generator_type="uuid", increment=5).validate()
+    with pytest.raises(ValueError, match='"offset" value'):
+        KeyOptions(generator_type="uuid", offset=5).validate()
+    with pytest.raises(ValueError, match='"type" value'):
+        KeyOptions(data={"allowUserKeys": True}).validate()
+    with pytest.raises(ValueError, match='"allowUserKeys" value'):
+        KeyOptions(data={"type": "autoincrement"}).validate()
