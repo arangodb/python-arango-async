@@ -1,10 +1,12 @@
-from typing import Any, Dict, Iterator, Optional, Tuple
+from typing import Any, Iterator, Optional, Tuple
+
+from arangoasync.typings import Json
 
 
-class Wrapper:
-    """Wrapper over server response objects."""
+class JsonWrapper:
+    """Wrapper over server request/response objects."""
 
-    def __init__(self, data: Dict[str, Any]) -> None:
+    def __init__(self, data: Json) -> None:
         self._data = data
 
     def __getitem__(self, key: str) -> Any:
@@ -42,9 +44,88 @@ class Wrapper:
         """Return an iterator over the dictionary’s key-value pairs."""
         return iter(self._data.items())
 
+    def to_dict(self) -> Json:
+        """Return the dictionary."""
+        return self._data
 
-class ServerStatusInformation(Wrapper):
+
+class KeyOptions(JsonWrapper):
+    """Additional options for key generation, used on collections.
+
+    https://docs.arangodb.com/stable/develop/http-api/collections/#create-a-collection_body_keyOptions
+
+    Example:
+        .. code-block:: json
+
+            "keyOptions": {
+                "type": "autoincrement",
+                "increment": 5,
+                "allowUserKeys": true
+            }
+
+    Args:
+        data (dict | None): Key options. If this parameter is specified, the
+            other parameters are ignored.
+        allow_user_keys (bool): If set to `True`, then you are allowed to supply own
+            key values in the `_key` attribute of documents. If set to `False`, then
+            the key generator is solely responsible for generating keys and an error
+            is raised if you supply own key values in the `_key` attribute of
+            documents.
+        generator_type (str): Specifies the type of the key generator. The currently
+            available generators are "traditional", "autoincrement", "uuid" and
+            "padded".
+        increment (int | None): The increment value for the "autoincrement" key
+            generator. Not allowed for other key generator types.
+        offset (int | None): The initial offset value for the "autoincrement" key
+            generator. Not allowed for other key generator types.
     """
+
+    def __init__(
+        self,
+        data: Optional[Json] = None,
+        allow_user_keys: bool = True,
+        generator_type: str = "traditional",
+        increment: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> None:
+        if data is None:
+            data = {
+                "allowUserKeys": allow_user_keys,
+                "type": generator_type,
+            }
+            if increment is not None:
+                data["increment"] = increment
+            if offset is not None:
+                data["offset"] = offset
+        super().__init__(data)
+
+    def validate(self) -> None:
+        """Validate key options."""
+        if "type" not in self:
+            raise ValueError('"type" value is required for key options')
+        if "allowUserKeys" not in self:
+            raise ValueError('"allowUserKeys" value is required for key options')
+
+        allowed_types = {"autoincrement", "uuid", "padded", "traditional"}
+        if self["type"] not in allowed_types:
+            raise ValueError(
+                f"Invalid key generator type '{self['type']}', "
+                f"expected one of {allowed_types}"
+            )
+
+        if self.get("increment") is not None and self["type"] != "autoincrement":
+            raise ValueError(
+                '"increment" value is only allowed for "autoincrement" ' "key generator"
+            )
+        if self.get("offset") is not None and self["type"] != "autoincrement":
+            raise ValueError(
+                '"offset" value is only allowed for "autoincrement" ' "key generator"
+            )
+
+
+class ServerStatusInformation(JsonWrapper):
+    """Status information about the server.
+
     https://docs.arangodb.com/stable/develop/http-api/administration/#get-server-status-information
 
     Example:
@@ -92,7 +173,7 @@ class ServerStatusInformation(Wrapper):
             }
     """
 
-    def __init__(self, data: Dict[str, Any]) -> None:
+    def __init__(self, data: Json) -> None:
         super().__init__(data)
 
     @property
@@ -132,13 +213,13 @@ class ServerStatusInformation(Wrapper):
         return self._data.get("hostname")
 
     @property
-    def server_info(self) -> Optional[Dict[str, Any]]:
+    def server_info(self) -> Optional[Json]:
         return self._data.get("serverInfo")
 
     @property
-    def coordinator(self) -> Optional[Dict[str, Any]]:
+    def coordinator(self) -> Optional[Json]:
         return self._data.get("coordinator")
 
     @property
-    def agency(self) -> Optional[Dict[str, Any]]:
+    def agency(self) -> Optional[Json]:
         return self._data.get("agency")

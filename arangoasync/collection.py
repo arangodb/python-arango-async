@@ -1,4 +1,4 @@
-__all__ = ["Collection", "Collection", "StandardCollection"]
+__all__ = ["Collection", "CollectionType", "StandardCollection"]
 
 
 from enum import Enum
