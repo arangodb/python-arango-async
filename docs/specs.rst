@@ -37,5 +37,5 @@ python-arango-async.
 .. automodule:: arangoasync.response
     :members:
 
-.. automodule:: arangoasync.wrapper
+.. automodule:: arangoasync.typings
     :members:

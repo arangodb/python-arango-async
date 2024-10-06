@@ -4,9 +4,9 @@ __all__ = [
 ]
 
 
-from typing import Optional, Sequence, TypeVar, cast
+from typing import List, Optional, Sequence, TypeVar, cast
 
-from arangoasync.collection import CollectionType, StandardCollection
+from arangoasync.collection import StandardCollection
 from arangoasync.connection import Connection
 from arangoasync.errno import HTTP_FORBIDDEN, HTTP_NOT_FOUND
 from arangoasync.exceptions import (
@@ -22,8 +22,17 @@ from arangoasync.executor import ApiExecutor, DefaultApiExecutor
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
 from arangoasync.serialization import Deserializer, Serializer
-from arangoasync.typings import Json, Jsons, Params, Result
-from arangoasync.wrapper import KeyOptions, ServerStatusInformation, User
+from arangoasync.typings import (
+    CollectionInfo,
+    CollectionType,
+    Json,
+    Jsons,
+    KeyOptions,
+    Params,
+    Result,
+    ServerStatusInformation,
+    UserInfo,
+)
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -69,7 +78,10 @@ class Database:
 
         Raises:
             ServerSatusError: If retrieval fails.
-        """
+
+        References:
+            - `get-server-status-information <https://docs.arangodb.com/stable/develop/http-api/administration/#get-server-status-information>`__
+        """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_admin/status")
 
         def response_handler(resp: Response) -> ServerStatusInformation:
@@ -79,8 +91,39 @@ class Database:
 
         return await self._executor.execute(request, response_handler)
 
+    async def databases(self) -> Result[List[str]]:
+        """Return the names of all databases.
+
+        Note:
+            This method can only be executed in the **_system** database.
+
+        Returns:
+            list: Database names.
+
+        Raises:
+            DatabaseListError: If retrieval fails.
+
+        References:
+            - `list-all-databases <https://docs.arangodb.com/stable/develop/http-api/databases/#list-all-databases>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/database")
+
+        def response_handler(resp: Response) -> List[str]:
+            if resp.is_success:
+                body = self.deserializer.loads(resp.raw_body)
+                return cast(List[str], body["result"])
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_FORBIDDEN:
+                msg = "This request can only be executed in the _system database."
+            raise DatabaseListError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
     async def has_database(self, name: str) -> Result[bool]:
         """Check if a database exists.
+
+        Note:
+            This method can only be executed from within the **_system** database.
 
         Args:
             name (str): Database name.
@@ -89,33 +132,39 @@ class Database:
             bool: `True` if the database exists, `False` otherwise.
 
         Raises:
-            DatabaseListError: If failed to retrieve the list of databases.
+            DatabaseListError: If retrieval fails.
         """
         request = Request(method=Method.GET, endpoint="/_api/database")
 
         def response_handler(resp: Response) -> bool:
-            if not resp.is_success:
-                raise DatabaseListError(resp, request)
-            body = self.deserializer.loads(resp.raw_body)
-            return name in body["result"]
+            if resp.is_success:
+                body = self.deserializer.loads(resp.raw_body)
+                return name in body["result"]
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_FORBIDDEN:
+                msg = "This request can only be executed in the _system database."
+            raise DatabaseListError(resp, request, msg)
 
         return await self._executor.execute(request, response_handler)
 
     async def create_database(
         self,
         name: str,
-        users: Optional[Sequence[Json | User]] = None,
+        users: Optional[Sequence[Json | UserInfo]] = None,
         replication_factor: Optional[int | str] = None,
         write_concern: Optional[int] = None,
         sharding: Optional[bool] = None,
     ) -> Result[bool]:
         """Create a new database.
 
+        Note:
+            This method can only be executed from within the **_system** database.
+
         Args:
             name (str): Database name.
             users (list | None): Optional list of users with access to the new
                 database, where each user is of :class:`User
-                <arangoasync.wrapper.User>` type, or a dictionary with fields
+                <arangoasync.wrapper.UserInfo>` type, or a dictionary with fields
                 "username", "password" and "active". If not set, the default user
                 **root** will be used to ensure that the new database will be
                 accessible after it is created.
@@ -125,12 +174,12 @@ class Database:
                 (Enterprise Edition only), and 1, which disables replication. Used
                 for clusters only.
             write_concern (int | None): Default write concern for collections created
-            in this database. Determines how many copies of each shard are required
-            to be in sync on different DB-Servers. If there are less than these many
-            copies in the cluster a shard will refuse to write. Writes to shards with
-            enough up-to-date copies will succeed at the same time, however. Value of
-            this parameter can not be larger than the value of **replication_factor**.
-            Used for clusters only.
+                in this database. Determines how many copies of each shard are required
+                to be in sync on different DB-Servers. If there are less than these many
+                copies in the cluster a shard will refuse to write. Writes to shards with
+                enough up-to-date copies will succeed at the same time, however. Value of
+                this parameter can not be larger than the value of **replication_factor**.
+                Used for clusters only.
             sharding (str | None): Sharding method used for new collections in this
                 database. Allowed values are: "", "flexible" and "single". The first
                 two are equivalent. Used for clusters only.
@@ -140,7 +189,10 @@ class Database:
 
         Raises:
             DatabaseCreateError: If creation fails.
-        """
+
+        References:
+            - `create-a-database <https://docs.arangodb.com/stable/develop/http-api/databases/#create-a-database>`__
+        """  # noqa: E501
         data: Json = {"name": name}
 
         options: Json = {}
@@ -173,7 +225,10 @@ class Database:
         def response_handler(resp: Response) -> bool:
             if resp.is_success:
                 return True
-            raise DatabaseCreateError(resp, request)
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_FORBIDDEN:
+                msg = "This request can only be executed in the _system database."
+            raise DatabaseCreateError(resp, request, msg)
 
         return await self._executor.execute(request, response_handler)
 
@@ -181,6 +236,9 @@ class Database:
         self, name: str, ignore_missing: bool = False
     ) -> Result[bool]:
         """Delete a database.
+
+        Note:
+            This method can only be executed from within the **_system** database.
 
         Args:
             name (str): Database name.
@@ -192,7 +250,10 @@ class Database:
 
         Raises:
             DatabaseDeleteError: If deletion fails.
-        """
+
+        References:
+            - `drop-a-database <https://docs.arangodb.com/stable/develop/http-api/databases/#drop-a-database>`__
+        """  # noqa: E501
         request = Request(method=Method.DELETE, endpoint=f"/_api/database/{name}")
 
         def response_handler(resp: Response) -> bool:
@@ -200,13 +261,10 @@ class Database:
                 return True
             if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
                 return False
+            msg: Optional[str] = None
             if resp.status_code == HTTP_FORBIDDEN:
-                raise DatabaseDeleteError(
-                    resp,
-                    request,
-                    "This request can only be executed in the _system database.",
-                )
-            raise DatabaseDeleteError(resp, request)
+                msg = "This request can only be executed in the _system database."
+            raise DatabaseDeleteError(resp, request, msg)
 
         return await self._executor.execute(request, response_handler)
 
@@ -241,6 +299,40 @@ class Database:
             self._executor, name, serializer, deserializer
         )
 
+    async def collections(
+        self,
+        exclude_system: Optional[bool] = None,
+    ) -> Result[List[CollectionInfo]]:
+        """Returns basic information for all collections in the current database,
+        optionally excluding system collections.
+
+        Returns:
+            list: Collection names.
+
+        Raises:
+            CollectionListError: If retrieval fails.
+
+        References:
+           - `list-all-collections <https://docs.arangodb.com/stable/develop/http-api/collections/#list-all-collections>`__
+        """  # noqa: E501
+        params: Params = {}
+        if exclude_system is not None:
+            params["excludeSystem"] = exclude_system
+
+        request = Request(
+            method=Method.GET,
+            endpoint="/_api/collection",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> List[CollectionInfo]:
+            if not resp.is_success:
+                raise CollectionListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return [CollectionInfo(c) for c in body["result"]]
+
+        return await self._executor.execute(request, response_handler)
+
     async def has_collection(self, name: str) -> Result[bool]:
         """Check if a collection exists in the database.
 
@@ -249,14 +341,18 @@ class Database:
 
         Returns:
             bool: True if the collection exists, False otherwise.
+
+        Raises:
+            CollectionListError: If retrieval fails.
         """
-        request = Request(method=Method.GET, endpoint="/_api/collection")
+        request = Request(method=Method.GET, endpoint=f"/_api/collection/{name}")
 
         def response_handler(resp: Response) -> bool:
-            if not resp.is_success:
-                raise CollectionListError(resp, request)
-            body = self.deserializer.loads(resp.raw_body)
-            return any(c["name"] == name for c in body["result"])
+            if resp.is_success:
+                return True
+            if resp.status_code == HTTP_NOT_FOUND:
+                return False
+            raise CollectionListError(resp, request)
 
         return await self._executor.execute(request, response_handler)
 
@@ -343,7 +439,10 @@ class Database:
         Raises:
             ValueError: If parameters are invalid.
             CollectionCreateError: If the operation fails.
-        """
+
+        References:
+            - `create-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#create-a-collection>`__
+        """  # noqa: E501
         data: Json = {"name": name}
         if col_type is not None:
             data["type"] = col_type.value
@@ -430,7 +529,10 @@ class Database:
 
         Raises:
             CollectionDeleteError: If the operation fails.
-        """
+
+        References:
+            - `drop-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#drop-a-collection>`__
+        """  # noqa: E501
         params: Params = {}
         if is_system is not None:
             params["isSystem"] = is_system

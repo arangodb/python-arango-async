@@ -1,6 +1,6 @@
 import pytest
 
-from arangoasync.wrapper import JsonWrapper, KeyOptions
+from arangoasync.typings import JsonWrapper, KeyOptions
 
 
 def test_basic_wrapper():
