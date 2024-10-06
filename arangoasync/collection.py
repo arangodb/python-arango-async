@@ -1,7 +1,6 @@
-__all__ = ["Collection", "CollectionType", "StandardCollection"]
+__all__ = ["Collection", "StandardCollection"]
 
 
-from enum import Enum
 from typing import Generic, Optional, Tuple, TypeVar
 
 from arangoasync.errno import HTTP_NOT_FOUND, HTTP_PRECONDITION_FAILED
@@ -19,13 +18,6 @@ from arangoasync.typings import Json, Result
 T = TypeVar("T")
 U = TypeVar("U")
 V = TypeVar("V")
-
-
-class CollectionType(Enum):
-    """Collection types."""
-
-    DOCUMENT = 2
-    EDGE = 3
 
 
 class Collection(Generic[T, U, V]):
