@@ -50,7 +50,10 @@ class ArangoServerError(ArangoError):
     def __init__(
         self, resp: Response, request: Request, msg: Optional[str] = None
     ) -> None:
-        msg = msg or resp.error_message or resp.status_text
+        if msg is None:
+            msg = resp.error_message or resp.status_text
+        else:
+            msg = f"{msg} ({resp.error_message or resp.status_text})"
         self.error_message = resp.error_message
         self.error_code = resp.error_code
         if self.error_code is not None:
@@ -110,6 +113,10 @@ class DeserializationError(ArangoClientError):
 
 class DocumentGetError(ArangoServerError):
     """Failed to retrieve document."""
+
+
+class DocumentInsertError(ArangoServerError):
+    """Failed to insert document."""
 
 
 class DocumentParseError(ArangoClientError):

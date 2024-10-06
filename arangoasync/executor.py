@@ -37,6 +37,12 @@ class DefaultApiExecutor:
     def deserializer(self) -> Deserializer[Json, Jsons]:
         return self._conn.deserializer
 
+    def serialize(self, data: Json) -> str:
+        return self.serializer.dumps(data)
+
+    def deserialize(self, data: bytes) -> Json:
+        return self.deserializer.loads(data)
+
     async def execute(
         self, request: Request, response_handler: Callable[[Response], T]
     ) -> T:
