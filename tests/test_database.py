@@ -31,13 +31,20 @@ async def test_create_drop_database(url, sys_db_name, root, password):
         # Create a new database
         db_name = generate_db_name()
         assert await sys_db.create_database(db_name) is True
-        await client.db(db_name, auth_method="basic", auth=auth, verify=True)
+        new_db = await client.db(db_name, auth_method="basic", auth=auth, verify=True)
         assert await sys_db.has_database(db_name) is True
 
         # List available databases
         dbs = await sys_db.databases()
         assert db_name in dbs
         assert "_system" in dbs
+
+        # TODO move this to a separate test
+        col_name = generate_col_name()
+        col = await new_db.create_collection(col_name)
+        await col.insert({"_key": "1", "a": 1})
+        doc = await col.get("1")
+        assert doc["_key"] == "1"
 
         # Drop the newly created database
         assert await sys_db.delete_database(db_name) is True
