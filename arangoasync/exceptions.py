@@ -141,3 +141,19 @@ class ServerConnectionError(ArangoServerError):
 
 class ServerStatusError(ArangoServerError):
     """Failed to retrieve server status."""
+
+
+class UserCreateError(ArangoServerError):
+    """Failed to create user."""
+
+
+class UserDeleteError(ArangoServerError):
+    """Failed to delete user."""
+
+
+class UserGetError(ArangoServerError):
+    """Failed to retrieve user details."""
+
+
+class UserListError(ArangoServerError):
+    """Failed to retrieve users."""
