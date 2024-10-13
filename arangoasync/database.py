@@ -17,6 +17,10 @@ from arangoasync.exceptions import (
     DatabaseDeleteError,
     DatabaseListError,
     ServerStatusError,
+    UserCreateError,
+    UserDeleteError,
+    UserGetError,
+    UserListError,
 )
 from arangoasync.executor import ApiExecutor, DefaultApiExecutor
 from arangoasync.request import Method, Request
@@ -550,6 +554,164 @@ class Database:
             if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
                 return False
             raise CollectionDeleteError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def has_user(self, username: str) -> Result[bool]:
+        """Check if a user exists.
+
+        Args:
+            username (str): Username.
+
+        Returns:
+            bool: True if the user exists, False otherwise.
+
+        Raises:
+            UserListError: If the operation fails.
+        """
+        request = Request(method=Method.GET, endpoint=f"/_api/user/{username}")
+
+        def response_handler(resp: Response) -> bool:
+            if resp.is_success:
+                return True
+            if resp.status_code == HTTP_NOT_FOUND:
+                return False
+            raise UserListError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def user(self, username: str) -> Result[UserInfo]:
+        """Fetches data about a user.
+
+        Args:
+            username (str): Username.
+
+        Returns:
+            UserInfo: User details.
+
+        Raises:
+            UserGetError: If the operation fails.
+
+        References:
+            - `get-a-user` <https://docs.arangodb.com/stable/develop/http-api/users/#get-a-user>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint=f"/_api/user/{username}")
+
+        def response_handler(resp: Response) -> UserInfo:
+            if not resp.is_success:
+                raise UserGetError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return UserInfo(
+                user=body["user"],
+                active=cast(bool, body.get("active")),
+                extra=body.get("extra"),
+            )
+
+        return await self._executor.execute(request, response_handler)
+
+    async def users(self) -> Result[Sequence[UserInfo]]:
+        """Fetches data about all users.
+
+        Without the necessary permissions, you might only get data about the
+        current user.
+
+        Returns:
+            list: User information.
+
+        Raises:
+            UserListError: If the operation fails.
+
+        References:
+            - `list-available-users <https://docs.arangodb.com/stable/develop/http-api/users/#list-available-users>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/user")
+
+        def response_handler(resp: Response) -> Sequence[UserInfo]:
+            if not resp.is_success:
+                raise UserListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return [
+                UserInfo(user=u["user"], active=u.get("active"), extra=u.get("extra"))
+                for u in body["result"]
+            ]
+
+        return await self._executor.execute(request, response_handler)
+
+    async def create_user(
+        self,
+        user: UserInfo,
+    ) -> Result[UserInfo]:
+        """Create a new user.
+
+        Args:
+            user (UserInfo): User information.
+
+        Returns:
+            UserInfo: New user details.
+
+        Raises:
+            ValueError: If the username is missing.
+            UserCreateError: If the operation fails.
+
+        Example:
+            .. code-block:: python
+
+                await db.create_user(UserInfo(user="john", password="secret"))
+
+        References:
+            - `create-a-user <https://docs.arangodb.com/stable/develop/http-api/users/#create-a-user>`__
+        """  # noqa: E501
+        if not user.user:
+            raise ValueError("Username is required.")
+
+        data: Json = user.to_dict()
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/user",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> UserInfo:
+            if not resp.is_success:
+                raise UserCreateError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return UserInfo(
+                user=body["user"],
+                active=cast(bool, body.get("active")),
+                extra=body.get("extra"),
+            )
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete_user(
+        self,
+        username: str,
+        ignore_missing: bool = False,
+    ) -> Result[bool]:
+        """Delete a user.
+
+        Args:
+            username (str): Username.
+            ignore_missing (bool): Do not raise an exception on missing user.
+
+        Returns:
+            bool: True if the user was deleted successfully, `False` if the user was
+                not found but **ignore_missing** was set to `True`.
+
+        Raises:
+            UserDeleteError: If the operation fails.
+
+        References:
+            - `remove-a-user <https://docs.arangodb.com/stable/develop/http-api/users/#remove-a-user>`__
+        """  # noqa: E501
+        request = Request(method=Method.DELETE, endpoint=f"/_api/user/{username}")
+
+        def response_handler(resp: Response) -> bool:
+            if resp.is_success:
+                return True
+            if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
+                return False
+            raise UserDeleteError(resp, request)
 
         return await self._executor.execute(request, response_handler)
 
