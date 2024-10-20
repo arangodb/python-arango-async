@@ -1,9 +1,13 @@
+import asyncio
 from dataclasses import dataclass
 
 import pytest
 import pytest_asyncio
 
-from arangoasync.auth import JwtToken
+from arangoasync.auth import Auth, JwtToken
+from arangoasync.client import ArangoClient
+from arangoasync.typings import UserInfo
+from tests.helpers import generate_col_name, generate_db_name, generate_username
 
 
 @dataclass
@@ -14,6 +18,7 @@ class GlobalData:
     secret: str = None
     token: str = None
     sys_db_name: str = "_system"
+    username: str = generate_username()
 
 
 global_data = GlobalData()
@@ -49,29 +54,46 @@ def pytest_configure(config):
     global_data.token = JwtToken.generate_token(global_data.secret)
 
 
-@pytest.fixture(autouse=False)
+@pytest.fixture
 def url():
     return global_data.url
 
 
-@pytest.fixture(autouse=False)
+@pytest.fixture
 def root():
     return global_data.root
 
 
-@pytest.fixture(autouse=False)
+@pytest.fixture
 def password():
     return global_data.password
 
 
-@pytest.fixture(autouse=False)
+@pytest.fixture
+def basic_auth_root(root, password):
+    return Auth(username=root, password=password)
+
+
+@pytest.fixture
+def username():
+    return global_data.username
+
+
+@pytest.fixture
 def token():
     return global_data.token
 
 
-@pytest.fixture(autouse=False)
+@pytest.fixture
 def sys_db_name():
     return global_data.sys_db_name
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest_asyncio.fixture
@@ -88,3 +110,89 @@ async def client_session():
 
     for session in sessions:
         await session.close()
+
+
+@pytest_asyncio.fixture
+async def arango_client(url):
+    async with ArangoClient(hosts=url) as client:
+        yield client
+
+
+@pytest_asyncio.fixture
+async def sys_db(arango_client, sys_db_name, basic_auth_root):
+    return await arango_client.db(
+        sys_db_name, auth_method="basic", auth=basic_auth_root, verify=False
+    )
+
+
+@pytest_asyncio.fixture
+async def test_db(arango_client, sys_db, password):
+    tst_db_name = generate_db_name()
+    tst_user = UserInfo(
+        user=generate_username(),
+        password=password,
+        active=True,
+    )
+    await sys_db.create_database(tst_db_name, users=[tst_user])
+    yield await arango_client.db(
+        tst_db_name,
+        auth_method="basic",
+        auth=Auth(username=tst_user.user, password=password),
+        verify=False,
+    )
+    await sys_db.delete_database(tst_db_name)
+
+
+@pytest_asyncio.fixture
+async def bad_db(arango_client):
+    return await arango_client.db(
+        generate_db_name(),
+        auth_method="basic",
+        auth=Auth(username="bad_user", password="bad_password"),
+        verify=False,
+    )
+
+
+@pytest_asyncio.fixture
+async def test_doc_col(test_db):
+    col_name = generate_col_name()
+    yield await test_db.create_collection(col_name)
+    await test_db.delete_collection(col_name)
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def teardown():
+    yield
+    async with ArangoClient(hosts=global_data.url) as client:
+        sys_db = await client.db(
+            global_data.sys_db_name,
+            auth_method="basic",
+            auth=Auth(username=global_data.root, password=global_data.password),
+            verify=False,
+        )
+
+        # Remove all test users.
+        tst_users = [
+            user["user"]
+            for user in await sys_db.users()
+            if user["user"].startswith("test_user")
+        ]
+        await asyncio.gather(*(sys_db.delete_user(user) for user in tst_users))
+
+        # Remove all test databases.
+        tst_dbs = [
+            db_name
+            for db_name in await sys_db.databases()
+            if db_name.startswith("test_database")
+        ]
+        await asyncio.gather(*(sys_db.delete_database(db_name) for db_name in tst_dbs))
+
+        # Remove all test collections.
+        tst_cols = [
+            col_info.name
+            for col_info in await sys_db.collections()
+            if col_info.name.startswith("test_collection")
+        ]
+        await asyncio.gather(
+            *(sys_db.delete_collection(col_name) for col_name in tst_cols)
+        )
