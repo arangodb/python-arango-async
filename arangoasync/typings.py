@@ -333,9 +333,7 @@ class UserInfo(JsonWrapper):
         active: bool = True,
         extra: Optional[Json] = None,
     ) -> None:
-        # There is a small inconsistency between _api/user and _api/database.
-        # The former uses "user" and the latter uses "username" for the username.
-        data = {"user": user, "username": user, "active": active}
+        data = {"user": user, "active": active}
         if password is not None:
             data["password"] = password
         if extra is not None:

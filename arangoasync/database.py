@@ -212,7 +212,7 @@ class Database:
         if users is not None:
             data["users"] = [
                 {
-                    "username": user["username"],
+                    "username": user["user"] if "user" in user else user["username"],
                     "passwd": user["password"],
                     "active": user.get("active", True),
                     "extra": user.get("extra", {}),
