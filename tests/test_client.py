@@ -1,6 +1,6 @@
 import pytest
 
-from arangoasync.auth import Auth, JwtToken
+from arangoasync.auth import JwtToken
 from arangoasync.client import ArangoClient
 from arangoasync.compression import DefaultCompressionManager
 from arangoasync.http import DefaultHTTPClient
@@ -62,12 +62,15 @@ async def test_client_bad_auth_method(url, sys_db_name):
 
 
 @pytest.mark.asyncio
-async def test_client_basic_auth(url, sys_db_name, root, password):
-    auth = Auth(username=root, password=password)
-
+async def test_client_basic_auth(url, sys_db_name, basic_auth_root):
     # successful authentication
     async with ArangoClient(hosts=url) as client:
-        await client.db(sys_db_name, auth_method="basic", auth=auth, verify=True)
+        await client.db(
+            sys_db_name,
+            auth_method="basic",
+            auth=basic_auth_root,
+            verify=True,
+        )
 
     # auth missing
     async with ArangoClient(hosts=url) as client:
@@ -82,13 +85,17 @@ async def test_client_basic_auth(url, sys_db_name, root, password):
 
 
 @pytest.mark.asyncio
-async def test_client_jwt_auth(url, sys_db_name, root, password):
-    auth = Auth(username=root, password=password)
+async def test_client_jwt_auth(url, sys_db_name, basic_auth_root):
     token: JwtToken
 
     # successful authentication with auth only
     async with ArangoClient(hosts=url) as client:
-        db = await client.db(sys_db_name, auth_method="jwt", auth=auth, verify=True)
+        db = await client.db(
+            sys_db_name,
+            auth_method="jwt",
+            auth=basic_auth_root,
+            verify=True,
+        )
         token = db.connection.token
 
     # successful authentication with token only
@@ -98,7 +105,11 @@ async def test_client_jwt_auth(url, sys_db_name, root, password):
         # successful authentication with both
         async with ArangoClient(hosts=url) as client:
             await client.db(
-                sys_db_name, auth_method="jwt", auth=auth, token=token, verify=True
+                sys_db_name,
+                auth_method="jwt",
+                auth=basic_auth_root,
+                token=token,
+                verify=True,
             )
 
     # auth and token missing
@@ -108,9 +119,7 @@ async def test_client_jwt_auth(url, sys_db_name, root, password):
 
 
 @pytest.mark.asyncio
-async def test_client_jwt_superuser_auth(url, sys_db_name, root, password, token):
-    auth = Auth(username=root, password=password)
-
+async def test_client_jwt_superuser_auth(url, sys_db_name, basic_auth_root, token):
     # successful authentication
     async with ArangoClient(hosts=url) as client:
         await client.db(sys_db_name, auth_method="superuser", token=token, verify=True)
@@ -119,5 +128,5 @@ async def test_client_jwt_superuser_auth(url, sys_db_name, root, password, token
     async with ArangoClient(hosts=url) as client:
         with pytest.raises(ValueError):
             await client.db(
-                sys_db_name, auth_method="superuser", auth=auth, verify=True
+                sys_db_name, auth_method="superuser", auth=basic_auth_root, verify=True
             )

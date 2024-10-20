@@ -172,6 +172,7 @@ class BaseConnection(ABC):
             ConnectionAbortedError: If it can't connect to host(s) within limit.
         """
 
+        request.endpoint = f"{self._db_endpoint}{request.endpoint}"
         host_index = self._host_resolver.get_host_index()
         for tries in range(self._host_resolver.max_tries):
             try:
