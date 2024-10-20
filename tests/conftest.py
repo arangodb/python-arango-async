@@ -85,7 +85,7 @@ def basic_auth_root(root, password):
 
 
 @pytest.fixture
-def clusetr():
+def cluster():
     return global_data.cluster
 
 
@@ -107,6 +107,18 @@ def token():
 @pytest.fixture
 def sys_db_name():
     return global_data.sys_db_name
+
+
+@pytest.fixture
+def docs():
+    return [
+        {"_key": "1", "val": 1, "text": "foo", "loc": [1, 1]},
+        {"_key": "2", "val": 2, "text": "foo", "loc": [2, 2]},
+        {"_key": "3", "val": 3, "text": "foo", "loc": [3, 3]},
+        {"_key": "4", "val": 4, "text": "bar", "loc": [4, 4]},
+        {"_key": "5", "val": 5, "text": "bar", "loc": [5, 5]},
+        {"_key": "6", "val": 6, "text": "bar", "loc": [5, 5]},
+    ]
 
 
 @pytest.fixture(scope="session")
@@ -146,14 +158,22 @@ async def sys_db(arango_client, sys_db_name, basic_auth_root):
 
 
 @pytest_asyncio.fixture
-async def test_db(arango_client, sys_db, username, password):
+async def db(arango_client, sys_db, username, password, cluster):
     tst_db_name = generate_db_name()
     tst_user = UserInfo(
         user=username,
         password=password,
         active=True,
     )
-    await sys_db.create_database(tst_db_name, users=[tst_user])
+    tst_db_kwargs = dict(name=tst_db_name, users=[tst_user])
+    if cluster:
+        tst_db_kwargs.update(
+            dict(
+                replication_factor=3,
+                write_concern=2,
+            )
+        )
+    await sys_db.create_database(**tst_db_kwargs)
     yield await arango_client.db(
         tst_db_name,
         auth_method="basic",
@@ -174,10 +194,10 @@ async def bad_db(arango_client):
 
 
 @pytest_asyncio.fixture
-async def test_doc_col(test_db):
+async def doc_col(db):
     col_name = generate_col_name()
-    yield await test_db.create_collection(col_name)
-    await test_db.delete_collection(col_name)
+    yield await db.create_collection(col_name)
+    await db.delete_collection(col_name)
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)

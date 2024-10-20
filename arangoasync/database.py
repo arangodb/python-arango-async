@@ -391,7 +391,7 @@ class Database:
                 This will be used only for document operations.
             doc_deserializer (Deserializer): Custom document deserializer.
                 This will be used only for document operations.
-            col_type (CollectionType | None): Collection type.
+            col_type (CollectionType | int | str | None): Collection type.
             write_concern (int | None): Determines how many copies of each shard are
                 required to be in sync on the different DB-Servers.
             wait_for_sync (bool | None): If `True`, the data is synchronised to disk
@@ -449,6 +449,12 @@ class Database:
         """  # noqa: E501
         data: Json = {"name": name}
         if col_type is not None:
+            if isinstance(col_type, int):
+                col_type = CollectionType.from_int(col_type)
+            elif isinstance(col_type, str):
+                col_type = CollectionType.from_str(col_type)
+            elif not isinstance(col_type, CollectionType):
+                raise ValueError("Invalid collection type")
             data["type"] = col_type.value
         if write_concern is not None:
             data["writeConcern"] = write_concern
@@ -644,7 +650,7 @@ class Database:
         """Create a new user.
 
         Args:
-            user (UserInfo): User information.
+            user (UserInfo | dict): User information.
 
         Returns:
             UserInfo: New user details.
@@ -657,10 +663,13 @@ class Database:
             .. code-block:: python
 
                 await db.create_user(UserInfo(user="john", password="secret"))
+                await db.create_user({user="john", password="secret"})
 
         References:
             - `create-a-user <https://docs.arangodb.com/stable/develop/http-api/users/#create-a-user>`__
         """  # noqa: E501
+        if isinstance(user, dict):
+            user = UserInfo(**user)
         if not user.user:
             raise ValueError("Username is required.")
 

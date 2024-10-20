@@ -265,6 +265,10 @@ class StandardCollection(Collection[T, U, V]):
                 document operations. Only applicable if **overwrite** is set to true
                 or **overwriteMode** is set to "update" or "replace".
 
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
+                if **silent** is set to `True`.
+
         References:
             - `create-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#create-a-document>`__
         """  # noqa: E501

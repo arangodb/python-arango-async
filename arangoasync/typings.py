@@ -62,6 +62,24 @@ class CollectionType(Enum):
         else:
             raise ValueError(f"Invalid collection type value: {value}")
 
+    @staticmethod
+    def from_str(value: str) -> "CollectionType":
+        """Return a collection type from its string value.
+
+        Args:
+            value (str): Collection type string value.
+
+        Returns:
+            CollectionType: Collection type.
+        """
+        value = value.lower()
+        if value == "document":
+            return CollectionType.DOCUMENT
+        elif value == "edge":
+            return CollectionType.EDGE
+        else:
+            raise ValueError(f"Invalid collection type value: {value}")
+
     def __str__(self) -> str:
         return self.name.lower()
 
