@@ -19,6 +19,8 @@ class GlobalData:
     token: str = None
     sys_db_name: str = "_system"
     username: str = generate_username()
+    cluster: bool = False
+    enterprise: bool = False
 
 
 global_data = GlobalData()
@@ -40,6 +42,12 @@ def pytest_addoption(parser):
     parser.addoption(
         "--secret", action="store", default="secret", help="ArangoDB JWT secret"
     )
+    parser.addoption(
+        "--cluster", action="store_true", help="Run tests in a cluster setup"
+    )
+    parser.addoption(
+        "--enterprise", action="store_true", help="Run tests in an enterprise setup"
+    )
 
 
 def pytest_configure(config):
@@ -52,6 +60,8 @@ def pytest_configure(config):
     global_data.password = config.getoption("password")
     global_data.secret = config.getoption("secret")
     global_data.token = JwtToken.generate_token(global_data.secret)
+    global_data.cluster = config.getoption("cluster")
+    global_data.enterprise = config.getoption("enterprise")
 
 
 @pytest.fixture
@@ -72,6 +82,16 @@ def password():
 @pytest.fixture
 def basic_auth_root(root, password):
     return Auth(username=root, password=password)
+
+
+@pytest.fixture
+def clusetr():
+    return global_data.cluster
+
+
+@pytest.fixture
+def enterprise():
+    return global_data.enterprise
 
 
 @pytest.fixture
@@ -126,10 +146,10 @@ async def sys_db(arango_client, sys_db_name, basic_auth_root):
 
 
 @pytest_asyncio.fixture
-async def test_db(arango_client, sys_db, password):
+async def test_db(arango_client, sys_db, username, password):
     tst_db_name = generate_db_name()
     tst_user = UserInfo(
-        user=generate_username(),
+        user=username,
         password=password,
         active=True,
     )
@@ -137,7 +157,7 @@ async def test_db(arango_client, sys_db, password):
     yield await arango_client.db(
         tst_db_name,
         auth_method="basic",
-        auth=Auth(username=tst_user.user, password=password),
+        auth=Auth(username=username, password=password),
         verify=False,
     )
     await sys_db.delete_database(tst_db_name)
