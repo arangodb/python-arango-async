@@ -20,7 +20,7 @@ from tests.helpers import generate_col_name, generate_db_name, generate_username
 
 
 @pytest.mark.asyncio
-async def test_database_misc_methods(sys_db, db, bad_db):
+async def test_database_misc_methods(sys_db, db, bad_db, cluster):
     # Status
     status = await sys_db.status()
     assert status["server"] == "arango"
@@ -34,8 +34,10 @@ async def test_database_misc_methods(sys_db, db, bad_db):
     assert db_properties.is_system is False
     assert sys_properties.name == sys_db.name
     assert db_properties.name == db.name
-    assert db_properties.replication_factor == 3
-    assert db_properties.write_concern == 2
+    if cluster:
+        assert db_properties.replication_factor == 3
+        assert db_properties.write_concern == 2
+
     with pytest.raises(DatabasePropertiesError):
         await bad_db.properties()
     assert len(db_properties.format()) > 1
