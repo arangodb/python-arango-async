@@ -622,30 +622,30 @@ class CollectionProperties(JsonWrapper):
     Example:
         .. code-block:: json
 
-        {
-          "writeConcern" : 1,
-          "waitForSync" : true,
-          "usesRevisionsAsDocumentIds" : true,
-          "syncByRevision" : true,
-          "statusString" : "loaded",
-          "id" : "68452",
-          "isSmartChild" : false,
-          "schema" : null,
-          "name" : "products",
-          "type" : 2,
-          "status" : 3,
-          "cacheEnabled" : false,
-          "isSystem" : false,
-          "internalValidatorType" : 0,
-          "globallyUniqueId" : "hDA74058C1843/68452",
-          "keyOptions" : {
-            "allowUserKeys" : true,
-            "type" : "traditional",
-            "lastValue" : 0
-          },
-          "computedValues" : null,
-          "objectId" : "68453"
-        }
+            {
+              "writeConcern" : 1,
+              "waitForSync" : true,
+              "usesRevisionsAsDocumentIds" : true,
+              "syncByRevision" : true,
+              "statusString" : "loaded",
+              "id" : "68452",
+              "isSmartChild" : false,
+              "schema" : null,
+              "name" : "products",
+              "type" : 2,
+              "status" : 3,
+              "cacheEnabled" : false,
+              "isSystem" : false,
+              "internalValidatorType" : 0,
+              "globallyUniqueId" : "hDA74058C1843/68452",
+              "keyOptions" : {
+                "allowUserKeys" : true,
+                "type" : "traditional",
+                "lastValue" : 0
+              },
+              "computedValues" : null,
+              "objectId" : "68453"
+            }
 
     References:
         - `get-the-properties-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-properties-of-a-collection>`__

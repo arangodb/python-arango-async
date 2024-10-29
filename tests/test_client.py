@@ -119,14 +119,17 @@ async def test_client_jwt_auth(url, sys_db_name, basic_auth_root):
 
 
 @pytest.mark.asyncio
-async def test_client_jwt_superuser_auth(url, sys_db_name, basic_auth_root, token):
+async def test_client_jwt_superuser_auth(
+    url, sys_db_name, basic_auth_root, token, enterprise
+):
     # successful authentication
     async with ArangoClient(hosts=url) as client:
         db = await client.db(
             sys_db_name, auth_method="superuser", token=token, verify=True
         )
-        await db.jwt_secrets()
-        await db.reload_jwt_secrets()
+        if enterprise:
+            await db.jwt_secrets()
+            await db.reload_jwt_secrets()
 
     # token missing
     async with ArangoClient(hosts=url) as client:
