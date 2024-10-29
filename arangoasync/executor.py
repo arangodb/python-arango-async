@@ -30,6 +30,10 @@ class DefaultApiExecutor:
         return "default"
 
     @property
+    def db_name(self) -> str:
+        return self._conn.db_name
+
+    @property
     def serializer(self) -> Serializer[Json]:
         return self._conn.serializer
 

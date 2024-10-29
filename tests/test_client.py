@@ -122,7 +122,11 @@ async def test_client_jwt_auth(url, sys_db_name, basic_auth_root):
 async def test_client_jwt_superuser_auth(url, sys_db_name, basic_auth_root, token):
     # successful authentication
     async with ArangoClient(hosts=url) as client:
-        await client.db(sys_db_name, auth_method="superuser", token=token, verify=True)
+        db = await client.db(
+            sys_db_name, auth_method="superuser", token=token, verify=True
+        )
+        await db.jwt_secrets()
+        await db.reload_jwt_secrets()
 
     # token missing
     async with ArangoClient(hosts=url) as client:

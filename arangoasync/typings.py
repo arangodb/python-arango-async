@@ -134,6 +134,9 @@ class JsonWrapper:
 
     def __init__(self, data: Json) -> None:
         self._data = data
+        for excluded in ("code", "error"):
+            if excluded in self._data:
+                self._data.pop(excluded)
 
     def __getitem__(self, key: str) -> Any:
         return self._data[key]
@@ -175,10 +178,18 @@ class JsonWrapper:
         return self._data
 
     def format(self, formatter: Optional[Formatter] = None) -> Json:
-        """Apply a formatter to the data. Returns the unmodified data by default."""
+        """Apply a formatter to the data.
+
+        Returns the unmodified data by default. Should not modify the object in-place.
+        """
         if formatter is not None:
             return formatter(self._data)
         return self._data
+
+    @staticmethod
+    def _strip_result(data: Json) -> Json:
+        """Keep only the `result` key from a dict. Useful when parsing responses."""
+        return data["result"]  # type: ignore[no-any-return]
 
 
 class KeyOptions(JsonWrapper):
@@ -255,6 +266,31 @@ class KeyOptions(JsonWrapper):
                 '"offset" value is only allowed for "autoincrement" ' "key generator"
             )
 
+    @staticmethod
+    def compatibility_formatter(data: Json) -> Json:
+        """python-arango compatibility formatter."""
+        result: Json = {}
+        if "type" in data:
+            result["key_generator"] = data["type"]
+        if "increment" in data:
+            result["key_increment"] = data["increment"]
+        if "offset" in data:
+            result["key_offset"] = data["offset"]
+        if "allowUserKeys" in data:
+            result["user_keys"] = data["allowUserKeys"]
+        if "lastValue" in data:
+            result["key_last_value"] = data["lastValue"]
+        return result
+
+    def format(self, formatter: Optional[Formatter] = None) -> Json:
+        """Apply a formatter to the data.
+
+        By default, the python-arango compatibility formatter is applied.
+        """
+        if formatter is not None:
+            return super().format(formatter)
+        return self.compatibility_formatter(self._data)
+
 
 class CollectionInfo(JsonWrapper):
     """Collection information.
@@ -303,6 +339,17 @@ class CollectionInfo(JsonWrapper):
         """Return the type of the collection."""
         return CollectionType.from_int(self._data["type"])
 
+    @staticmethod
+    def compatibility_formatter(data: Json) -> Json:
+        """python-arango compatibility formatter."""
+        return {
+            "id": data["id"],
+            "name": data["name"],
+            "system": data["isSystem"],
+            "type": str(CollectionType.from_int(data["type"])),
+            "status": str(CollectionStatus.from_int(data["status"])),
+        }
+
     def format(self, formatter: Optional[Formatter] = None) -> Json:
         """Apply a formatter to the data.
 
@@ -310,13 +357,7 @@ class CollectionInfo(JsonWrapper):
         """
         if formatter is not None:
             return super().format(formatter)
-        return {
-            "id": self._data["id"],
-            "name": self.name,
-            "system": self.is_system,
-            "type": str(self.col_type),
-            "status": str(self.status),
-        }
+        return self.compatibility_formatter(self._data)
 
 
 class UserInfo(JsonWrapper):
@@ -360,7 +401,7 @@ class UserInfo(JsonWrapper):
 
     @property
     def user(self) -> str:
-        return self._data.get("user")  # type: ignore[return-value]
+        return self._data["user"]  # type: ignore[no-any-return]
 
     @property
     def password(self) -> Optional[str]:
@@ -368,20 +409,29 @@ class UserInfo(JsonWrapper):
 
     @property
     def active(self) -> bool:
-        return self._data.get("active")  # type: ignore[return-value]
+        return self._data["active"]  # type: ignore[no-any-return]
 
     @property
     def extra(self) -> Optional[Json]:
         return self._data.get("extra")
 
-    def to_dict(self) -> Json:
-        """Return the dictionary."""
-        return dict(
-            user=self.user,
-            password=self.password,
-            active=self.active,
-            extra=self.extra,
-        )
+    @staticmethod
+    def user_management_formatter(data: Json) -> Json:
+        """Request formatter."""
+        result: Json = dict(user=data["user"])
+        if "password" in data:
+            result["passwd"] = data["password"]
+        if "active" in data:
+            result["active"] = data["active"]
+        if "extra" in data:
+            result["extra"] = data["extra"]
+        return result
+
+    def format(self, formatter: Optional[Formatter] = None) -> Json:
+        """Apply a formatter to the data."""
+        if formatter is not None:
+            return super().format(formatter)
+        return self._data
 
 
 class ServerStatusInformation(JsonWrapper):
@@ -485,3 +535,283 @@ class ServerStatusInformation(JsonWrapper):
     @property
     def agency(self) -> Optional[Json]:
         return self._data.get("agency")
+
+
+class DatabaseProperties(JsonWrapper):
+    """Properties of the database.
+
+    References:
+        - `get-information-about-the-current-database <https://docs.arangodb.com/stable/develop/http-api/databases/#get-information-about-the-current-database>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json, strip_result: bool = False) -> None:
+        super().__init__(self._strip_result(data) if strip_result else data)
+
+    @property
+    def name(self) -> str:
+        """The name of the current database."""
+        return self._data["name"]  # type: ignore[no-any-return]
+
+    @property
+    def id(self) -> str:
+        """The id of the current database."""
+        return self._data["id"]  # type: ignore[no-any-return]
+
+    @property
+    def path(self) -> Optional[str]:
+        """The filesystem path of the current database."""
+        return self._data.get("path")
+
+    @property
+    def is_system(self) -> bool:
+        """Whether the database is the `_system` database."""
+        return self._data["isSystem"]  # type: ignore[no-any-return]
+
+    @property
+    def sharding(self) -> Optional[str]:
+        """The default sharding method for collections."""
+        return self._data.get("sharding")
+
+    @property
+    def replication_factor(self) -> Optional[int]:
+        """The default replication factor for collections."""
+        return self._data.get("replicationFactor")
+
+    @property
+    def write_concern(self) -> Optional[int]:
+        """The default write concern for collections."""
+        return self._data.get("writeConcern")
+
+    @staticmethod
+    def compatibility_formatter(data: Json) -> Json:
+        """python-arango compatibility formatter."""
+        result: Json = {}
+        if "id" in data:
+            result["id"] = data["id"]
+        if "name" in data:
+            result["name"] = data["name"]
+        if "path" in data:
+            result["path"] = data["path"]
+        if "system" in data:
+            result["system"] = data["system"]
+        if "isSystem" in data:
+            result["system"] = data["isSystem"]
+        if "sharding" in data:
+            result["sharding"] = data["sharding"]
+        if "replicationFactor" in data:
+            result["replication_factor"] = data["replicationFactor"]
+        if "writeConcern" in data:
+            result["write_concern"] = data["writeConcern"]
+        if "replicationVersion" in data:
+            result["replication_version"] = data["replicationVersion"]
+        return result
+
+    def format(self, formatter: Optional[Formatter] = None) -> Json:
+        """Apply a formatter to the data.
+
+        By default, the python-arango compatibility formatter is applied.
+        """
+        if formatter is not None:
+            return super().format(formatter)
+        return self.compatibility_formatter(self._data)
+
+
+class CollectionProperties(JsonWrapper):
+    """Properties of a collection.
+
+    Example:
+        .. code-block:: json
+
+        {
+          "writeConcern" : 1,
+          "waitForSync" : true,
+          "usesRevisionsAsDocumentIds" : true,
+          "syncByRevision" : true,
+          "statusString" : "loaded",
+          "id" : "68452",
+          "isSmartChild" : false,
+          "schema" : null,
+          "name" : "products",
+          "type" : 2,
+          "status" : 3,
+          "cacheEnabled" : false,
+          "isSystem" : false,
+          "internalValidatorType" : 0,
+          "globallyUniqueId" : "hDA74058C1843/68452",
+          "keyOptions" : {
+            "allowUserKeys" : true,
+            "type" : "traditional",
+            "lastValue" : 0
+          },
+          "computedValues" : null,
+          "objectId" : "68453"
+        }
+
+    References:
+        - `get-the-properties-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-properties-of-a-collection>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def write_concern(self) -> Optional[int]:
+        return self._data.get("writeConcern")
+
+    @property
+    def wait_for_sync(self) -> Optional[bool]:
+        return self._data.get("waitForSync")
+
+    @property
+    def use_revisions_as_document_ids(self) -> Optional[bool]:
+        return self._data.get("usesRevisionsAsDocumentIds")
+
+    @property
+    def sync_by_revision(self) -> Optional[bool]:
+        return self._data.get("syncByRevision")
+
+    @property
+    def status_string(self) -> Optional[str]:
+        return self._data.get("statusString")
+
+    @property
+    def id(self) -> str:
+        return self._data["id"]  # type: ignore[no-any-return]
+
+    @property
+    def is_smart_child(self) -> bool:
+        return self._data["isSmartChild"]  # type: ignore[no-any-return]
+
+    @property
+    def schema(self) -> Optional[Json]:
+        return self._data.get("schema")
+
+    @property
+    def name(self) -> str:
+        return self._data["name"]  # type: ignore[no-any-return]
+
+    @property
+    def type(self) -> CollectionType:
+        return CollectionType.from_int(self._data["type"])
+
+    @property
+    def status(self) -> CollectionStatus:
+        return CollectionStatus.from_int(self._data["status"])
+
+    @property
+    def cache_enabled(self) -> Optional[bool]:
+        return self._data.get("cacheEnabled")
+
+    @property
+    def is_system(self) -> bool:
+        return self._data["isSystem"]  # type: ignore[no-any-return]
+
+    @property
+    def internal_validator_type(self) -> Optional[int]:
+        return self._data.get("internalValidatorType")
+
+    @property
+    def globally_unique_id(self) -> str:
+        return self._data["globallyUniqueId"]  # type: ignore[no-any-return]
+
+    @property
+    def key_options(self) -> KeyOptions:
+        return KeyOptions(self._data["keyOptions"])
+
+    @property
+    def computed_values(self) -> Optional[Json]:
+        return self._data.get("computedValues")
+
+    @property
+    def object_id(self) -> str:
+        return self._data["objectId"]  # type: ignore[no-any-return]
+
+    @staticmethod
+    def compatibility_formatter(data: Json) -> Json:
+        """python-arango compatibility formatter."""
+        result: Json = {}
+        if "id" in data:
+            result["id"] = data["id"]
+        if "objectId" in data:
+            result["object_id"] = data["objectId"]
+        if "name" in data:
+            result["name"] = data["name"]
+        if "isSystem" in data:
+            result["system"] = data["isSystem"]
+        if "isSmart" in data:
+            result["smart"] = data["isSmart"]
+        if "type" in data:
+            result["type"] = data["type"]
+            result["edge"] = data["type"] == 3
+        if "waitForSync" in data:
+            result["sync"] = data["waitForSync"]
+        if "status" in data:
+            result["status"] = data["status"]
+        if "statusString" in data:
+            result["status_string"] = data["statusString"]
+        if "globallyUniqueId" in data:
+            result["global_id"] = data["globallyUniqueId"]
+        if "cacheEnabled" in data:
+            result["cache"] = data["cacheEnabled"]
+        if "replicationFactor" in data:
+            result["replication_factor"] = data["replicationFactor"]
+        if "minReplicationFactor" in data:
+            result["min_replication_factor"] = data["minReplicationFactor"]
+        if "writeConcern" in data:
+            result["write_concern"] = data["writeConcern"]
+        if "shards" in data:
+            result["shards"] = data["shards"]
+        if "replicationFactor" in data:
+            result["replication_factor"] = data["replicationFactor"]
+        if "numberOfShards" in data:
+            result["shard_count"] = data["numberOfShards"]
+        if "shardKeys" in data:
+            result["shard_fields"] = data["shardKeys"]
+        if "distributeShardsLike" in data:
+            result["shard_like"] = data["distributeShardsLike"]
+        if "shardingStrategy" in data:
+            result["sharding_strategy"] = data["shardingStrategy"]
+        if "smartJoinAttribute" in data:
+            result["smart_join_attribute"] = data["smartJoinAttribute"]
+        if "keyOptions" in data:
+            result["key_options"] = KeyOptions.compatibility_formatter(
+                data["keyOptions"]
+            )
+        if "cid" in data:
+            result["cid"] = data["cid"]
+        if "version" in data:
+            result["version"] = data["version"]
+        if "allowUserKeys" in data:
+            result["user_keys"] = data["allowUserKeys"]
+        if "planId" in data:
+            result["plan_id"] = data["planId"]
+        if "deleted" in data:
+            result["deleted"] = data["deleted"]
+        if "syncByRevision" in data:
+            result["sync_by_revision"] = data["syncByRevision"]
+        if "tempObjectId" in data:
+            result["temp_object_id"] = data["tempObjectId"]
+        if "usesRevisionsAsDocumentIds" in data:
+            result["rev_as_id"] = data["usesRevisionsAsDocumentIds"]
+        if "isDisjoint" in data:
+            result["disjoint"] = data["isDisjoint"]
+        if "isSmartChild" in data:
+            result["smart_child"] = data["isSmartChild"]
+        if "minRevision" in data:
+            result["min_revision"] = data["minRevision"]
+        if "schema" in data:
+            result["schema"] = data["schema"]
+        if data.get("computedValues") is not None:
+            result["computedValues"] = data["computedValues"]
+        if "internalValidatorType" in data:
+            result["internal_validator_type"] = data["internalValidatorType"]
+        return result
+
+    def format(self, formatter: Optional[Formatter] = None) -> Json:
+        """Apply a formatter to the data.
+
+        By default, the python-arango compatibility formatter is applied.
+        """
+        if formatter is not None:
+            return super().format(formatter)
+        return self.compatibility_formatter(self._data)

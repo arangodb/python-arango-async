@@ -16,11 +16,20 @@ from arangoasync.exceptions import (
     DatabaseCreateError,
     DatabaseDeleteError,
     DatabaseListError,
+    DatabasePropertiesError,
+    JWTSecretListError,
+    JWTSecretReloadError,
+    PermissionGetError,
+    PermissionListError,
+    PermissionResetError,
+    PermissionUpdateError,
     ServerStatusError,
     UserCreateError,
     UserDeleteError,
     UserGetError,
     UserListError,
+    UserReplaceError,
+    UserUpdateError,
 )
 from arangoasync.executor import ApiExecutor, DefaultApiExecutor
 from arangoasync.request import Method, Request
@@ -29,6 +38,7 @@ from arangoasync.serialization import Deserializer, Serializer
 from arangoasync.typings import (
     CollectionInfo,
     CollectionType,
+    DatabaseProperties,
     Json,
     Jsons,
     KeyOptions,
@@ -73,6 +83,29 @@ class Database:
     def deserializer(self) -> Deserializer[Json, Jsons]:
         """Return the deserializer."""
         return self._executor.deserializer
+
+    async def properties(self) -> Result[DatabaseProperties]:
+        """Return database properties.
+
+        Returns:
+            DatabaseProperties: Properties of the current database.
+
+        Raises:
+            DatabasePropertiesError: If retrieval fails.
+
+        References:
+            - `get-information-about-the-current-database <https://docs.arangodb.com/stable/develop/http-api/databases/#get-information-about-the-current-database>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/database/current")
+
+        def response_handler(resp: Response) -> DatabaseProperties:
+            if not resp.is_success:
+                raise DatabasePropertiesError(resp, request)
+            return DatabaseProperties(
+                self.deserializer.loads(resp.raw_body), strip_result=True
+            )
+
+        return await self._executor.execute(request, response_handler)
 
     async def status(self) -> Result[ServerStatusInformation]:
         """Query the server status.
@@ -120,6 +153,31 @@ class Database:
             if resp.status_code == HTTP_FORBIDDEN:
                 msg = "This request can only be executed in the _system database."
             raise DatabaseListError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def databases_accessible_to_user(self) -> Result[List[str]]:
+        """Return the names of all databases accessible to the current user.
+
+        Note:
+            This method can only be executed in the **_system** database.
+
+        Returns:
+            list: Database names.
+
+        Raises:
+            DatabaseListError: If retrieval fails.
+
+        References:
+            - `list-the-accessible-databases <https://docs.arangodb.com/stable/develop/http-api/databases/#list-the-accessible-databases>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/database/user")
+
+        def response_handler(resp: Response) -> List[str]:
+            if resp.is_success:
+                body = self.deserializer.loads(resp.raw_body)
+                return cast(List[str], body["result"])
+            raise DatabaseListError(resp, request)
 
         return await self._executor.execute(request, response_handler)
 
@@ -643,10 +701,7 @@ class Database:
 
         return await self._executor.execute(request, response_handler)
 
-    async def create_user(
-        self,
-        user: UserInfo,
-    ) -> Result[UserInfo]:
+    async def create_user(self, user: UserInfo | Json) -> Result[UserInfo]:
         """Create a new user.
 
         Args:
@@ -673,7 +728,7 @@ class Database:
         if not user.user:
             raise ValueError("Username is required.")
 
-        data: Json = user.to_dict()
+        data: Json = user.format(UserInfo.user_management_formatter)
         request = Request(
             method=Method.POST,
             endpoint="/_api/user",
@@ -683,6 +738,86 @@ class Database:
         def response_handler(resp: Response) -> UserInfo:
             if not resp.is_success:
                 raise UserCreateError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return UserInfo(
+                user=body["user"],
+                active=cast(bool, body.get("active")),
+                extra=body.get("extra"),
+            )
+
+        return await self._executor.execute(request, response_handler)
+
+    async def replace_user(self, user: UserInfo | Json) -> Result[UserInfo]:
+        """Replace the data of an existing user.
+
+        Args:
+            user (UserInfo | dict): New user information.
+
+        Returns:
+            UserInfo: New user details.
+
+        Raises:
+            ValueError: If the username is missing.
+            UserReplaceError: If the operation fails.
+
+        References:
+            - `replace-a-user <https://docs.arangodb.com/stable/develop/http-api/users/#replace-a-user>`__
+        """  # noqa: E501
+        if isinstance(user, dict):
+            user = UserInfo(**user)
+        if not user.user:
+            raise ValueError("Username is required.")
+
+        data: Json = user.format(UserInfo.user_management_formatter)
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/user/{user.user}",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> UserInfo:
+            if not resp.is_success:
+                raise UserReplaceError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return UserInfo(
+                user=body["user"],
+                active=cast(bool, body.get("active")),
+                extra=body.get("extra"),
+            )
+
+        return await self._executor.execute(request, response_handler)
+
+    async def update_user(self, user: UserInfo | Json) -> Result[UserInfo]:
+        """Partially modifies the data of an existing user.
+
+        Args:
+            user (UserInfo | dict): User information.
+
+        Returns:
+            UserInfo: Updated user details.
+
+        Raises:
+            ValueError: If the username is missing.
+            UserUpdateError: If the operation fails.
+
+        References:
+            - `update-a-user <https://docs.arangodb.com/stable/develop/http-api/users/#update-a-user>`__
+        """  # noqa: E501
+        if isinstance(user, dict):
+            user = UserInfo(**user)
+            if not user.user:
+                raise ValueError("Username is required.")
+
+        data: Json = user.format(UserInfo.user_management_formatter)
+        request = Request(
+            method=Method.PATCH,
+            endpoint=f"/_api/user/{user.user}",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> UserInfo:
+            if not resp.is_success:
+                raise UserUpdateError(resp, request)
             body = self.deserializer.loads(resp.raw_body)
             return UserInfo(
                 user=body["user"],
@@ -721,6 +856,210 @@ class Database:
             if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
                 return False
             raise UserDeleteError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def permissions(self, username: str, full: bool = True) -> Result[Json]:
+        """Return user permissions for all databases and collections.
+
+        Args:
+            username (str): Username.
+            full (bool): If `True`, the result will contain the permissions for the
+                databases as well as the permissions for the collections.
+
+        Returns:
+            dict: User permissions for all databases and (optionally) collections.
+
+        Raises:
+            PermissionListError: If the operation fails.
+
+        References:
+            - `list-a-users-accessible-databases <https://docs.arangodb.com/stable/develop/http-api/users/#list-a-users-accessible-databases>`__
+        """  # noqa: 501
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/user/{username}/database",
+            params={"full": full},
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                result: Json = self.deserializer.loads(resp.raw_body)["result"]
+                return result
+            raise PermissionListError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def permission(
+        self,
+        username: str,
+        database: str,
+        collection: Optional[str] = None,
+    ) -> Result[str]:
+        """Return user permission for a specific database or collection.
+
+        Args:
+            username (str): Username.
+            database (str): Database name.
+            collection (str | None): Collection name.
+
+        Returns:
+            str: User access level.
+
+        Raises:
+            PermissionGetError: If the operation fails.
+
+        References:
+            - `get-a-users-database-access-level <https://docs.arangodb.com/stable/develop/http-api/users/#get-a-users-database-access-level>`__
+            - `get-a-users-collection-access-level <https://docs.arangodb.com/stable/develop/http-api/users/#get-a-users-collection-access-level>`__
+        """  # noqa: 501
+        endpoint = f"/_api/user/{username}/database/{database}"
+        if collection is not None:
+            endpoint += f"/{collection}"
+        request = Request(method=Method.GET, endpoint=endpoint)
+
+        def response_handler(resp: Response) -> str:
+            if resp.is_success:
+                return cast(str, self.deserializer.loads(resp.raw_body)["result"])
+            raise PermissionGetError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def update_permission(
+        self,
+        username: str,
+        permission: str,
+        database: str,
+        collection: Optional[str] = None,
+        ignore_failure: bool = False,
+    ) -> Result[bool]:
+        """Update user permissions for a specific database or collection.
+
+        Args:
+            username (str): Username.
+            permission (str): Allowed values are "rw" (administrate),
+                "ro" (access) and "none" (no access).
+            database (str): Database to set the access level for.
+            collection (str | None): Collection to set the access level for.
+            ignore_failure (bool): Do not raise an exception on failure.
+
+        Returns:
+            bool: `True` if the operation was successful.
+
+        Raises:
+            PermissionUpdateError: If the operation fails and `ignore_failure`
+                is `False`.
+
+        References:
+            - `set-a-users-database-access-level <https://docs.arangodb.com/stable/develop/http-api/users/#set-a-users-database-access-level>`__
+            - `set-a-users-collection-access-level <https://docs.arangodb.com/stable/develop/http-api/users/#set-a-users-collection-access-level>`__
+        """  # noqa: E501
+        endpoint = f"/_api/user/{username}/database/{database}"
+        if collection is not None:
+            endpoint += f"/{collection}"
+
+        request = Request(
+            method=Method.PUT,
+            endpoint=endpoint,
+            data=self.serializer.dumps({"grant": permission}),
+        )
+
+        def response_handler(resp: Response) -> bool:
+            nonlocal ignore_failure
+            if resp.is_success:
+                return True
+            if ignore_failure:
+                return False
+            raise PermissionUpdateError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def reset_permission(
+        self,
+        username: str,
+        database: str,
+        collection: Optional[str] = None,
+        ignore_failure: bool = False,
+    ) -> Result[bool]:
+        """Reset user permission for a specific database or collection.
+
+        Args:
+            username (str): Username.
+            database (str): Database to reset the access level for.
+            collection (str | None): Collection to reset the access level for.
+            ignore_failure (bool): Do not raise an exception on failure.
+
+        Returns:
+            bool: `True` if the operation was successful.
+
+        Raises:
+            PermissionResetError: If the operation fails and `ignore_failure`
+                is `False`.
+
+        References:
+            - `clear-a-users-database-access-level <https://docs.arangodb.com/stable/develop/http-api/users/#clear-a-users-database-access-level>`__
+            - `clear-a-users-collection-access-level <https://docs.arangodb.com/stable/develop/http-api/users/#clear-a-users-collection-access-level>`__
+        """  # noqa: E501
+        endpoint = f"/_api/user/{username}/database/{database}"
+        if collection is not None:
+            endpoint += f"/{collection}"
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint=endpoint,
+        )
+
+        def response_handler(resp: Response) -> bool:
+            nonlocal ignore_failure
+            if resp.is_success:
+                return True
+            if ignore_failure:
+                return False
+            raise PermissionResetError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def jwt_secrets(self) -> Result[Json]:
+        """Return information on currently loaded JWT secrets.
+
+        Returns:
+            dict: JWT secrets.
+
+        Raises:
+            JWTSecretListError: If the operation fails.
+
+        References:
+            - `get-information-about-the-loaded-jwt-secrets <https://docs.arangodb.com/stable/develop/http-api/authentication/#get-information-about-the-loaded-jwt-secrets>`__
+        """  # noqa: 501
+        request = Request(method=Method.GET, endpoint="/_admin/server/jwt")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise JWTSecretListError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def reload_jwt_secrets(self) -> Result[Json]:
+        """Hot_reload JWT secrets from disk.
+
+        Returns:
+            dict: Information on reloaded JWT secrets.
+
+        Raises:
+            JWTSecretReloadError: If the operation fails.
+
+        References:
+            - `hot-reload-the-jwt-secrets-from-disk <https://docs.arangodb.com/stable/develop/http-api/authentication/#hot-reload-the-jwt-secrets-from-disk>`__
+        """  # noqa: 501
+        request = Request(method=Method.POST, endpoint="/_admin/server/jwt")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise JWTSecretReloadError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
 
         return await self._executor.execute(request, response_handler)
 

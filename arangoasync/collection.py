@@ -9,6 +9,7 @@ from arangoasync.errno import (
     HTTP_PRECONDITION_FAILED,
 )
 from arangoasync.exceptions import (
+    CollectionPropertiesError,
     DocumentGetError,
     DocumentInsertError,
     DocumentParseError,
@@ -18,7 +19,7 @@ from arangoasync.executor import ApiExecutor
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
 from arangoasync.serialization import Deserializer, Serializer
-from arangoasync.typings import Json, Params, Result
+from arangoasync.typings import CollectionProperties, Json, Params, Result
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -47,9 +48,6 @@ class Collection(Generic[T, U, V]):
         self._doc_serializer = doc_serializer
         self._doc_deserializer = doc_deserializer
         self._id_prefix = f"{self._name}/"
-
-    def __repr__(self) -> str:
-        return f"<StandardCollection {self.name}>"
 
     def _validate_id(self, doc_id: str) -> str:
         """Check the collection name in the document ID.
@@ -148,6 +146,15 @@ class Collection(Generic[T, U, V]):
         """
         return self._name
 
+    @property
+    def db_name(self) -> str:
+        """Return the name of the current database.
+
+        Returns:
+            str: Database name.
+        """
+        return self._executor.db_name
+
 
 class StandardCollection(Collection[T, U, V]):
     """Standard collection API wrapper.
@@ -167,6 +174,33 @@ class StandardCollection(Collection[T, U, V]):
         doc_deserializer: Deserializer[U, V],
     ) -> None:
         super().__init__(executor, name, doc_serializer, doc_deserializer)
+
+    def __repr__(self) -> str:
+        return f"<StandardCollection {self.name}>"
+
+    async def properties(self) -> Result[CollectionProperties]:
+        """Return the full properties of the current collection.
+
+        Returns:
+            CollectionProperties: Properties.
+
+        Raises:
+            CollectionPropertiesError: If retrieval fails.
+
+        References:
+            - `get-the-properties-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-properties-of-a-collection>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/properties",
+        )
+
+        def response_handler(resp: Response) -> CollectionProperties:
+            if not resp.is_success:
+                raise CollectionPropertiesError(resp, request)
+            return CollectionProperties(self._executor.deserialize(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
 
     async def get(
         self,
@@ -268,6 +302,9 @@ class StandardCollection(Collection[T, U, V]):
         Returns:
             bool | dict: Document metadata (e.g. document id, key, revision) or `True`
                 if **silent** is set to `True`.
+
+        Raises:
+            DocumentInsertError: If insertion fails.
 
         References:
             - `create-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#create-a-document>`__

@@ -87,6 +87,10 @@ class CollectionListError(ArangoServerError):
     """Failed to retrieve collections."""
 
 
+class CollectionPropertiesError(ArangoServerError):
+    """Failed to retrieve collection properties."""
+
+
 class ClientConnectionAbortedError(ArangoClientError):
     """The connection was aborted."""
 
@@ -105,6 +109,10 @@ class DatabaseDeleteError(ArangoServerError):
 
 class DatabaseListError(ArangoServerError):
     """Failed to retrieve databases."""
+
+
+class DatabasePropertiesError(ArangoServerError):
+    """Failed to retrieve database properties."""
 
 
 class DeserializationError(ArangoClientError):
@@ -129,6 +137,30 @@ class DocumentRevisionError(ArangoServerError):
 
 class JWTRefreshError(ArangoClientError):
     """Failed to refresh the JWT token."""
+
+
+class JWTSecretListError(ArangoServerError):
+    """Failed to retrieve information on currently loaded JWT secrets."""
+
+
+class JWTSecretReloadError(ArangoServerError):
+    """Failed to reload JWT secrets."""
+
+
+class PermissionGetError(ArangoServerError):
+    """Failed to retrieve user permission."""
+
+
+class PermissionListError(ArangoServerError):
+    """Failed to list user permissions."""
+
+
+class PermissionResetError(ArangoServerError):
+    """Failed to reset user permission."""
+
+
+class PermissionUpdateError(ArangoServerError):
+    """Failed to update user permission."""
 
 
 class SerializationError(ArangoClientError):
@@ -157,3 +189,11 @@ class UserGetError(ArangoServerError):
 
 class UserListError(ArangoServerError):
     """Failed to retrieve users."""
+
+
+class UserReplaceError(ArangoServerError):
+    """Failed to replace user."""
+
+
+class UserUpdateError(ArangoServerError):
+    """Failed to update user."""
