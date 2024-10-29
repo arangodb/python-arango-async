@@ -200,6 +200,12 @@ async def doc_col(db):
     await db.delete_collection(col_name)
 
 
+@pytest.fixture
+def bad_col(db):
+    col_name = generate_col_name()
+    return db.collection(col_name)
+
+
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def teardown():
     yield

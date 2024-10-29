@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from arangoasync.collection import StandardCollection
@@ -8,15 +10,43 @@ from arangoasync.exceptions import (
     DatabaseCreateError,
     DatabaseDeleteError,
     DatabaseListError,
+    DatabasePropertiesError,
+    JWTSecretListError,
+    JWTSecretReloadError,
+    ServerStatusError,
 )
 from arangoasync.typings import CollectionType, KeyOptions, UserInfo
 from tests.helpers import generate_col_name, generate_db_name, generate_username
 
 
 @pytest.mark.asyncio
-async def test_database_misc_methods(sys_db):
+async def test_database_misc_methods(sys_db, db, bad_db, cluster):
+    # Status
     status = await sys_db.status()
     assert status["server"] == "arango"
+    with pytest.raises(ServerStatusError):
+        await bad_db.status()
+
+    sys_properties, db_properties = await asyncio.gather(
+        sys_db.properties(), db.properties()
+    )
+    assert sys_properties.is_system is True
+    assert db_properties.is_system is False
+    assert sys_properties.name == sys_db.name
+    assert db_properties.name == db.name
+    if cluster:
+        assert db_properties.replication_factor == 3
+        assert db_properties.write_concern == 2
+
+    with pytest.raises(DatabasePropertiesError):
+        await bad_db.properties()
+    assert len(db_properties.format()) > 1
+
+    # JWT secrets
+    with pytest.raises(JWTSecretListError):
+        await bad_db.jwt_secrets()
+    with pytest.raises(JWTSecretReloadError):
+        await bad_db.reload_jwt_secrets()
 
 
 @pytest.mark.asyncio
@@ -24,6 +54,7 @@ async def test_create_drop_database(
     arango_client,
     sys_db,
     db,
+    bad_db,
     basic_auth_root,
     password,
     cluster,
@@ -60,12 +91,19 @@ async def test_create_drop_database(
     dbs = await sys_db.databases()
     assert db_name in dbs
     assert "_system" in dbs
+    dbs = await sys_db.databases_accessible_to_user()
+    assert db_name in dbs
+    assert "_system" in dbs
+    dbs = await db.databases_accessible_to_user()
+    assert db.name in dbs
 
     # Cannot list databases without permission
     with pytest.raises(DatabaseListError):
         await db.databases()
     with pytest.raises(DatabaseListError):
         await db.has_database(db_name)
+    with pytest.raises(DatabaseListError):
+        await bad_db.databases_accessible_to_user()
 
     # Databases can only be dropped from the system database
     with pytest.raises(DatabaseDeleteError):
