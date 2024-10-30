@@ -815,3 +815,234 @@ class CollectionProperties(JsonWrapper):
         if formatter is not None:
             return super().format(formatter)
         return self.compatibility_formatter(self._data)
+
+
+class IndexProperties(JsonWrapper):
+    """Properties of an index.
+
+    Example:
+        .. code-block:: json
+
+            {
+              "fields" : [
+                "_key"
+              ],
+              "id" : "products/0",
+              "name" : "primary",
+              "selectivityEstimate" : 1,
+              "sparse" : false,
+              "type" : "primary",
+              "unique" : true,
+            }
+
+    References:
+        - `get-an-index <https://docs.arangodb.com/3.12/develop/http-api/indexes/#get-an-index>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def id(self) -> str:
+        return self._data["id"]  # type: ignore[no-any-return]
+
+    @property
+    def numeric_id(self) -> int:
+        return int(self._data["id"].split("/", 1)[-1])
+
+    @property
+    def type(self) -> str:
+        return self._data["type"]  # type: ignore[no-any-return]
+
+    @property
+    def fields(self) -> Json | List[str]:
+        return self._data["fields"]  # type: ignore[no-any-return]
+
+    @property
+    def name(self) -> Optional[str]:
+        return self._data.get("name")
+
+    @property
+    def deduplicate(self) -> Optional[bool]:
+        return self._data.get("deduplicate")
+
+    @property
+    def sparse(self) -> Optional[bool]:
+        return self._data.get("sparse")
+
+    @property
+    def unique(self) -> Optional[bool]:
+        return self._data.get("unique")
+
+    @property
+    def geo_json(self) -> Optional[bool]:
+        return self._data.get("geoJson")
+
+    @property
+    def selectivity_estimate(self) -> Optional[float]:
+        return self._data.get("selectivityEstimate")
+
+    @property
+    def is_newly_created(self) -> Optional[bool]:
+        return self._data.get("isNewlyCreated")
+
+    @property
+    def expire_after(self) -> Optional[int]:
+        return self._data.get("expireAfter")
+
+    @property
+    def in_background(self) -> Optional[bool]:
+        return self._data.get("inBackground")
+
+    @property
+    def max_num_cover_cells(self) -> Optional[int]:
+        return self._data.get("maxNumCoverCells")
+
+    @property
+    def cache_enabled(self) -> Optional[bool]:
+        return self._data.get("cacheEnabled")
+
+    @property
+    def legacy_polygons(self) -> Optional[bool]:
+        return self._data.get("legacyPolygons")
+
+    @property
+    def estimates(self) -> Optional[bool]:
+        return self._data.get("estimates")
+
+    @property
+    def analyzer(self) -> Optional[str]:
+        return self._data.get("analyzer")
+
+    @property
+    def cleanup_interval_step(self) -> Optional[int]:
+        return self._data.get("cleanupIntervalStep")
+
+    @property
+    def commit_interval_msec(self) -> Optional[int]:
+        return self._data.get("commitIntervalMsec")
+
+    @property
+    def consolidation_interval_msec(self) -> Optional[int]:
+        return self._data.get("consolidationIntervalMsec")
+
+    @property
+    def consolidation_policy(self) -> Optional[Json]:
+        return self._data.get("consolidationPolicy")
+
+    @property
+    def primary_sort(self) -> Optional[Json]:
+        return self._data.get("primarySort")
+
+    @property
+    def stored_values(self) -> Optional[List[Any]]:
+        return self._data.get("storedValues")
+
+    @property
+    def write_buffer_active(self) -> Optional[int]:
+        return self._data.get("writeBufferActive")
+
+    @property
+    def write_buffer_idle(self) -> Optional[int]:
+        return self._data.get("writeBufferIdle")
+
+    @property
+    def write_buffer_size_max(self) -> Optional[int]:
+        return self._data.get("writeBufferSizeMax")
+
+    @property
+    def primary_key_cache(self) -> Optional[bool]:
+        return self._data.get("primaryKeyCache")
+
+    @property
+    def parallelism(self) -> Optional[int]:
+        return self._data.get("parallelism")
+
+    @property
+    def optimize_top_k(self) -> Optional[List[str]]:
+        return self._data.get("optimizeTopK")
+
+    @property
+    def track_list_positions(self) -> Optional[bool]:
+        return self._data.get("trackListPositions")
+
+    @property
+    def version(self) -> Optional[int]:
+        return self._data.get("version")
+
+    @property
+    def include_all_fields(self) -> Optional[bool]:
+        return self._data.get("includeAllFields")
+
+    @property
+    def features(self) -> Optional[List[str]]:
+        return self._data.get("features")
+
+    @staticmethod
+    def compatibility_formatter(data: Json) -> Json:
+        """python-arango compatibility formatter."""
+        result = {"id": data["id"].split("/", 1)[-1], "fields": data["fields"]}
+        if "type" in data:
+            result["type"] = data["type"]
+        if "name" in data:
+            result["name"] = data["name"]
+        if "deduplicate" in data:
+            result["deduplicate"] = data["deduplicate"]
+        if "sparse" in data:
+            result["sparse"] = data["sparse"]
+        if "unique" in data:
+            result["unique"] = data["unique"]
+        if "geoJson" in data:
+            result["geo_json"] = data["geoJson"]
+        if "selectivityEstimate" in data:
+            result["selectivity"] = data["selectivityEstimate"]
+        if "isNewlyCreated" in data:
+            result["new"] = data["isNewlyCreated"]
+        if "expireAfter" in data:
+            result["expiry_time"] = data["expireAfter"]
+        if "inBackground" in data:
+            result["in_background"] = data["inBackground"]
+        if "maxNumCoverCells" in data:
+            result["max_num_cover_cells"] = data["maxNumCoverCells"]
+        if "storedValues" in data:
+            result["storedValues"] = data["storedValues"]
+        if "legacyPolygons" in data:
+            result["legacyPolygons"] = data["legacyPolygons"]
+        if "estimates" in data:
+            result["estimates"] = data["estimates"]
+        if "analyzer" in data:
+            result["analyzer"] = data["analyzer"]
+        if "cleanupIntervalStep" in data:
+            result["cleanup_interval_step"] = data["cleanupIntervalStep"]
+        if "commitIntervalMsec" in data:
+            result["commit_interval_msec"] = data["commitIntervalMsec"]
+        if "consolidationIntervalMsec" in data:
+            result["consolidation_interval_msec"] = data["consolidationIntervalMsec"]
+        if "consolidationPolicy" in data:
+            result["consolidation_policy"] = data["consolidationPolicy"]
+        if "features" in data:
+            result["features"] = data["features"]
+        if "primarySort" in data:
+            result["primary_sort"] = data["primarySort"]
+        if "trackListPositions" in data:
+            result["track_list_positions"] = data["trackListPositions"]
+        if "version" in data:
+            result["version"] = data["version"]
+        if "writebufferIdle" in data:
+            result["writebuffer_idle"] = data["writebufferIdle"]
+        if "writebufferActive" in data:
+            result["writebuffer_active"] = data["writebufferActive"]
+        if "writebufferSizeMax" in data:
+            result["writebuffer_max_size"] = data["writebufferSizeMax"]
+        if "optimizeTopK" in data:
+            result["optimizeTopK"] = data["optimizeTopK"]
+        return result
+
+    def format(self, formatter: Optional[Formatter] = None) -> Json:
+        """Apply a formatter to the data.
+
+        By default, the python-arango compatibility formatter is applied.
+        """
+        if formatter is not None:
+            return super().format(formatter)
+        return self.compatibility_formatter(self._data)

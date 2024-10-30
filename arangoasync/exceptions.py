@@ -135,6 +135,26 @@ class DocumentRevisionError(ArangoServerError):
     """The expected and actual document revisions mismatched."""
 
 
+class IndexCreateError(ArangoServerError):
+    """Failed to create collection index."""
+
+
+class IndexDeleteError(ArangoServerError):
+    """Failed to delete collection index."""
+
+
+class IndexGetError(ArangoServerError):
+    """Failed to retrieve collection index."""
+
+
+class IndexListError(ArangoServerError):
+    """Failed to retrieve collection indexes."""
+
+
+class IndexLoadError(ArangoServerError):
+    """Failed to load indexes into memory."""
+
+
 class JWTRefreshError(ArangoClientError):
     """Failed to refresh the JWT token."""
 
