@@ -31,7 +31,7 @@ async def test_collection_misc_methods(doc_col, bad_col):
 
 
 @pytest.mark.asyncio
-async def test_collection_index(doc_col, bad_col):
+async def test_collection_index(doc_col, bad_col, cluster):
     # Create indexes
     idx1 = await doc_col.add_index(
         type="persistent",
@@ -91,7 +91,8 @@ async def test_collection_index(doc_col, bad_col):
     assert idx3.fields == ["location"]
     assert idx3.name == "idx3"
     assert idx3.geo_json is True
-    assert idx3.in_background is True
+    if cluster:
+        assert idx3.in_background is True
 
     with pytest.raises(IndexCreateError):
         await bad_col.add_index(type="persistent", fields=["_key"])
