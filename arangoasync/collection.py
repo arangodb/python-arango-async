@@ -1,7 +1,7 @@
 __all__ = ["Collection", "StandardCollection"]
 
 
-from typing import Generic, Optional, Tuple, TypeVar, cast
+from typing import Generic, List, Optional, Tuple, TypeVar, cast
 
 from arangoasync.errno import (
     HTTP_BAD_PARAMETER,
@@ -14,12 +14,24 @@ from arangoasync.exceptions import (
     DocumentInsertError,
     DocumentParseError,
     DocumentRevisionError,
+    IndexCreateError,
+    IndexDeleteError,
+    IndexGetError,
+    IndexListError,
+    IndexLoadError,
 )
 from arangoasync.executor import ApiExecutor
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
 from arangoasync.serialization import Deserializer, Serializer
-from arangoasync.typings import CollectionProperties, Json, Params, Result
+from arangoasync.typings import (
+    CollectionProperties,
+    IndexProperties,
+    Json,
+    Jsons,
+    Params,
+    Result,
+)
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -154,6 +166,179 @@ class Collection(Generic[T, U, V]):
             str: Database name.
         """
         return self._executor.db_name
+
+    @property
+    def serializer(self) -> Serializer[Json]:
+        """Return the serializer."""
+        return self._executor.serializer
+
+    @property
+    def deserializer(self) -> Deserializer[Json, Jsons]:
+        """Return the deserializer."""
+        return self._executor.deserializer
+
+    async def indexes(self) -> Result[List[IndexProperties]]:
+        """Fetch all index descriptions for the given collection.
+
+        Returns:
+            list: List of index properties.
+
+        Raises:
+            IndexListError: If retrieval fails.
+
+        References:
+            - `list-all-indexes-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/indexes/#list-all-indexes-of-a-collection>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint="/_api/index",
+            params=dict(collection=self._name),
+        )
+
+        def response_handler(resp: Response) -> List[IndexProperties]:
+            if not resp.is_success:
+                raise IndexListError(resp, request)
+            data = self.deserializer.loads(resp.raw_body)
+            return [IndexProperties(item) for item in data["indexes"]]
+
+        return await self._executor.execute(request, response_handler)
+
+    async def get_index(self, id: str | int) -> Result[IndexProperties]:
+        """Return the properties of an index.
+
+        Args:
+            id (str): Index ID. Could be either the full ID or just the index number.
+
+        Returns:
+            IndexProperties: Index properties.
+
+        Raises:
+            IndexGetError: If retrieval fails.
+
+        References:
+            `get-an-index <https://docs.arangodb.com/stable/develop/http-api/indexes/#get-an-index>`__
+        """  # noqa: E501
+        if isinstance(id, int):
+            full_id = f"{self._name}/{id}"
+        else:
+            full_id = id if "/" in id else f"{self._name}/{id}"
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/index/{full_id}",
+        )
+
+        def response_handler(resp: Response) -> IndexProperties:
+            if not resp.is_success:
+                raise IndexGetError(resp, request)
+            return IndexProperties(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def add_index(
+        self,
+        type: str,
+        fields: Json | List[str],
+        options: Optional[Json] = None,
+    ) -> Result[IndexProperties]:
+        """Create an index.
+
+        Args:
+            type (str): Type attribute (ex. "persistent", "inverted", "ttl", "mdi",
+                "geo").
+            fields (dict | list): Fields to index.
+            options (dict | None): Additional index options.
+
+        Returns:
+            IndexProperties: New index properties.
+
+        Raises:
+            IndexCreateError: If index creation fails.
+
+        References:
+            - `create-an-index <https://docs.arangodb.com/stable/develop/http-api/indexes/#create-an-index>`__
+            - `create-a-persistent-index <https://docs.arangodb.com/stable/develop/http-api/indexes/persistent/#create-a-persistent-index>`__
+            - `create-an-inverted-index <https://docs.arangodb.com/stable/develop/http-api/indexes/inverted/#create-an-inverted-index>`__
+            - `create-a-ttl-index <https://docs.arangodb.com/stable/develop/http-api/indexes/ttl/#create-a-ttl-index>`__
+            - `create-a-multi-dimensional-index <https://docs.arangodb.com/stable/develop/http-api/indexes/multi-dimensional/#create-a-multi-dimensional-index>`__
+            - `create-a-geo-spatial-index <https://docs.arangodb.com/stable/develop/http-api/indexes/geo-spatial/#create-a-geo-spatial-index>`__
+        """  # noqa: E501
+        options = options or {}
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/index",
+            data=self.serializer.dumps(dict(type=type, fields=fields) | options),
+            params=dict(collection=self._name),
+        )
+
+        def response_handler(resp: Response) -> IndexProperties:
+            if not resp.is_success:
+                raise IndexCreateError(resp, request)
+            return IndexProperties(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete_index(
+        self, id: str | int, ignore_missing: bool = False
+    ) -> Result[bool]:
+        """Delete an index.
+
+        Args:
+            id (str): Index ID. Could be either the full ID or just the index number.
+            ignore_missing (bool): Do not raise an exception on missing index.
+
+        Returns:
+            bool: `True` if the operation was successful. `False` if the index was not
+                found and **ignore_missing** was set to `True`.
+
+        Raises:
+            IndexDeleteError: If deletion fails.
+
+        References:
+            - `delete-an-index <https://docs.arangodb.com/stable/develop/http-api/indexes/#delete-an-index>`__
+        """  # noqa: E501
+        if isinstance(id, int):
+            full_id = f"{self._name}/{id}"
+        else:
+            full_id = id if "/" in id else f"{self._name}/{id}"
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/index/{full_id}",
+        )
+
+        def response_handler(resp: Response) -> bool:
+            if resp.is_success:
+                return True
+            elif ignore_missing and resp.status_code == HTTP_NOT_FOUND:
+                return False
+            raise IndexDeleteError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def load_indexes(self) -> Result[bool]:
+        """Cache this collection’s index entries in the main memory.
+
+        Returns:
+            bool: `True` if the operation was successful.
+
+        Raises:
+            IndexLoadError: If loading fails.
+
+        References:
+            - `load-collection-indexes-into-memory <https://docs.arangodb.com/stable/develop/http-api/collections/#load-collection-indexes-into-memory>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self._name}/loadIndexesIntoMemory",
+        )
+
+        def response_handler(resp: Response) -> bool:
+            if resp.is_success:
+                return True
+            raise IndexLoadError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
 
 
 class StandardCollection(Collection[T, U, V]):
