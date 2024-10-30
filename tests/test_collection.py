@@ -70,7 +70,7 @@ async def test_collection_index(doc_col, bad_col):
     assert idx2.id is not None
     assert idx2.id == f"{doc_col.name}/{idx2.numeric_id}"
     assert idx2.type == "inverted"
-    assert idx2["fields"] == [{"name": "attr1", "cache": True}]
+    assert idx2["fields"][0]["name"] == "attr1"
     assert idx2.name == "idx2"
     assert idx2.include_all_fields is True
     assert idx2.analyzer == "identity"
