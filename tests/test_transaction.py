@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 from arangoasync.database import TransactionDatabase
-from arangoasync.errno import FORBIDDEN, TRANSACTION_NOT_FOUND
+from arangoasync.errno import BAD_PARAMETER, FORBIDDEN, TRANSACTION_NOT_FOUND
 from arangoasync.exceptions import (
     TransactionAbortError,
     TransactionCommitError,
@@ -74,7 +74,8 @@ async def test_transaction_status(db, doc_col):
     txn_db = db.fetch_transaction("illegal")
     with pytest.raises(TransactionStatusError) as err:
         await txn_db.transaction_status()
-    assert err.value.error_code == TRANSACTION_NOT_FOUND
+    # Error code differs between single server and cluster mode
+    assert err.value.error_code in {BAD_PARAMETER, TRANSACTION_NOT_FOUND}
 
 
 @pytest.mark.asyncio
@@ -101,7 +102,8 @@ async def test_transaction_commit(db, doc_col, docs):
     txn_db = db.fetch_transaction("illegal")
     with pytest.raises(TransactionCommitError) as err:
         await txn_db.commit_transaction()
-    assert err.value.error_code == TRANSACTION_NOT_FOUND
+    # Error code differs between single server and cluster mode
+    assert err.value.error_code in {BAD_PARAMETER, TRANSACTION_NOT_FOUND}
 
 
 @pytest.mark.asyncio
@@ -126,7 +128,8 @@ async def test_transaction_abort(db, doc_col, docs):
     txn_db = db.fetch_transaction("illegal")
     with pytest.raises(TransactionAbortError) as err:
         await txn_db.abort_transaction()
-    assert err.value.error_code == TRANSACTION_NOT_FOUND
+    # Error code differs between single server and cluster mode
+    assert err.value.error_code in {BAD_PARAMETER, TRANSACTION_NOT_FOUND}
 
 
 @pytest.mark.asyncio
