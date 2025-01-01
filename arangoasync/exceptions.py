@@ -195,6 +195,26 @@ class ServerStatusError(ArangoServerError):
     """Failed to retrieve server status."""
 
 
+class TransactionAbortError(ArangoServerError):
+    """Failed to abort transaction."""
+
+
+class TransactionCommitError(ArangoServerError):
+    """Failed to commit transaction."""
+
+
+class TransactionInitError(ArangoServerError):
+    """Failed to initialize transaction."""
+
+
+class TransactionListError(ArangoServerError):
+    """Failed to retrieve transactions."""
+
+
+class TransactionStatusError(ArangoServerError):
+    """Failed to retrieve transaction status."""
+
+
 class UserCreateError(ArangoServerError):
     """Failed to create user."""
 
