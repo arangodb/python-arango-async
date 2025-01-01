@@ -836,7 +836,7 @@ class IndexProperties(JsonWrapper):
             }
 
     References:
-        - `get-an-index <https://docs.arangodb.com/3.12/develop/http-api/indexes/#get-an-index>`__
+        - `get-an-index <https://docs.arangodb.com/stable/develop/http-api/indexes/#get-an-index>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
