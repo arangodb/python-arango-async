@@ -5,7 +5,8 @@ __all__ = [
 ]
 
 
-from typing import List, Optional, Sequence, TypeVar, cast
+from typing import Any, List, Optional, Sequence, TypeVar, cast
+from warnings import warn
 
 from arangoasync.collection import StandardCollection
 from arangoasync.connection import Connection
@@ -27,6 +28,7 @@ from arangoasync.exceptions import (
     ServerStatusError,
     TransactionAbortError,
     TransactionCommitError,
+    TransactionExecuteError,
     TransactionInitError,
     TransactionListError,
     TransactionStatusError,
@@ -1079,6 +1081,105 @@ class Database:
 
         return await self._executor.execute(request, response_handler)
 
+    async def list_transactions(self) -> Result[Jsons]:
+        """List all currently running stream transactions.
+
+        Returns:
+            list: List of transactions, with each transaction containing
+                an "id" and a "state" field.
+
+        Raises:
+            TransactionListError: If the operation fails on the server side.
+        """
+        request = Request(method=Method.GET, endpoint="/_api/transaction")
+
+        def response_handler(resp: Response) -> Jsons:
+            if not resp.is_success:
+                raise TransactionListError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return cast(Jsons, result["transactions"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def execute_transaction(
+        self,
+        command: str,
+        params: Optional[Json] = None,
+        read: Optional[str | Sequence[str]] = None,
+        write: Optional[str | Sequence[str]] = None,
+        exclusive: Optional[str | Sequence[str]] = None,
+        allow_implicit: Optional[bool] = None,
+        wait_for_sync: Optional[bool] = None,
+        lock_timeout: Optional[int] = None,
+        max_transaction_size: Optional[int] = None,
+    ) -> Result[Any]:
+        """Execute a JavaScript Transaction.
+
+        Warning:
+            JavaScript Transactions are deprecated from ArangoDB v3.12.0 onward and
+            will be removed in a future version.
+
+        Args:
+            command (str): The actual transaction operations to be executed, in the
+                form of stringified JavaScript code.
+            params (dict): Optional parameters passed into the JavaScript command.
+            read (str | list | None): Name(s) of collections read during transaction.
+            write (str | list | None): Name(s) of collections written to during
+                transaction with shared access.
+            exclusive (str | list | None): Name(s) of collections written to during
+                transaction with exclusive access.
+            allow_implicit (bool | None): Allow reading from undeclared collections.
+            wait_for_sync (bool | None): If `True`, will force the transaction to write
+                all data to disk before returning.
+            lock_timeout (int | None): Timeout for waiting on collection locks. Setting
+                it to 0 will prevent ArangoDB from timing out while waiting for a lock.
+            max_transaction_size (int | None): Transaction size limit in bytes.
+
+        Returns:
+            Any: Result of the transaction.
+
+        Raises:
+            TransactionExecuteError: If the operation fails on the server side.
+
+        References:
+            - `execute-a-javascript-transaction <https://docs.arangodb.com/stable/develop/http-api/transactions/javascript-transactions/#execute-a-javascript-transaction>`__
+        """  # noqa: 501
+        m = "JavaScript Transactions are deprecated from ArangoDB v3.12.0 onward and will be removed in a future version."  # noqa: E501
+        warn(m, DeprecationWarning, stacklevel=2)
+
+        collections = dict()
+        if read is not None:
+            collections["read"] = read
+        if write is not None:
+            collections["write"] = write
+        if exclusive is not None:
+            collections["exclusive"] = exclusive
+
+        data: Json = dict(collections=collections, action=command)
+        if params is not None:
+            data["params"] = params
+        if wait_for_sync is not None:
+            data["waitForSync"] = wait_for_sync
+        if allow_implicit is not None:
+            data["allowImplicit"] = allow_implicit
+        if lock_timeout is not None:
+            data["lockTimeout"] = lock_timeout
+        if max_transaction_size is not None:
+            data["maxTransactionSize"] = max_transaction_size
+
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/transaction",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> Any:
+            if not resp.is_success:
+                raise TransactionExecuteError(resp, request)
+            return self.deserializer.loads(resp.raw_body)["result"]
+
+        return await self._executor.execute(request, response_handler)
+
 
 class StandardDatabase(Database):
     """Standard database API wrapper.
@@ -1119,7 +1220,7 @@ class StandardDatabase(Database):
                 all data to disk before returning
             allow_implicit (bool | None): Allow reading from undeclared collections.
             lock_timeout (int | None): Timeout for waiting on collection locks. Setting
-                it to 0 will make ArangoDB not time out waiting for a lock.
+                it to 0 will prevent ArangoDB from timing out while waiting for a lock.
             max_transaction_size (int | None): Transaction size limit in bytes.
             allow_dirty_read (bool | None): If `True`, allows the Coordinator to ask any
                 shard replica for the data, not only the shard leader. This may result
@@ -1135,7 +1236,10 @@ class StandardDatabase(Database):
 
         Raises:
             TransactionInitError: If the operation fails on the server side.
-        """
+
+        References:
+            - `begin-a-stream-transaction <https://docs.arangodb.com/stable/develop/http-api/transactions/stream-transactions/#begin-a-stream-transaction>`__
+        """  # noqa: E501
         collections = dict()
         if read is not None:
             collections["read"] = read
@@ -1188,26 +1292,6 @@ class StandardDatabase(Database):
         """
         return TransactionDatabase(self.connection, transaction_id)
 
-    async def list_transactions(self) -> Result[Jsons]:
-        """List all currently running stream transactions.
-
-        Returns:
-            list: List of transactions, with each transaction containing
-                an "id" and a "state" field.
-
-        Raises:
-            TransactionListError: If the operation fails on the server side.
-        """
-        request = Request(method=Method.GET, endpoint="/_api/transaction")
-
-        def response_handler(resp: Response) -> Jsons:
-            if not resp.is_success:
-                raise TransactionListError(resp, request)
-            result: Json = self.deserializer.loads(resp.raw_body)
-            return cast(Jsons, result["transactions"])
-
-        return await self._executor.execute(request, response_handler)
-
 
 class TransactionDatabase(Database):
     """Database API tailored specifically for
@@ -1244,7 +1328,10 @@ class TransactionDatabase(Database):
 
         Raises:
             TransactionStatusError: If the transaction is not found.
-        """
+
+        References:
+            - `get-the-status-of-a-stream-transaction <https://docs.arangodb.com/stable/develop/http-api/transactions/stream-transactions/#get-the-status-of-a-stream-transaction>`__
+        """  # noqa: E501
         request = Request(
             method=Method.GET,
             endpoint=f"/_api/transaction/{self.transaction_id}",
@@ -1263,7 +1350,10 @@ class TransactionDatabase(Database):
 
         Raises:
             TransactionCommitError: If the operation fails on the server side.
-        """
+
+        References:
+            - `commit-a-stream-transaction <https://docs.arangodb.com/stable/develop/http-api/transactions/stream-transactions/#commit-a-stream-transaction>`__
+        """  # noqa: E501
         request = Request(
             method=Method.PUT,
             endpoint=f"/_api/transaction/{self.transaction_id}",
@@ -1276,7 +1366,14 @@ class TransactionDatabase(Database):
         await self._executor.execute(request, response_handler)
 
     async def abort_transaction(self) -> None:
-        """Abort the transaction."""
+        """Abort the transaction.
+
+        Raises:
+            TransactionAbortError: If the operation fails on the server side.
+
+        References:
+            - `abort-a-stream-transaction <https://docs.arangodb.com/stable/develop/http-api/transactions/stream-transactions/#abort-a-stream-transaction>`__
+        """  # noqa: E501
         request = Request(
             method=Method.DELETE,
             endpoint=f"/_api/transaction/{self.transaction_id}",
