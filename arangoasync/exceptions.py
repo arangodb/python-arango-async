@@ -203,6 +203,10 @@ class TransactionCommitError(ArangoServerError):
     """Failed to commit transaction."""
 
 
+class TransactionExecuteError(ArangoServerError):
+    """Failed to execute JavaScript transaction."""
+
+
 class TransactionInitError(ArangoServerError):
     """Failed to initialize transaction."""
 

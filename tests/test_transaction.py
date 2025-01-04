@@ -7,9 +7,43 @@ from arangoasync.errno import BAD_PARAMETER, FORBIDDEN, TRANSACTION_NOT_FOUND
 from arangoasync.exceptions import (
     TransactionAbortError,
     TransactionCommitError,
+    TransactionExecuteError,
     TransactionInitError,
     TransactionStatusError,
 )
+
+
+@pytest.mark.asyncio
+async def test_transaction_execute_raw(db, doc_col, docs):
+    # Test a valid JS transaction
+    doc = docs[0]
+    key = doc["_key"]
+    command = f"""
+        function (params) {{
+            var db = require('internal').db;
+            db.{doc_col.name}.save({{'_key': params.key, 'val': 1}});
+            return true;
+        }}
+    """  # noqa: E702 E231 E272 E202
+    result = await db.execute_transaction(
+        command=command,
+        params={"key": key},
+        write=[doc_col.name],
+        read=[doc_col.name],
+        exclusive=[doc_col.name],
+        wait_for_sync=False,
+        lock_timeout=1000,
+        max_transaction_size=100000,
+        allow_implicit=True,
+    )
+    assert result is True
+    doc = await doc_col.get(key)
+    assert doc is not None and doc["val"] == 1
+
+    # Test an invalid transaction
+    with pytest.raises(TransactionExecuteError) as err:
+        await db.execute_transaction(command="INVALID COMMAND")
+    assert err.value.error_code == BAD_PARAMETER
 
 
 @pytest.mark.asyncio
