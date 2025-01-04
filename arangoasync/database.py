@@ -8,6 +8,7 @@ __all__ = [
 from typing import Any, List, Optional, Sequence, TypeVar, cast
 from warnings import warn
 
+from arangoasync.aql import AQL
 from arangoasync.collection import StandardCollection
 from arangoasync.connection import Connection
 from arangoasync.errno import HTTP_FORBIDDEN, HTTP_NOT_FOUND
@@ -80,7 +81,7 @@ class Database:
     @property
     def name(self) -> str:
         """Return the name of the current database."""
-        return self.connection.db_name
+        return self._executor.db_name
 
     @property
     def serializer(self) -> Serializer[Json]:
@@ -98,9 +99,17 @@ class Database:
 
         Returns:
             str: API execution context. Possible values are "default", "transaction".
-        :rtype: str
         """
         return self._executor.context
+
+    @property
+    def aql(self) -> AQL:
+        """Return the AQL API wrapper.
+
+        Returns:
+            arangoasync.aql.AQL: AQL API wrapper.
+        """
+        return AQL(self._executor)
 
     async def properties(self) -> Result[DatabaseProperties]:
         """Return database properties.

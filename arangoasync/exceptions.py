@@ -71,6 +71,10 @@ class ArangoServerError(ArangoError):
         self.http_headers = resp.headers
 
 
+class AQLQueryExecuteError(ArangoServerError):
+    """Failed to execute query."""
+
+
 class AuthHeaderError(ArangoClientError):
     """The authentication header could not be determined."""
 

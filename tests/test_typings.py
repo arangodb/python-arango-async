@@ -6,6 +6,7 @@ from arangoasync.typings import (
     CollectionType,
     JsonWrapper,
     KeyOptions,
+    QueryProperties,
     UserInfo,
 )
 
@@ -125,3 +126,48 @@ def test_UserInfo():
     assert user_info.active is True
     assert user_info.extra == {"role": "admin"}
     assert user_info.to_dict() == data
+
+
+def test_QueryProperties():
+    properties = QueryProperties(
+        allow_dirty_reads=True,
+        allow_retry=False,
+        fail_on_warning=True,
+        fill_block_cache=False,
+        full_count=True,
+        intermediate_commit_count=1000,
+        intermediate_commit_size=1048576,
+        max_dnf_condition_members=10,
+        max_nodes_per_callstack=100,
+        max_number_of_plans=5,
+        max_runtime=60.0,
+        max_transaction_size=10485760,
+        max_warning_count=10,
+        optimizer={"rules": ["-all", "+use-indexes"]},
+        profile=1,
+        satellite_sync_wait=10.0,
+        skip_inaccessible_collections=True,
+        spill_over_threshold_memory_usage=10485760,
+        spill_over_threshold_num_rows=100000,
+        stream=True,
+    )
+    assert properties.allow_dirty_reads is True
+    assert properties.allow_retry is False
+    assert properties.fail_on_warning is True
+    assert properties.fill_block_cache is False
+    assert properties.full_count is True
+    assert properties.intermediate_commit_count == 1000
+    assert properties.intermediate_commit_size == 1048576
+    assert properties.max_dnf_condition_members == 10
+    assert properties.max_nodes_per_callstack == 100
+    assert properties.max_number_of_plans == 5
+    assert properties.max_runtime == 60.0
+    assert properties.max_transaction_size == 10485760
+    assert properties.max_warning_count == 10
+    assert properties.optimizer == {"rules": ["-all", "+use-indexes"]}
+    assert properties.profile == 1
+    assert properties.satellite_sync_wait == 10.0
+    assert properties.skip_inaccessible_collections is True
+    assert properties.spill_over_threshold_memory_usage == 10485760
+    assert properties.spill_over_threshold_num_rows == 100000
+    assert properties.stream is True
