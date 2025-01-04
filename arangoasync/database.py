@@ -1343,7 +1343,7 @@ class TransactionDatabase(Database):
             result: Json = self.deserializer.loads(resp.raw_body)["result"]
             return cast(str, result["status"])
 
-        return await self._executor.execute(request, response_handler)
+        return await self._standard_executor.execute(request, response_handler)
 
     async def commit_transaction(self) -> None:
         """Commit the transaction.
@@ -1363,7 +1363,7 @@ class TransactionDatabase(Database):
             if not resp.is_success:
                 raise TransactionCommitError(resp, request)
 
-        await self._executor.execute(request, response_handler)
+        await self._standard_executor.execute(request, response_handler)
 
     async def abort_transaction(self) -> None:
         """Abort the transaction.
@@ -1383,4 +1383,4 @@ class TransactionDatabase(Database):
             if not resp.is_success:
                 raise TransactionAbortError(resp, request)
 
-        await self._executor.execute(request, response_handler)
+        await self._standard_executor.execute(request, response_handler)
