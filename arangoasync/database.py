@@ -1079,6 +1079,26 @@ class Database:
 
         return await self._executor.execute(request, response_handler)
 
+    async def list_transactions(self) -> Result[Jsons]:
+        """List all currently running stream transactions.
+
+        Returns:
+            list: List of transactions, with each transaction containing
+                an "id" and a "state" field.
+
+        Raises:
+            TransactionListError: If the operation fails on the server side.
+        """
+        request = Request(method=Method.GET, endpoint="/_api/transaction")
+
+        def response_handler(resp: Response) -> Jsons:
+            if not resp.is_success:
+                raise TransactionListError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return cast(Jsons, result["transactions"])
+
+        return await self._executor.execute(request, response_handler)
+
 
 class StandardDatabase(Database):
     """Standard database API wrapper.
@@ -1187,26 +1207,6 @@ class StandardDatabase(Database):
                 transactions.
         """
         return TransactionDatabase(self.connection, transaction_id)
-
-    async def list_transactions(self) -> Result[Jsons]:
-        """List all currently running stream transactions.
-
-        Returns:
-            list: List of transactions, with each transaction containing
-                an "id" and a "state" field.
-
-        Raises:
-            TransactionListError: If the operation fails on the server side.
-        """
-        request = Request(method=Method.GET, endpoint="/_api/transaction")
-
-        def response_handler(resp: Response) -> Jsons:
-            if not resp.is_success:
-                raise TransactionListError(resp, request)
-            result: Json = self.deserializer.loads(resp.raw_body)
-            return cast(Jsons, result["transactions"])
-
-        return await self._executor.execute(request, response_handler)
 
 
 class TransactionDatabase(Database):
