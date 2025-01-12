@@ -1100,15 +1100,15 @@ class QueryProperties(JsonWrapper):
     Example:
         .. code-block:: json
 
-          {
-            "maxPlans": 1,
-            "optimizer": {
-              "rules": [
-                "-all",
-                "+remove-unnecessary-filters"
-              ]
+            {
+              "maxPlans": 1,
+              "optimizer": {
+                "rules": [
+                  "-all",
+                  "+remove-unnecessary-filters"
+                ]
+              }
             }
-          }
 
     References:
         - `create-a-cursor <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_body_options>`__
@@ -1259,3 +1259,235 @@ class QueryProperties(JsonWrapper):
     @property
     def stream(self) -> Optional[bool]:
         return self._data.get("stream")
+
+
+class QueryExecutionPlan(JsonWrapper):
+    """The execution plan of an AQL query.
+
+    References:
+        - `plan https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_plan`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def collections(self) -> Optional[Jsons]:
+        return self._data.get("collections")
+
+    @property
+    def estimated_cost(self) -> Optional[float]:
+        return self._data.get("estimatedCost")
+
+    @property
+    def estimated_nr_items(self) -> Optional[int]:
+        return self._data.get("estimatedNrItems")
+
+    @property
+    def is_modification_query(self) -> Optional[bool]:
+        return self._data.get("isModificationQuery")
+
+    @property
+    def nodes(self) -> Optional[Jsons]:
+        return self._data.get("nodes")
+
+    @property
+    def rules(self) -> Optional[List[str]]:
+        return self._data.get("rules")
+
+    @property
+    def variables(self) -> Optional[Jsons]:
+        return self._data.get("variables")
+
+
+class QueryExecutionProfile(JsonWrapper):
+    """The duration of the different query execution phases in seconds.
+
+    Example:
+        .. code-block:: json
+
+            {
+              "initializing" : 0.0000028529999838156073,
+              "parsing" : 0.000029285000010759177,
+              "optimizing ast" : 0.0000040699999885873694,
+              "loading collections" : 0.000012807000018710823,
+              "instantiating plan" : 0.00002348999998957879,
+              "optimizing plan" : 0.00006598600000984334,
+              "instantiating executors" : 0.000027471999999306718,
+              "executing" : 0.7550992429999894,
+              "finalizing" : 0.00004103500000951499
+            }
+
+    References:
+        - `profile <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_profile>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def executing(self) -> Optional[float]:
+        return self._data.get("executing")
+
+    @property
+    def finalizing(self) -> Optional[float]:
+        return self._data.get("finalizing")
+
+    @property
+    def initializing(self) -> Optional[float]:
+        return self._data.get("initializing")
+
+    @property
+    def instantiating_executors(self) -> Optional[float]:
+        return self._data.get("instantiating executors")
+
+    @property
+    def instantiating_plan(self) -> Optional[float]:
+        return self._data.get("instantiating plan")
+
+    @property
+    def loading_collections(self) -> Optional[float]:
+        return self._data.get("loading collections")
+
+    @property
+    def optimizing_ast(self) -> Optional[float]:
+        return self._data.get("optimizing ast")
+
+    @property
+    def optimizing_plan(self) -> Optional[float]:
+        return self._data.get("optimizing plan")
+
+    @property
+    def parsing(self) -> Optional[float]:
+        return self._data.get("parsing")
+
+
+class QueryExecutionStats(JsonWrapper):
+    """Statistics of an AQL query.
+
+    Example:
+        .. code-block:: json
+
+            {
+              "writesExecuted" : 0,
+              "writesIgnored" : 0,
+              "documentLookups" : 0,
+              "seeks" : 0,
+              "scannedFull" : 2,
+              "scannedIndex" : 0,
+              "cursorsCreated" : 0,
+              "cursorsRearmed" : 0,
+              "cacheHits" : 0,
+              "cacheMisses" : 0,
+              "filtered" : 0,
+              "httpRequests" : 0,
+              "executionTime" : 0.00019362399999067748,
+              "peakMemoryUsage" : 0,
+              "intermediateCommits" : 0
+            }
+
+    References:
+        - `stats <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_stats>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def cache_hits(self) -> Optional[int]:
+        return self._data.get("cacheHits")
+
+    @property
+    def cache_misses(self) -> Optional[int]:
+        return self._data.get("cacheMisses")
+
+    @property
+    def cursors_created(self) -> Optional[int]:
+        return self._data.get("cursorsCreated")
+
+    @property
+    def cursors_rearmed(self) -> Optional[int]:
+        return self._data.get("cursorsRearmed")
+
+    @property
+    def document_lookups(self) -> Optional[int]:
+        return self._data.get("documentLookups")
+
+    @property
+    def execution_time(self) -> Optional[float]:
+        return self._data.get("executionTime")
+
+    @property
+    def filtered(self) -> Optional[int]:
+        return self._data.get("filtered")
+
+    @property
+    def full_count(self) -> Optional[int]:
+        return self._data.get("fullCount")
+
+    @property
+    def http_requests(self) -> Optional[int]:
+        return self._data.get("httpRequests")
+
+    @property
+    def intermediate_commits(self) -> Optional[int]:
+        return self._data.get("intermediateCommits")
+
+    @property
+    def nodes(self) -> Optional[Jsons]:
+        return self._data.get("nodes")
+
+    @property
+    def peak_memory_usage(self) -> Optional[int]:
+        return self._data.get("peakMemoryUsage")
+
+    @property
+    def scanned_full(self) -> Optional[int]:
+        return self._data.get("scannedFull")
+
+    @property
+    def scanned_index(self) -> Optional[int]:
+        return self._data.get("scannedIndex")
+
+    @property
+    def seeks(self) -> Optional[int]:
+        return self._data.get("seeks")
+
+    @property
+    def writes_executed(self) -> Optional[int]:
+        return self._data.get("writesExecuted")
+
+    @property
+    def writes_ignored(self) -> Optional[int]:
+        return self._data.get("writesIgnored")
+
+
+class QueryExecutionExtra(JsonWrapper):
+    """Extra information about the query result.
+
+    References:
+        - `extra <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+        self._plan = QueryExecutionPlan(data.get("plan", dict()))
+        self._profile = QueryExecutionProfile(data.get("profile", dict()))
+        self._stats = QueryExecutionStats(data.get("stats", dict()))
+        self._warnings: Jsons = data.get("warnings", list())
+
+    @property
+    def plan(self) -> QueryExecutionPlan:
+        return self._plan
+
+    @property
+    def profile(self) -> QueryExecutionProfile:
+        return self._profile
+
+    @property
+    def stats(self) -> QueryExecutionStats:
+        return self._stats
+
+    @property
+    def warnings(self) -> Jsons:
+        return self._warnings

@@ -103,6 +103,26 @@ class ClientConnectionError(ArangoClientError):
     """The request was unable to reach the server."""
 
 
+class CursorCloseError(ArangoServerError):
+    """Failed to delete the cursor result from server."""
+
+
+class CursorCountError(ArangoClientError, TypeError):
+    """The cursor count was not enabled."""
+
+
+class CursorEmptyError(ArangoClientError):
+    """The current batch in cursor was empty."""
+
+
+class CursorNextError(ArangoServerError):
+    """Failed to retrieve the next result batch from server."""
+
+
+class CursorStateError(ArangoClientError):
+    """The cursor object was in a bad state."""
+
+
 class DatabaseCreateError(ArangoServerError):
     """Failed to create database."""
 
