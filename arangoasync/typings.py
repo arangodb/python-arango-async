@@ -1265,7 +1265,7 @@ class QueryExecutionPlan(JsonWrapper):
     """The execution plan of an AQL query.
 
     References:
-        - `plan https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_plan`__
+        - `plan <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_plan>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:

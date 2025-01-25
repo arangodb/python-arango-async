@@ -15,7 +15,7 @@ from arangoasync.typings import QueryExecutionStats, QueryProperties
 
 
 @pytest.mark.asyncio
-async def test_cursor_basic_query(db, doc_col, docs):
+async def test_cursor_basic_query(db, doc_col, docs, cluster):
     # Insert documents
     await asyncio.gather(*[doc_col.insert(doc) for doc in docs])
 
@@ -49,7 +49,8 @@ async def test_cursor_basic_query(db, doc_col, docs):
     assert statistics.filtered == 0
     assert statistics.writes_ignored == 0
     assert statistics.execution_time > 0
-    assert statistics.http_requests > 0
+    if cluster:
+        assert statistics.http_requests > 0
     assert statistics.scanned_full > 0
     assert "nodes" in statistics
 
