@@ -53,7 +53,7 @@ class AQL:
         memory_limit: Optional[int] = None,
         ttl: Optional[int] = None,
         allow_dirty_read: Optional[bool] = None,
-        options: Optional[QueryProperties] = None,
+        options: Optional[QueryProperties | Json] = None,
     ) -> Result[Cursor]:
         """Execute the query and return the result cursor.
 
@@ -73,7 +73,7 @@ class AQL:
                 will be removed on the server automatically after the specified amount
                 of time.
             allow_dirty_read (bool | None): Allow reads from followers in a cluster.
-            options (QueryProperties | None): Extra options for the query.
+            options (QueryProperties | dict | None): Extra options for the query.
 
         References:
             - `create-a-cursor <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor>`__
@@ -92,7 +92,9 @@ class AQL:
         if ttl is not None:
             data["ttl"] = ttl
         if options is not None:
-            data["options"] = options.to_dict()
+            if isinstance(options, QueryProperties):
+                options = options.to_dict()
+            data["options"] = options
 
         headers = dict()
         if allow_dirty_read is not None:

@@ -50,7 +50,7 @@ class Cursor:
         self._batch: Deque[Any] = deque()
         self._update(data)
 
-    async def __aiter__(self) -> "Cursor":
+    def __aiter__(self) -> "Cursor":
         return self
 
     async def __anext__(self) -> Any:
