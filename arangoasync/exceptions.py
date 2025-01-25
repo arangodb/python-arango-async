@@ -71,6 +71,10 @@ class ArangoServerError(ArangoError):
         self.http_headers = resp.headers
 
 
+class AQLQueryExecuteError(ArangoServerError):
+    """Failed to execute query."""
+
+
 class AuthHeaderError(ArangoClientError):
     """The authentication header could not be determined."""
 
@@ -97,6 +101,26 @@ class ClientConnectionAbortedError(ArangoClientError):
 
 class ClientConnectionError(ArangoClientError):
     """The request was unable to reach the server."""
+
+
+class CursorCloseError(ArangoServerError):
+    """Failed to delete the cursor result from server."""
+
+
+class CursorCountError(ArangoClientError, TypeError):
+    """The cursor count was not enabled."""
+
+
+class CursorEmptyError(ArangoClientError):
+    """The current batch in cursor was empty."""
+
+
+class CursorNextError(ArangoServerError):
+    """Failed to retrieve the next result batch from server."""
+
+
+class CursorStateError(ArangoClientError):
+    """The cursor object was in a bad state."""
 
 
 class DatabaseCreateError(ArangoServerError):

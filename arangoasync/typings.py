@@ -1,4 +1,5 @@
 from enum import Enum
+from numbers import Number
 from typing import (
     Any,
     Callable,
@@ -1046,3 +1047,447 @@ class IndexProperties(JsonWrapper):
         if formatter is not None:
             return super().format(formatter)
         return self.compatibility_formatter(self._data)
+
+
+class QueryProperties(JsonWrapper):
+    """Extra options for AQL queries.
+
+    Args:
+        allow_dirty_reads (bool | None): If set to `True`, when executing the query
+            against a cluster deployment, the Coordinator is allowed to read from any
+            shard replica and not only from the leader.
+        allow_retry (bool | None): Setting it to `True` makes it possible to retry
+            fetching the latest batch from a cursor.
+        fail_on_warning (bool | None): If set to `True`, the query will throw an
+            exception and abort instead of producing a warning.
+        fill_block_cache (bool | None): If set to `True`, it will make the query
+            store the data it reads via the RocksDB storage engine in the RocksDB
+            block cache.
+        full_count (bool | None): If set to `True` and the query contains a LIMIT
+            clause, then the result will have some extra attributes.
+        intermediate_commit_count (int | None): The maximum number of operations
+            after which an intermediate commit is performed automatically.
+        intermediate_commit_size (int | None): The maximum total size of operations
+            after which an intermediate commit is performed automatically.
+        max_dnf_condition_members (int | None): A threshold for the maximum number of
+            OR sub-nodes in the internal representation of an AQL FILTER condition.
+        max_nodes_per_callstack (int | None): The number of execution nodes in the
+            query plan after that stack splitting is performed to avoid a potential
+            stack overflow.
+        max_number_of_plans (int | None): Limits the maximum number of plans that
+            are created by the AQL query optimizer.
+        max_runtime (float | None): The query has to be executed within the given
+            runtime or it is killed. The value is specified in seconds. If unspecified,
+            there will be no timeout.
+        max_transaction_size (int | None): The maximum transaction size in bytes.
+        max_warning_count (int | None): Limits the maximum number of warnings a
+            query will return.
+        optimizer (dict | None): Options related to the query optimizer.
+        profile (int | None): Return additional profiling information in the query
+            result. Can be set to 1 or 2 (for more detailed profiling information).
+        satellite_sync_wait (flat | None): How long a DB-Server has time to bring
+            the SatelliteCollections involved in the query into sync (in seconds).
+        skip_inaccessible_collections (bool | None): Treat collections to which a user
+            has no access rights for as if these collections are empty.
+        spill_over_threshold_memory_usage (int | None): This option allows queries to
+            store intermediate and final results temporarily on disk if the amount of
+            memory used (in bytes) exceeds the specified value.
+        spill_over_threshold_num_rows (int | None): This option allows queries to
+            store intermediate and final results temporarily on disk if the number
+            of rows produced by the query exceeds the specified value.
+        stream (bool | None): Can be enabled to execute the query lazily.
+
+    Example:
+        .. code-block:: json
+
+            {
+              "maxPlans": 1,
+              "optimizer": {
+                "rules": [
+                  "-all",
+                  "+remove-unnecessary-filters"
+                ]
+              }
+            }
+
+    References:
+        - `create-a-cursor <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_body_options>`__
+    """  # noqa: E501
+
+    def __init__(
+        self,
+        allow_dirty_reads: Optional[bool] = None,
+        allow_retry: Optional[bool] = None,
+        fail_on_warning: Optional[bool] = None,
+        fill_block_cache: Optional[bool] = None,
+        full_count: Optional[bool] = None,
+        intermediate_commit_count: Optional[int] = None,
+        intermediate_commit_size: Optional[int] = None,
+        max_dnf_condition_members: Optional[int] = None,
+        max_nodes_per_callstack: Optional[int] = None,
+        max_number_of_plans: Optional[int] = None,
+        max_runtime: Optional[Number] = None,
+        max_transaction_size: Optional[int] = None,
+        max_warning_count: Optional[int] = None,
+        optimizer: Optional[Json] = None,
+        profile: Optional[int] = None,
+        satellite_sync_wait: Optional[Number] = None,
+        skip_inaccessible_collections: Optional[bool] = None,
+        spill_over_threshold_memory_usage: Optional[int] = None,
+        spill_over_threshold_num_rows: Optional[int] = None,
+        stream: Optional[bool] = None,
+    ) -> None:
+        data: Json = dict()
+        if allow_dirty_reads is not None:
+            data["allowDirtyReads"] = allow_dirty_reads
+        if allow_retry is not None:
+            data["allowRetry"] = allow_retry
+        if fail_on_warning is not None:
+            data["failOnWarning"] = fail_on_warning
+        if fill_block_cache is not None:
+            data["fillBlockCache"] = fill_block_cache
+        if full_count is not None:
+            data["fullCount"] = full_count
+        if intermediate_commit_count is not None:
+            data["intermediateCommitCount"] = intermediate_commit_count
+        if intermediate_commit_size is not None:
+            data["intermediateCommitSize"] = intermediate_commit_size
+        if max_dnf_condition_members is not None:
+            data["maxDNFConditionMembers"] = max_dnf_condition_members
+        if max_nodes_per_callstack is not None:
+            data["maxNodesPerCallstack"] = max_nodes_per_callstack
+        if max_number_of_plans is not None:
+            data["maxNumberOfPlans"] = max_number_of_plans
+        if max_runtime is not None:
+            data["maxRuntime"] = max_runtime
+        if max_transaction_size is not None:
+            data["maxTransactionSize"] = max_transaction_size
+        if max_warning_count is not None:
+            data["maxWarningCount"] = max_warning_count
+        if optimizer is not None:
+            data["optimizer"] = optimizer
+        if profile is not None:
+            data["profile"] = profile
+        if satellite_sync_wait is not None:
+            data["satelliteSyncWait"] = satellite_sync_wait
+        if skip_inaccessible_collections is not None:
+            data["skipInaccessibleCollections"] = skip_inaccessible_collections
+        if spill_over_threshold_memory_usage is not None:
+            data["spillOverThresholdMemoryUsage"] = spill_over_threshold_memory_usage
+        if spill_over_threshold_num_rows is not None:
+            data["spillOverThresholdNumRows"] = spill_over_threshold_num_rows
+        if stream is not None:
+            data["stream"] = stream
+        super().__init__(data)
+
+    @property
+    def allow_dirty_reads(self) -> Optional[bool]:
+        return self._data.get("allowDirtyReads")
+
+    @property
+    def allow_retry(self) -> Optional[bool]:
+        return self._data.get("allowRetry")
+
+    @property
+    def fail_on_warning(self) -> Optional[bool]:
+        return self._data.get("failOnWarning")
+
+    @property
+    def fill_block_cache(self) -> Optional[bool]:
+        return self._data.get("fillBlockCache")
+
+    @property
+    def full_count(self) -> Optional[bool]:
+        return self._data.get("fullCount")
+
+    @property
+    def intermediate_commit_count(self) -> Optional[int]:
+        return self._data.get("intermediateCommitCount")
+
+    @property
+    def intermediate_commit_size(self) -> Optional[int]:
+        return self._data.get("intermediateCommitSize")
+
+    @property
+    def max_dnf_condition_members(self) -> Optional[int]:
+        return self._data.get("maxDNFConditionMembers")
+
+    @property
+    def max_nodes_per_callstack(self) -> Optional[int]:
+        return self._data.get("maxNodesPerCallstack")
+
+    @property
+    def max_number_of_plans(self) -> Optional[int]:
+        return self._data.get("maxNumberOfPlans")
+
+    @property
+    def max_runtime(self) -> Optional[Number]:
+        return self._data.get("maxRuntime")
+
+    @property
+    def max_transaction_size(self) -> Optional[int]:
+        return self._data.get("maxTransactionSize")
+
+    @property
+    def max_warning_count(self) -> Optional[int]:
+        return self._data.get("maxWarningCount")
+
+    @property
+    def optimizer(self) -> Optional[Json]:
+        return self._data.get("optimizer")
+
+    @property
+    def profile(self) -> Optional[int]:
+        return self._data.get("profile")
+
+    @property
+    def satellite_sync_wait(self) -> Optional[Number]:
+        return self._data.get("satelliteSyncWait")
+
+    @property
+    def skip_inaccessible_collections(self) -> Optional[bool]:
+        return self._data.get("skipInaccessibleCollections")
+
+    @property
+    def spill_over_threshold_memory_usage(self) -> Optional[int]:
+        return self._data.get("spillOverThresholdMemoryUsage")
+
+    @property
+    def spill_over_threshold_num_rows(self) -> Optional[int]:
+        return self._data.get("spillOverThresholdNumRows")
+
+    @property
+    def stream(self) -> Optional[bool]:
+        return self._data.get("stream")
+
+
+class QueryExecutionPlan(JsonWrapper):
+    """The execution plan of an AQL query.
+
+    References:
+        - `plan <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_plan>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def collections(self) -> Optional[Jsons]:
+        return self._data.get("collections")
+
+    @property
+    def estimated_cost(self) -> Optional[float]:
+        return self._data.get("estimatedCost")
+
+    @property
+    def estimated_nr_items(self) -> Optional[int]:
+        return self._data.get("estimatedNrItems")
+
+    @property
+    def is_modification_query(self) -> Optional[bool]:
+        return self._data.get("isModificationQuery")
+
+    @property
+    def nodes(self) -> Optional[Jsons]:
+        return self._data.get("nodes")
+
+    @property
+    def rules(self) -> Optional[List[str]]:
+        return self._data.get("rules")
+
+    @property
+    def variables(self) -> Optional[Jsons]:
+        return self._data.get("variables")
+
+
+class QueryExecutionProfile(JsonWrapper):
+    """The duration of the different query execution phases in seconds.
+
+    Example:
+        .. code-block:: json
+
+            {
+              "initializing" : 0.0000028529999838156073,
+              "parsing" : 0.000029285000010759177,
+              "optimizing ast" : 0.0000040699999885873694,
+              "loading collections" : 0.000012807000018710823,
+              "instantiating plan" : 0.00002348999998957879,
+              "optimizing plan" : 0.00006598600000984334,
+              "instantiating executors" : 0.000027471999999306718,
+              "executing" : 0.7550992429999894,
+              "finalizing" : 0.00004103500000951499
+            }
+
+    References:
+        - `profile <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_profile>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def executing(self) -> Optional[float]:
+        return self._data.get("executing")
+
+    @property
+    def finalizing(self) -> Optional[float]:
+        return self._data.get("finalizing")
+
+    @property
+    def initializing(self) -> Optional[float]:
+        return self._data.get("initializing")
+
+    @property
+    def instantiating_executors(self) -> Optional[float]:
+        return self._data.get("instantiating executors")
+
+    @property
+    def instantiating_plan(self) -> Optional[float]:
+        return self._data.get("instantiating plan")
+
+    @property
+    def loading_collections(self) -> Optional[float]:
+        return self._data.get("loading collections")
+
+    @property
+    def optimizing_ast(self) -> Optional[float]:
+        return self._data.get("optimizing ast")
+
+    @property
+    def optimizing_plan(self) -> Optional[float]:
+        return self._data.get("optimizing plan")
+
+    @property
+    def parsing(self) -> Optional[float]:
+        return self._data.get("parsing")
+
+
+class QueryExecutionStats(JsonWrapper):
+    """Statistics of an AQL query.
+
+    Example:
+        .. code-block:: json
+
+            {
+              "writesExecuted" : 0,
+              "writesIgnored" : 0,
+              "documentLookups" : 0,
+              "seeks" : 0,
+              "scannedFull" : 2,
+              "scannedIndex" : 0,
+              "cursorsCreated" : 0,
+              "cursorsRearmed" : 0,
+              "cacheHits" : 0,
+              "cacheMisses" : 0,
+              "filtered" : 0,
+              "httpRequests" : 0,
+              "executionTime" : 0.00019362399999067748,
+              "peakMemoryUsage" : 0,
+              "intermediateCommits" : 0
+            }
+
+    References:
+        - `stats <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_stats>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def cache_hits(self) -> Optional[int]:
+        return self._data.get("cacheHits")
+
+    @property
+    def cache_misses(self) -> Optional[int]:
+        return self._data.get("cacheMisses")
+
+    @property
+    def cursors_created(self) -> Optional[int]:
+        return self._data.get("cursorsCreated")
+
+    @property
+    def cursors_rearmed(self) -> Optional[int]:
+        return self._data.get("cursorsRearmed")
+
+    @property
+    def document_lookups(self) -> Optional[int]:
+        return self._data.get("documentLookups")
+
+    @property
+    def execution_time(self) -> Optional[float]:
+        return self._data.get("executionTime")
+
+    @property
+    def filtered(self) -> Optional[int]:
+        return self._data.get("filtered")
+
+    @property
+    def full_count(self) -> Optional[int]:
+        return self._data.get("fullCount")
+
+    @property
+    def http_requests(self) -> Optional[int]:
+        return self._data.get("httpRequests")
+
+    @property
+    def intermediate_commits(self) -> Optional[int]:
+        return self._data.get("intermediateCommits")
+
+    @property
+    def nodes(self) -> Optional[Jsons]:
+        return self._data.get("nodes")
+
+    @property
+    def peak_memory_usage(self) -> Optional[int]:
+        return self._data.get("peakMemoryUsage")
+
+    @property
+    def scanned_full(self) -> Optional[int]:
+        return self._data.get("scannedFull")
+
+    @property
+    def scanned_index(self) -> Optional[int]:
+        return self._data.get("scannedIndex")
+
+    @property
+    def seeks(self) -> Optional[int]:
+        return self._data.get("seeks")
+
+    @property
+    def writes_executed(self) -> Optional[int]:
+        return self._data.get("writesExecuted")
+
+    @property
+    def writes_ignored(self) -> Optional[int]:
+        return self._data.get("writesIgnored")
+
+
+class QueryExecutionExtra(JsonWrapper):
+    """Extra information about the query result.
+
+    References:
+        - `extra <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+        self._plan = QueryExecutionPlan(data.get("plan", dict()))
+        self._profile = QueryExecutionProfile(data.get("profile", dict()))
+        self._stats = QueryExecutionStats(data.get("stats", dict()))
+        self._warnings: Jsons = data.get("warnings", list())
+
+    @property
+    def plan(self) -> QueryExecutionPlan:
+        return self._plan
+
+    @property
+    def profile(self) -> QueryExecutionProfile:
+        return self._profile
+
+    @property
+    def stats(self) -> QueryExecutionStats:
+        return self._stats
+
+    @property
+    def warnings(self) -> Jsons:
+        return self._warnings

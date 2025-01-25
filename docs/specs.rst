@@ -13,6 +13,15 @@ python-arango-async.
 .. automodule:: arangoasync.database
     :members:
 
+.. automodule:: arangoasync.collection
+    :members:
+
+.. automodule:: arangoasync.aql
+    :members:
+
+.. automodule:: arangoasync.cursor
+    :members:
+
 .. automodule:: arangoasync.compression
     :members:
 
