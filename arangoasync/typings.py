@@ -1491,3 +1491,110 @@ class QueryExecutionExtra(JsonWrapper):
     @property
     def warnings(self) -> Jsons:
         return self._warnings
+
+
+class QueryTrackingConfiguration(JsonWrapper):
+    """AQL query tracking configuration.
+
+    Example:
+        .. code-block:: json
+
+            {
+                "enabled": true,
+                "trackSlowQueries": true,
+                "trackBindVars": true,
+                "maxSlowQueries": 64,
+                "slowQueryThreshold": 10,
+                "slowStreamingQueryThreshold": 10,
+                "maxQueryStringLength": 4096
+            }
+
+    References:
+        - `get-the-aql-query-tracking-configuration <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#get-the-aql-query-tracking-configuration>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def enabled(self) -> bool:
+        return cast(bool, self._data["enabled"])
+
+    @property
+    def track_slow_queries(self) -> bool:
+        return cast(bool, self._data["trackSlowQueries"])
+
+    @property
+    def track_bind_vars(self) -> bool:
+        return cast(bool, self._data["trackBindVars"])
+
+    @property
+    def max_slow_queries(self) -> int:
+        return cast(int, self._data["maxSlowQueries"])
+
+    @property
+    def slow_query_threshold(self) -> int:
+        return cast(int, self._data["slowQueryThreshold"])
+
+    @property
+    def slow_streaming_query_threshold(self) -> Optional[int]:
+        return self._data.get("slowStreamingQueryThreshold")
+
+    @property
+    def max_query_string_length(self) -> int:
+        return cast(int, self._data["maxQueryStringLength"])
+
+
+class QueryExplainOptions(JsonWrapper):
+    """Options for explaining an AQL query.
+
+    Args:
+        all_plans (bool | None): If set to `True`, all possible execution plans are
+            returned.
+        max_plans (int | None): The maximum number of plans to return.
+        optimizer (dict | None): Options related to the query optimizer.
+
+    Example:
+        .. code-block:: json
+
+            {
+              "allPlans" : false,
+              "maxNumberOfPlans" : 1,
+              "optimizer" : {
+                "rules" : [
+                  "-all",
+                  "+use-indexe-for-sort"
+                ]
+              }
+            }
+
+    References:
+        - `explain-an-aql-query <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#explain-an-aql-query>`__
+    """  # noqa: E501
+
+    def __init__(
+        self,
+        all_plans: Optional[bool] = None,
+        max_plans: Optional[int] = None,
+        optimizer: Optional[Json] = None,
+    ) -> None:
+        data: Json = dict()
+        if all_plans is not None:
+            data["allPlans"] = all_plans
+        if max_plans is not None:
+            data["maxNumberOfPlans"] = max_plans
+        if optimizer is not None:
+            data["optimizer"] = optimizer
+        super().__init__(data)
+
+    @property
+    def all_plans(self) -> Optional[bool]:
+        return self._data.get("allPlans")
+
+    @property
+    def max_plans(self) -> Optional[int]:
+        return self._data.get("maxNumberOfPlans")
+
+    @property
+    def optimizer(self) -> Optional[Json]:
+        return self._data.get("optimizer")
