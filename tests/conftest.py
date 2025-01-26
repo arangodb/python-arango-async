@@ -16,7 +16,7 @@ class GlobalData:
     root: str = None
     password: str = None
     secret: str = None
-    token: str = None
+    token: JwtToken = None
     sys_db_name: str = "_system"
     username: str = generate_username()
     cluster: bool = False
@@ -154,6 +154,13 @@ async def arango_client(url):
 async def sys_db(arango_client, sys_db_name, basic_auth_root):
     return await arango_client.db(
         sys_db_name, auth_method="basic", auth=basic_auth_root, verify=False
+    )
+
+
+@pytest_asyncio.fixture
+async def superuser(arango_client, sys_db_name, basic_auth_root, token):
+    return await arango_client.db(
+        sys_db_name, auth_method="superuser", token=token, verify=False
     )
 
 

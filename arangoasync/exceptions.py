@@ -71,8 +71,40 @@ class ArangoServerError(ArangoError):
         self.http_headers = resp.headers
 
 
+class AQLQueryClearError(ArangoServerError):
+    """Failed to clear slow AQL queries."""
+
+
 class AQLQueryExecuteError(ArangoServerError):
     """Failed to execute query."""
+
+
+class AQLQueryExplainError(ArangoServerError):
+    """Failed to parse and explain query."""
+
+
+class AQLQueryKillError(ArangoServerError):
+    """Failed to kill the query."""
+
+
+class AQLQueryListError(ArangoServerError):
+    """Failed to retrieve running AQL queries."""
+
+
+class AQLQueryRulesGetError(ArangoServerError):
+    """Failed to retrieve AQL query rules."""
+
+
+class AQLQueryTrackingGetError(ArangoServerError):
+    """Failed to retrieve AQL tracking properties."""
+
+
+class AQLQueryTrackingSetError(ArangoServerError):
+    """Failed to configure AQL tracking properties."""
+
+
+class AQLQueryValidateError(ArangoServerError):
+    """Failed to parse and validate query."""
 
 
 class AuthHeaderError(ArangoClientError):

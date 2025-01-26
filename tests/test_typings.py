@@ -10,7 +10,9 @@ from arangoasync.typings import (
     QueryExecutionPlan,
     QueryExecutionProfile,
     QueryExecutionStats,
+    QueryExplainOptions,
     QueryProperties,
+    QueryTrackingConfiguration,
     UserInfo,
 )
 
@@ -282,3 +284,32 @@ def test_QueryExecutionExtra():
     assert isinstance(extra.profile, QueryExecutionProfile)
     assert isinstance(extra.stats, QueryExecutionStats)
     assert extra.warnings == [{"code": 123, "message": "test warning"}]
+
+
+def test_QueryTrackingConfiguration():
+    data = {
+        "enabled": True,
+        "trackSlowQueries": True,
+        "trackBindVars": True,
+        "maxSlowQueries": 64,
+        "slowQueryThreshold": 10,
+        "slowStreamingQueryThreshold": 10,
+        "maxQueryStringLength": 4096,
+    }
+    config = QueryTrackingConfiguration(data)
+    assert config.enabled is True
+    assert config.track_slow_queries is True
+    assert config.track_bind_vars is True
+    assert config.max_slow_queries == 64
+    assert config.slow_query_threshold == 10
+    assert config.slow_streaming_query_threshold == 10
+    assert config.max_query_string_length == 4096
+
+
+def test_QueryExplainOptions():
+    options = QueryExplainOptions(
+        all_plans=True, max_plans=5, optimizer={"rules": ["-all", "+use-index-range"]}
+    )
+    assert options.all_plans is True
+    assert options.max_plans == 5
+    assert options.optimizer == {"rules": ["-all", "+use-index-range"]}
