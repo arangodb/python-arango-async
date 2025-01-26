@@ -103,7 +103,7 @@ class JwtToken:
     def _validate(self) -> None:
         """Validate the token."""
         if type(self._token) is not str:
-            raise TypeError("Token must be str or bytes")
+            raise TypeError("Token must be str")
 
         jwt_payload = jwt.decode(
             self._token,
