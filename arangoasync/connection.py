@@ -424,7 +424,6 @@ class JwtConnection(BaseConnection):
             # If the token has expired, refresh it and retry the request
             await self.refresh_token()
             resp = await self.process_request(request)
-        self.raise_for_status(request, resp)
         return resp
 
 
@@ -509,7 +508,6 @@ class JwtSuperuserConnection(BaseConnection):
         self.compress_request(request)
 
         resp = await self.process_request(request)
-        self.raise_for_status(request, resp)
         return resp
 
 
