@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 import pytest
 import pytest_asyncio
+from packaging import version
 
 from arangoasync.auth import Auth, JwtToken
 from arangoasync.client import ArangoClient
@@ -21,6 +22,7 @@ class GlobalData:
     username: str = generate_username()
     cluster: bool = False
     enterprise: bool = False
+    db_version: version = version.parse("0.0.0")
 
 
 global_data = GlobalData()
@@ -62,6 +64,19 @@ def pytest_configure(config):
     global_data.token = JwtToken.generate_token(global_data.secret)
     global_data.cluster = config.getoption("cluster")
     global_data.enterprise = config.getoption("enterprise")
+
+    async def get_db_version():
+        async with ArangoClient(hosts=global_data.url) as client:
+            sys_db = await client.db(
+                global_data.sys_db_name,
+                auth_method="basic",
+                auth=Auth(global_data.root, global_data.password),
+                verify=False,
+            )
+            db_version = (await sys_db.version())["version"]
+            global_data.db_version = version.parse(db_version.split("-")[0])
+
+    asyncio.run(get_db_version())
 
 
 @pytest.fixture
@@ -211,6 +226,11 @@ async def doc_col(db):
 def bad_col(db):
     col_name = generate_col_name()
     return db.collection(col_name)
+
+
+@pytest.fixture
+def db_version():
+    return global_data.db_version
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)

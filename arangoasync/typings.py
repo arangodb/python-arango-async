@@ -1096,6 +1096,9 @@ class QueryProperties(JsonWrapper):
             store intermediate and final results temporarily on disk if the number
             of rows produced by the query exceeds the specified value.
         stream (bool | None): Can be enabled to execute the query lazily.
+        use_plan_cache (bool | None): Set this option to `True` to utilize
+            a cached query plan or add the execution plan of this query to the
+            cache if it’s not in the cache yet.
 
     Example:
         .. code-block:: json
@@ -1136,6 +1139,7 @@ class QueryProperties(JsonWrapper):
         spill_over_threshold_memory_usage: Optional[int] = None,
         spill_over_threshold_num_rows: Optional[int] = None,
         stream: Optional[bool] = None,
+        use_plan_cache: Optional[bool] = None,
     ) -> None:
         data: Json = dict()
         if allow_dirty_reads is not None:
@@ -1178,6 +1182,8 @@ class QueryProperties(JsonWrapper):
             data["spillOverThresholdNumRows"] = spill_over_threshold_num_rows
         if stream is not None:
             data["stream"] = stream
+        if use_plan_cache is not None:
+            data["usePlanCache"] = use_plan_cache
         super().__init__(data)
 
     @property
@@ -1259,6 +1265,10 @@ class QueryProperties(JsonWrapper):
     @property
     def stream(self) -> Optional[bool]:
         return self._data.get("stream")
+
+    @property
+    def use_plan_cache(self) -> Optional[bool]:
+        return self._data.get("usePlanCache")
 
 
 class QueryExecutionPlan(JsonWrapper):
@@ -1598,3 +1608,46 @@ class QueryExplainOptions(JsonWrapper):
     @property
     def optimizer(self) -> Optional[Json]:
         return self._data.get("optimizer")
+
+
+class QueryCacheProperties(JsonWrapper):
+    """AQL Cache Configuration.
+
+    Example:
+        .. code-block:: json
+
+           {
+             "mode" : "demand",
+             "maxResults" : 128,
+             "maxResultsSize" : 268435456,
+             "maxEntrySize" : 16777216,
+             "includeSystem" : false
+           }
+
+    References:
+        - `get-the-aql-query-results-cache-configuration <https://docs.arangodb.com/stable/develop/http-api/queries/aql-query-results-cache/#get-the-aql-query-results-cache-configuration>`__
+        - `set-the-aql-query-results-cache-configuration <https://docs.arangodb.com/stable/develop/http-api/queries/aql-query-results-cache/#set-the-aql-query-results-cache-configuration>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def mode(self) -> str:
+        return cast(str, self._data.get("mode", ""))
+
+    @property
+    def max_results(self) -> int:
+        return cast(int, self._data.get("maxResults", 0))
+
+    @property
+    def max_results_size(self) -> int:
+        return cast(int, self._data.get("maxResultsSize", 0))
+
+    @property
+    def max_entry_size(self) -> int:
+        return cast(int, self._data.get("maxEntrySize", 0))
+
+    @property
+    def include_system(self) -> bool:
+        return cast(bool, self._data.get("includeSystem", False))

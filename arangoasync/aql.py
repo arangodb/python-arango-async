@@ -1,4 +1,4 @@
-__all__ = ["AQL"]
+__all__ = ["AQL", "AQLQueryCache"]
 
 
 from typing import Optional
@@ -6,6 +6,10 @@ from typing import Optional
 from arangoasync.cursor import Cursor
 from arangoasync.errno import HTTP_NOT_FOUND
 from arangoasync.exceptions import (
+    AQLCacheClearError,
+    AQLCacheConfigureError,
+    AQLCacheEntriesError,
+    AQLCachePropertiesError,
     AQLQueryClearError,
     AQLQueryExecuteError,
     AQLQueryExplainError,
@@ -23,11 +27,194 @@ from arangoasync.serialization import Deserializer, Serializer
 from arangoasync.typings import (
     Json,
     Jsons,
+    QueryCacheProperties,
     QueryExplainOptions,
     QueryProperties,
     QueryTrackingConfiguration,
     Result,
 )
+
+
+class AQLQueryCache:
+    """AQL Query Cache API wrapper.
+
+    Args:
+        executor: API executor. Required to execute the API requests.
+    """
+
+    def __init__(self, executor: ApiExecutor) -> None:
+        self._executor = executor
+
+    @property
+    def name(self) -> str:
+        """Return the name of the current database."""
+        return self._executor.db_name
+
+    @property
+    def serializer(self) -> Serializer[Json]:
+        """Return the serializer."""
+        return self._executor.serializer
+
+    @property
+    def deserializer(self) -> Deserializer[Json, Jsons]:
+        """Return the deserializer."""
+        return self._executor.deserializer
+
+    def __repr__(self) -> str:
+        return f"<AQLQueryCache in {self.name}>"
+
+    async def entries(self) -> Result[Jsons]:
+        """Return a list of all AQL query results cache entries.
+
+
+        Returns:
+            list: List of AQL query results cache entries.
+
+        Raises:
+            AQLCacheEntriesError: If retrieval fails.
+
+        References:
+            - `list-the-entries-of-the-aql-query-results-cache <https://docs.arangodb.com/stable/develop/http-api/queries/aql-query-results-cache/#list-the-entries-of-the-aql-query-results-cache>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/query-cache/entries")
+
+        def response_handler(resp: Response) -> Jsons:
+            if not resp.is_success:
+                raise AQLCacheEntriesError(resp, request)
+            return self.deserializer.loads_many(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def plan_entries(self) -> Result[Jsons]:
+        """Return a list of all AQL query plan cache entries.
+
+        Returns:
+            list: List of AQL query plan cache entries.
+
+        Raises:
+            AQLCacheEntriesError: If retrieval fails.
+
+        References:
+            - `list-the-entries-of-the-aql-query-plan-cache <https://docs.arangodb.com/stable/develop/http-api/queries/aql-query-plan-cache/#list-the-entries-of-the-aql-query-plan-cache>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/query-plan-cache")
+
+        def response_handler(resp: Response) -> Jsons:
+            if not resp.is_success:
+                raise AQLCacheEntriesError(resp, request)
+            return self.deserializer.loads_many(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def clear(self) -> Result[None]:
+        """Clear the AQL query results cache.
+
+        Raises:
+            AQLCacheClearError: If clearing the cache fails.
+
+        References:
+            - `clear-the-aql-query-results-cache <https://docs.arangodb.com/stable/develop/http-api/queries/aql-query-results-cache/#clear-the-aql-query-results-cache>`__
+        """  # noqa: E501
+        request = Request(method=Method.DELETE, endpoint="/_api/query-cache")
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise AQLCacheClearError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def clear_plan(self) -> Result[None]:
+        """Clear the AQL query plan cache.
+
+        Raises:
+            AQLCacheClearError: If clearing the cache fails.
+
+        References:
+            - `clear-the-aql-query-plan-cache <https://docs.arangodb.com/stable/develop/http-api/queries/aql-query-plan-cache/#clear-the-aql-query-plan-cache>`__
+        """  # noqa: E501
+        request = Request(method=Method.DELETE, endpoint="/_api/query-plan-cache")
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise AQLCacheClearError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def properties(self) -> Result[QueryCacheProperties]:
+        """Return the current AQL query results cache configuration.
+
+        Returns:
+            QueryCacheProperties: Current AQL query cache properties.
+
+        Raises:
+            AQLCachePropertiesError: If retrieval fails.
+
+        References:
+            - `get-the-aql-query-results-cache-configuration <https://docs.arangodb.com/stable/develop/http-api/queries/aql-query-results-cache/#get-the-aql-query-results-cache-configuration>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/query-cache/properties")
+
+        def response_handler(resp: Response) -> QueryCacheProperties:
+            if not resp.is_success:
+                raise AQLCachePropertiesError(resp, request)
+            return QueryCacheProperties(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def configure(
+        self,
+        mode: Optional[str] = None,
+        max_results: Optional[int] = None,
+        max_results_size: Optional[int] = None,
+        max_entry_size: Optional[int] = None,
+        include_system: Optional[bool] = None,
+    ) -> Result[QueryCacheProperties]:
+        """Configure the AQL query results cache.
+
+        Args:
+            mode (str | None): Cache mode. Allowed values are `"off"`, `"on"`,
+                and `"demand"`.
+            max_results (int | None): Max number of query results stored per
+                database-specific cache.
+            max_results_size (int | None): Max cumulative size of query results stored
+                per database-specific cache.
+            max_entry_size (int | None): Max entry size of each query result stored per
+                database-specific cache.
+            include_system (bool | None): Store results of queries in system collections.
+
+        Returns:
+            QueryCacheProperties: Updated AQL query cache properties.
+
+        Raises:
+            AQLCacheConfigureError: If setting the configuration fails.
+
+        References:
+            - `set-the-aql-query-results-cache-configuration <https://docs.arangodb.com/stable/develop/http-api/queries/aql-query-results-cache/#set-the-aql-query-results-cache-configuration>`__
+        """  # noqa: E501
+        data: Json = dict()
+        if mode is not None:
+            data["mode"] = mode
+        if max_results is not None:
+            data["maxResults"] = max_results
+        if max_results_size is not None:
+            data["maxResultsSize"] = max_results_size
+        if max_entry_size is not None:
+            data["maxEntrySize"] = max_entry_size
+        if include_system is not None:
+            data["includeSystem"] = include_system
+
+        request = Request(
+            method=Method.PUT,
+            endpoint="/_api/query-cache/properties",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> QueryCacheProperties:
+            if not resp.is_success:
+                raise AQLCacheConfigureError(resp, request)
+            return QueryCacheProperties(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
 
 
 class AQL:
@@ -57,6 +244,11 @@ class AQL:
     def deserializer(self) -> Deserializer[Json, Jsons]:
         """Return the deserializer."""
         return self._executor.deserializer
+
+    @property
+    def cache(self) -> AQLQueryCache:
+        """Return the AQL Query Cache API wrapper."""
+        return AQLQueryCache(self._executor)
 
     def __repr__(self) -> str:
         return f"<AQL in {self.name}>"

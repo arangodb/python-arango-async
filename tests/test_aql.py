@@ -2,9 +2,14 @@ import asyncio
 import time
 
 import pytest
+from packaging import version
 
-from arangoasync.errno import QUERY_PARSE
+from arangoasync.errno import FORBIDDEN, QUERY_PARSE
 from arangoasync.exceptions import (
+    AQLCacheClearError,
+    AQLCacheConfigureError,
+    AQLCacheEntriesError,
+    AQLCachePropertiesError,
     AQLQueryClearError,
     AQLQueryExecuteError,
     AQLQueryExplainError,
@@ -190,3 +195,84 @@ async def test_query_rules(db, bad_db):
 
     with pytest.raises(AQLQueryRulesGetError):
         _ = await bad_db.aql.query_rules()
+
+
+@pytest.mark.asyncio
+async def test_cache_results_management(db, bad_db, doc_col, docs, cluster):
+    if cluster:
+        pytest.skip("Cluster mode does not support query rest cache management")
+
+    aql = db.aql
+    cache = aql.cache
+
+    # Sanity check, just see if the response is OK.
+    _ = await cache.properties()
+    with pytest.raises(AQLCachePropertiesError) as err:
+        _ = await bad_db.aql.cache.properties()
+    assert err.value.error_code == FORBIDDEN
+
+    # Turn on caching
+    result = await cache.configure(mode="on")
+    assert result.mode == "on"
+    result = await cache.properties()
+    assert result.mode == "on"
+    with pytest.raises(AQLCacheConfigureError) as err:
+        _ = await bad_db.aql.cache.configure(mode="on")
+    assert err.value.error_code == FORBIDDEN
+
+    # Run a simple query to use the cache
+    await doc_col.insert(docs[0])
+    _ = await aql.execute(
+        query="FOR doc IN @@collection RETURN doc",
+        bind_vars={"@collection": doc_col.name},
+    )
+
+    # Check the entries
+    entries = await cache.entries()
+    assert isinstance(entries, list)
+    assert len(entries) > 0
+
+    with pytest.raises(AQLCacheEntriesError) as err:
+        _ = await bad_db.aql.cache.entries()
+    assert err.value.error_code == FORBIDDEN
+
+    # Clear the cache
+    await cache.clear()
+    entries = await cache.entries()
+    assert len(entries) == 0
+    with pytest.raises(AQLCacheClearError) as err:
+        await bad_db.aql.cache.clear()
+    assert err.value.error_code == FORBIDDEN
+
+
+@pytest.mark.asyncio
+async def test_cache_plan_management(db, bad_db, doc_col, docs, db_version):
+    if db_version < version.parse("3.12.4"):
+        pytest.skip("Query plan cache is supported in ArangoDB 3.12.4+")
+
+    aql = db.aql
+    cache = aql.cache
+
+    # Run a simple query to use the cache
+    await doc_col.insert(docs[0])
+    _ = await aql.execute(
+        query="FOR doc IN @@collection RETURN doc",
+        bind_vars={"@collection": doc_col.name},
+        options={"usePlanCache": True},
+    )
+
+    # Check the entries
+    entries = await cache.plan_entries()
+    assert isinstance(entries, list)
+    assert len(entries) > 0
+    with pytest.raises(AQLCacheEntriesError) as err:
+        _ = await bad_db.aql.cache.plan_entries()
+    assert err.value.error_code == FORBIDDEN
+
+    # Clear the cache
+    await cache.clear_plan()
+    entries = await cache.plan_entries()
+    assert len(entries) == 0
+    with pytest.raises(AQLCacheClearError) as err:
+        await bad_db.aql.cache.clear_plan()
+    assert err.value.error_code == FORBIDDEN
