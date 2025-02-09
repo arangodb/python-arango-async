@@ -27,6 +27,7 @@ from arangoasync.exceptions import (
     PermissionResetError,
     PermissionUpdateError,
     ServerStatusError,
+    ServerVersionError,
     TransactionAbortError,
     TransactionCommitError,
     TransactionExecuteError,
@@ -1186,6 +1187,32 @@ class Database:
             if not resp.is_success:
                 raise TransactionExecuteError(resp, request)
             return self.deserializer.loads(resp.raw_body)["result"]
+
+        return await self._executor.execute(request, response_handler)
+
+    async def version(self, details: bool = False) -> Result[Json]:
+        """Return the server version information.
+
+        Args:
+            details (bool): If `True`, return detailed version information.
+
+        Returns:
+            dict: Server version information.
+
+        Raises:
+            ServerVersionError: If the operation fails on the server side.
+
+        References:
+            - `get-the-server-version <https://docs.arangodb.com/stable/develop/http-api/administration/#get-the-server-version>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET, endpoint="/_api/version", params={"details": details}
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerVersionError(resp, request)
+            return self.deserializer.loads(resp.raw_body)
 
         return await self._executor.execute(request, response_handler)
 

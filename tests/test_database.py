@@ -14,6 +14,7 @@ from arangoasync.exceptions import (
     JWTSecretListError,
     JWTSecretReloadError,
     ServerStatusError,
+    ServerVersionError,
 )
 from arangoasync.typings import CollectionType, KeyOptions, UserInfo
 from tests.helpers import generate_col_name, generate_db_name, generate_username
@@ -47,6 +48,12 @@ async def test_database_misc_methods(sys_db, db, bad_db, cluster):
         await bad_db.jwt_secrets()
     with pytest.raises(JWTSecretReloadError):
         await bad_db.reload_jwt_secrets()
+
+    # Version
+    version = await sys_db.version()
+    assert version["version"].startswith("3.")
+    with pytest.raises(ServerVersionError):
+        await bad_db.version()
 
 
 @pytest.mark.asyncio

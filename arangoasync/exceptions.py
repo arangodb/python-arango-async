@@ -71,6 +71,22 @@ class ArangoServerError(ArangoError):
         self.http_headers = resp.headers
 
 
+class AQLCacheClearError(ArangoServerError):
+    """Failed to clear the query cache."""
+
+
+class AQLCacheConfigureError(ArangoServerError):
+    """Failed to configure query cache properties."""
+
+
+class AQLCacheEntriesError(ArangoServerError):
+    """Failed to retrieve AQL cache entries."""
+
+
+class AQLCachePropertiesError(ArangoServerError):
+    """Failed to retrieve query cache properties."""
+
+
 class AQLQueryClearError(ArangoServerError):
     """Failed to clear slow AQL queries."""
 
@@ -249,6 +265,10 @@ class ServerConnectionError(ArangoServerError):
 
 class ServerStatusError(ArangoServerError):
     """Failed to retrieve server status."""
+
+
+class ServerVersionError(ArangoServerError):
+    """Failed to retrieve server version."""
 
 
 class TransactionAbortError(ArangoServerError):

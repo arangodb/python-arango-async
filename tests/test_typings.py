@@ -6,6 +6,7 @@ from arangoasync.typings import (
     CollectionType,
     JsonWrapper,
     KeyOptions,
+    QueryCacheProperties,
     QueryExecutionExtra,
     QueryExecutionPlan,
     QueryExecutionProfile,
@@ -156,6 +157,7 @@ def test_QueryProperties():
         spill_over_threshold_memory_usage=10485760,
         spill_over_threshold_num_rows=100000,
         stream=True,
+        use_plan_cache=True,
     )
     assert properties.allow_dirty_reads is True
     assert properties.allow_retry is False
@@ -177,6 +179,7 @@ def test_QueryProperties():
     assert properties.spill_over_threshold_memory_usage == 10485760
     assert properties.spill_over_threshold_num_rows == 100000
     assert properties.stream is True
+    assert properties.use_plan_cache is True
 
 
 def test_QueryExecutionPlan():
@@ -313,3 +316,17 @@ def test_QueryExplainOptions():
     assert options.all_plans is True
     assert options.max_plans == 5
     assert options.optimizer == {"rules": ["-all", "+use-index-range"]}
+
+
+def test_QueryCacheProperties():
+    data = {
+        "mode": "demand",
+        "maxResults": 128,
+        "maxEntrySize": 1024,
+        "includeSystem": False,
+    }
+    cache_properties = QueryCacheProperties(data)
+    assert cache_properties._data["mode"] == "demand"
+    assert cache_properties._data["maxResults"] == 128
+    assert cache_properties._data["maxEntrySize"] == 1024
+    assert cache_properties._data["includeSystem"] is False
