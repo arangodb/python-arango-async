@@ -1,7 +1,7 @@
 __all__ = ["AQL", "AQLQueryCache"]
 
 
-from typing import Optional
+from typing import Optional, cast
 
 from arangoasync.cursor import Cursor
 from arangoasync.errno import HTTP_NOT_FOUND
@@ -10,6 +10,9 @@ from arangoasync.exceptions import (
     AQLCacheConfigureError,
     AQLCacheEntriesError,
     AQLCachePropertiesError,
+    AQLFunctionCreateError,
+    AQLFunctionDeleteError,
+    AQLFunctionListError,
     AQLQueryClearError,
     AQLQueryExecuteError,
     AQLQueryExplainError,
@@ -632,5 +635,119 @@ class AQL:
             if not resp.is_success:
                 raise AQLQueryRulesGetError(resp, request)
             return self.deserializer.loads_many(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def functions(self, namespace: Optional[str] = None) -> Result[Jsons]:
+        """List the registered used-defined AQL functions.
+
+        Args:
+            namespace (str | None): Returns all registered AQL user functions from
+                the specified namespace.
+
+        Returns:
+            list: List of the AQL functions defined in the database.
+
+        Raises:
+            AQLFunctionListError: If retrieval fails.
+
+        References:
+            - `list-the-registered-user-defined-aql-functions <https://docs.arangodb.com/stable/develop/http-api/queries/user-defined-aql-functions/#list-the-registered-user-defined-aql-functions>`__
+        """  # noqa: E501
+        params: Json = dict()
+        if namespace is not None:
+            params["namespace"] = namespace
+        request = Request(
+            method=Method.GET,
+            endpoint="/_api/aqlfunction",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> Jsons:
+            if not resp.is_success:
+                raise AQLFunctionListError(resp, request)
+            result = cast(Jsons, self.deserializer.loads(resp.raw_body).get("result"))
+            if result is None:
+                raise AQLFunctionListError(resp, request)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def create_function(
+        self,
+        name: str,
+        code: str,
+        is_deterministic: Optional[bool] = None,
+    ) -> Result[Json]:
+        """Registers a user-defined AQL function (UDF) written in JavaScript.
+
+        Args:
+            name (str): Name of the function.
+            code (str): JavaScript code of the function.
+            is_deterministic (bool | None): If set to `True`, the function is
+                deterministic.
+
+        Returns:
+            dict: Information about the registered function.
+
+        Raises:
+            AQLFunctionCreateError: If registration fails.
+
+        References:
+            - `create-a-user-defined-aql-function <https://docs.arangodb.com/stable/develop/http-api/queries/user-defined-aql-functions/#create-a-user-defined-aql-function>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/aqlfunction",
+            data=self.serializer.dumps(
+                dict(name=name, code=code, isDeterministic=is_deterministic)
+            ),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise AQLFunctionCreateError(resp, request)
+            return self.deserializer.loads(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete_function(
+        self,
+        name: str,
+        group: Optional[bool] = None,
+        ignore_missing: bool = False,
+    ) -> Result[Json]:
+        """Remove a user-defined AQL function.
+
+        Args:
+            name (str): Name of the function.
+            group (bool | None): If set to `True`, the function name is treated
+                as a namespace prefix.
+            ignore_missing (bool): If set to `True`, will not raise an exception
+                if the function is not found.
+
+        Returns:
+            dict: Information about the removed functions (their count).
+
+        Raises:
+            AQLFunctionDeleteError: If removal fails.
+
+        References:
+            - `remove-a-user-defined-aql-function <https://docs.arangodb.com/stable/develop/http-api/queries/user-defined-aql-functions/#remove-a-user-defined-aql-function>`__
+        """  # noqa: E501
+        params: Json = dict()
+        if group is not None:
+            params["group"] = group
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/aqlfunction/{name}",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                if not (resp.status_code == HTTP_NOT_FOUND and ignore_missing):
+                    raise AQLFunctionDeleteError(resp, request)
+            return self.deserializer.loads(resp.raw_body)
 
         return await self._executor.execute(request, response_handler)

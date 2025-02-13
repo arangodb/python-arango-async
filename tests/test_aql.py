@@ -4,12 +4,20 @@ import time
 import pytest
 from packaging import version
 
-from arangoasync.errno import FORBIDDEN, QUERY_PARSE
+from arangoasync.errno import (
+    FORBIDDEN,
+    QUERY_FUNCTION_INVALID_CODE,
+    QUERY_FUNCTION_NOT_FOUND,
+    QUERY_PARSE,
+)
 from arangoasync.exceptions import (
     AQLCacheClearError,
     AQLCacheConfigureError,
     AQLCacheEntriesError,
     AQLCachePropertiesError,
+    AQLFunctionCreateError,
+    AQLFunctionDeleteError,
+    AQLFunctionListError,
     AQLQueryClearError,
     AQLQueryExecuteError,
     AQLQueryExplainError,
@@ -276,3 +284,82 @@ async def test_cache_plan_management(db, bad_db, doc_col, docs, db_version):
     with pytest.raises(AQLCacheClearError) as err:
         await bad_db.aql.cache.clear_plan()
     assert err.value.error_code == FORBIDDEN
+
+
+@pytest.mark.asyncio
+async def test_aql_function_management(db, bad_db):
+    fn_group = "functions::temperature"
+    fn_name_1 = "functions::temperature::celsius_to_fahrenheit"
+    fn_body_1 = "function (celsius) { return celsius * 1.8 + 32; }"
+    fn_name_2 = "functions::temperature::fahrenheit_to_celsius"
+    fn_body_2 = "function (fahrenheit) { return (fahrenheit - 32) / 1.8; }"
+    bad_fn_name = "functions::temperature::should_not_exist"
+    bad_fn_body = "function (celsius) { invalid syntax }"
+
+    aql = db.aql
+    # List AQL functions
+    assert await aql.functions() == []
+
+    # List AQL functions with bad database
+    with pytest.raises(AQLFunctionListError) as err:
+        await bad_db.aql.functions()
+    assert err.value.error_code == FORBIDDEN
+
+    # Create invalid AQL function
+    with pytest.raises(AQLFunctionCreateError) as err:
+        await aql.create_function(bad_fn_name, bad_fn_body)
+    assert err.value.error_code == QUERY_FUNCTION_INVALID_CODE
+
+    # Create first AQL function
+    result = await aql.create_function(fn_name_1, fn_body_1, is_deterministic=True)
+    assert result["isNewlyCreated"] is True
+    functions = await aql.functions()
+    assert len(functions) == 1
+    assert functions[0]["name"] == fn_name_1
+    assert functions[0]["code"] == fn_body_1
+    assert functions[0]["isDeterministic"] is True
+
+    # Create same AQL function again
+    result = await aql.create_function(fn_name_1, fn_body_1, is_deterministic=True)
+    assert result["isNewlyCreated"] is False
+    functions = await aql.functions()
+    assert len(functions) == 1
+    assert functions[0]["name"] == fn_name_1
+    assert functions[0]["code"] == fn_body_1
+    assert functions[0]["isDeterministic"] is True
+
+    # Create second AQL function
+    result = await aql.create_function(fn_name_2, fn_body_2, is_deterministic=False)
+    assert result["isNewlyCreated"] is True
+    functions = await aql.functions()
+    assert len(functions) == 2
+    assert functions[0]["name"] == fn_name_1
+    assert functions[0]["code"] == fn_body_1
+    assert functions[0]["isDeterministic"] is True
+    assert functions[1]["name"] == fn_name_2
+    assert functions[1]["code"] == fn_body_2
+    assert functions[1]["isDeterministic"] is False
+
+    # Delete first function
+    result = await aql.delete_function(fn_name_1)
+    assert result["deletedCount"] == 1
+    functions = await aql.functions()
+    assert len(functions) == 1
+
+    # Delete missing function
+    with pytest.raises(AQLFunctionDeleteError) as err:
+        await aql.delete_function(fn_name_1)
+    assert err.value.error_code == QUERY_FUNCTION_NOT_FOUND
+    result = await aql.delete_function(fn_name_1, ignore_missing=True)
+    assert "deletedCount" not in result
+
+    # Delete function from bad db
+    with pytest.raises(AQLFunctionDeleteError) as err:
+        await bad_db.aql.delete_function(fn_name_2)
+    assert err.value.error_code == FORBIDDEN
+
+    # Delete function group
+    result = await aql.delete_function(fn_group, group=True)
+    assert result["deletedCount"] == 1
+    functions = await aql.functions()
+    assert len(functions) == 0
