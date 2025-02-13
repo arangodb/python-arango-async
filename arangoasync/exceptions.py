@@ -87,6 +87,18 @@ class AQLCachePropertiesError(ArangoServerError):
     """Failed to retrieve query cache properties."""
 
 
+class AQLFunctionCreateError(ArangoServerError):
+    """Failed to create AQL user function."""
+
+
+class AQLFunctionDeleteError(ArangoServerError):
+    """Failed to delete AQL user function."""
+
+
+class AQLFunctionListError(ArangoServerError):
+    """Failed to retrieve AQL user functions."""
+
+
 class AQLQueryClearError(ArangoServerError):
     """Failed to clear slow AQL queries."""
 

@@ -128,6 +128,7 @@ async def test_cursor_write_query(db, doc_col, docs):
     cursor = await aql.execute(
         """
         FOR d IN {col} FILTER d.val == @first OR d.val == @second
+        SORT d.val
         UPDATE {{_key: d._key, _val: @val }} IN {col}
         RETURN NEW
         """.format(
