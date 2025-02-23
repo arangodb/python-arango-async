@@ -208,7 +208,7 @@ async def test_query_rules(db, bad_db):
 @pytest.mark.asyncio
 async def test_cache_results_management(db, bad_db, doc_col, docs, cluster):
     if cluster:
-        pytest.skip("Cluster mode does not support query rest cache management")
+        pytest.skip("Cluster mode does not support query result cache management")
 
     aql = db.aql
     cache = aql.cache
@@ -233,6 +233,7 @@ async def test_cache_results_management(db, bad_db, doc_col, docs, cluster):
     _ = await aql.execute(
         query="FOR doc IN @@collection RETURN doc",
         bind_vars={"@collection": doc_col.name},
+        options={"cache": True},
     )
 
     # Check the entries
