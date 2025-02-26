@@ -135,6 +135,30 @@ class AQLQueryValidateError(ArangoServerError):
     """Failed to parse and validate query."""
 
 
+class AsyncExecuteError(ArangoServerError):
+    """Failed to execute async API request."""
+
+
+class AsyncJobCancelError(ArangoServerError):
+    """Failed to cancel async job."""
+
+
+class AsyncJobClearError(ArangoServerError):
+    """Failed to clear async job results."""
+
+
+class AsyncJobListError(ArangoServerError):
+    """Failed to retrieve async jobs."""
+
+
+class AsyncJobResultError(ArangoServerError):
+    """Failed to retrieve async job result."""
+
+
+class AsyncJobStatusError(ArangoServerError):
+    """Failed to retrieve async job status."""
+
+
 class AuthHeaderError(ArangoClientError):
     """The authentication header could not be determined."""
 

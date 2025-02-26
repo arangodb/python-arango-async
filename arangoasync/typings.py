@@ -9,14 +9,10 @@ from typing import (
     MutableMapping,
     Optional,
     Tuple,
-    TypeVar,
-    Union,
     cast,
 )
 
 from multidict import CIMultiDictProxy, MultiDict
-
-from arangoasync.job import AsyncJob
 
 Json = Dict[str, Any]
 Json.__doc__ = """Type definition for request/response body"""
@@ -30,14 +26,11 @@ RequestHeaders.__doc__ = """Type definition for request HTTP headers"""
 ResponseHeaders = MutableMapping[str, str] | MultiDict[str] | CIMultiDictProxy[str]
 ResponseHeaders.__doc__ = """Type definition for response HTTP headers"""
 
-Params = MutableMapping[str, bool | int | str]
+Params = MutableMapping[str, bool | int | str | float]
 Params.__doc__ = """Type definition for URL (query) parameters"""
 
 Formatter = Callable[[Json], Json]
 Formatter.__doc__ = """Type definition for a JSON formatter"""
-
-T = TypeVar("T")
-Result = Union[T, AsyncJob[T]]
 
 
 class CollectionType(Enum):

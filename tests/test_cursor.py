@@ -271,6 +271,25 @@ async def test_cursor_context_manager(db, doc_col, docs):
 
 
 @pytest.mark.asyncio
+async def test_cursor_iteration(db, doc_col, docs):
+    # Insert documents
+    await asyncio.gather(*[doc_col.insert(doc) for doc in docs])
+
+    aql: AQL = db.aql
+    cursor = await aql.execute(
+        f"FOR d IN {doc_col.name} SORT d._key RETURN d",
+        count=True,
+        batch_size=2,
+        ttl=1000,
+    )
+    doc_cnt = 0
+    async with cursor as ctx:
+        async for _ in ctx:
+            doc_cnt += 1
+    assert doc_cnt == len(docs)
+
+
+@pytest.mark.asyncio
 async def test_cursor_manual_fetch_and_pop(db, doc_col, docs):
     # Insert documents
     await asyncio.gather(*[doc_col.insert(doc) for doc in docs])

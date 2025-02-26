@@ -23,6 +23,7 @@ from arangoasync.exceptions import (
 from arangoasync.executor import ApiExecutor
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
+from arangoasync.result import Result
 from arangoasync.serialization import Deserializer, Serializer
 from arangoasync.typings import (
     CollectionProperties,
@@ -30,7 +31,6 @@ from arangoasync.typings import (
     Json,
     Jsons,
     Params,
-    Result,
 )
 
 T = TypeVar("T")
