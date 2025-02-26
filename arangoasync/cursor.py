@@ -12,7 +12,7 @@ from arangoasync.exceptions import (
     CursorNextError,
     CursorStateError,
 )
-from arangoasync.executor import ApiExecutor
+from arangoasync.executor import NonAsyncExecutor
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
 from arangoasync.serialization import Deserializer, Serializer
@@ -39,7 +39,7 @@ class Cursor:
             is created.
     """
 
-    def __init__(self, executor: ApiExecutor, data: Json) -> None:
+    def __init__(self, executor: NonAsyncExecutor, data: Json) -> None:
         self._executor = executor
         self._cached: Optional[bool] = None
         self._count: Optional[int] = None

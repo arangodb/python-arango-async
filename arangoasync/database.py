@@ -2,6 +2,7 @@ __all__ = [
     "Database",
     "StandardDatabase",
     "TransactionDatabase",
+    "AsyncDatabase",
 ]
 
 

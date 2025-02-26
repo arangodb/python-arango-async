@@ -97,7 +97,8 @@ class AsyncJob(Generic[T]):
         Raises:
             ArangoError: If the job raised an exception or there was a problem with
                 the request.
-            AsyncJobResultError: If retrieval fails.
+            AsyncJobResultError: If retrieval fails, because job no longer exists or
+                is still pending.
 
         References:
             - `get-the-results-of-an-async-job <https://docs.arangodb.com/stable/develop/http-api/jobs/#get-the-results-of-an-async-job>`__
@@ -112,10 +113,11 @@ class AsyncJob(Generic[T]):
             # The job result is available on the server
             return self._response_handler(response)
 
+        if response.status_code == 204:
+            # The job is still in the pending queue or not yet finished.
+            raise AsyncJobResultError(response, request, self._not_done())
         # The job is not known (anymore).
         # We can tell the status from the HTTP status code.
-        if response.status_code == 204:
-            raise AsyncJobResultError(response, request, self._not_done())
         if response.error_code == HTTP_NOT_FOUND:
             raise AsyncJobResultError(response, request, self._not_found())
         raise AsyncJobResultError(response, request)

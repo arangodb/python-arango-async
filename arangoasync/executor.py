@@ -1,3 +1,11 @@
+__all__ = [
+    "ApiExecutor",
+    "DefaultApiExecutor",
+    "NonAsyncExecutor",
+    "TransactionApiExecutor",
+    "AsyncApiExecutor",
+]
+
 from typing import Callable, Optional, TypeVar
 
 from arangoasync.connection import Connection
@@ -11,10 +19,10 @@ from arangoasync.typings import Json, Jsons
 T = TypeVar("T")
 
 
-class DefaultApiExecutor:
-    """Default API executor.
+class ExecutorContext:
+    """Base class for API executors.
 
-    Responsible for executing requests and handling responses.
+    Not to be exported publicly.
 
     Args:
         connection: HTTP connection.
@@ -26,10 +34,6 @@ class DefaultApiExecutor:
     @property
     def connection(self) -> Connection:
         return self._conn
-
-    @property
-    def context(self) -> str:
-        return "default"
 
     @property
     def db_name(self) -> str:
@@ -49,6 +53,23 @@ class DefaultApiExecutor:
     def deserialize(self, data: bytes) -> Json:
         return self.deserializer.loads(data)
 
+
+class DefaultApiExecutor(ExecutorContext):
+    """Default API executor.
+
+    Responsible for executing requests and handling responses.
+
+    Args:
+        connection: HTTP connection.
+    """
+
+    def __init__(self, connection: Connection) -> None:
+        super().__init__(connection)
+
+    @property
+    def context(self) -> str:
+        return "default"
+
     async def execute(
         self, request: Request, response_handler: Callable[[Response], T]
     ) -> T:
@@ -62,7 +83,7 @@ class DefaultApiExecutor:
         return response_handler(response)
 
 
-class TransactionApiExecutor(DefaultApiExecutor):
+class TransactionApiExecutor(ExecutorContext):
     """Executes transaction API requests.
 
     Args:
@@ -97,7 +118,7 @@ class TransactionApiExecutor(DefaultApiExecutor):
         return response_handler(response)
 
 
-class AsyncApiExecutor(DefaultApiExecutor):
+class AsyncApiExecutor(ExecutorContext):
     """Executes asynchronous API requests (jobs).
 
     Args:
@@ -144,3 +165,4 @@ class AsyncApiExecutor(DefaultApiExecutor):
 
 
 ApiExecutor = DefaultApiExecutor | TransactionApiExecutor | AsyncApiExecutor
+NonAsyncExecutor = DefaultApiExecutor | TransactionApiExecutor

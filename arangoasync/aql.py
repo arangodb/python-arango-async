@@ -23,7 +23,7 @@ from arangoasync.exceptions import (
     AQLQueryTrackingSetError,
     AQLQueryValidateError,
 )
-from arangoasync.executor import ApiExecutor
+from arangoasync.executor import ApiExecutor, DefaultApiExecutor, NonAsyncExecutor
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
 from arangoasync.result import Result
@@ -326,7 +326,14 @@ class AQL:
         def response_handler(resp: Response) -> Cursor:
             if not resp.is_success:
                 raise AQLQueryExecuteError(resp, request)
-            return Cursor(self._executor, self.deserializer.loads(resp.raw_body))
+            if self._executor.context == "async":
+                # We cannot have a cursor getting back async jobs
+                executor: NonAsyncExecutor = DefaultApiExecutor(
+                    self._executor.connection
+                )
+            else:
+                executor = cast(NonAsyncExecutor, self._executor)
+            return Cursor(executor, self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
 

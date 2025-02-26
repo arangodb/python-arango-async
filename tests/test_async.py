@@ -7,6 +7,7 @@ from arangoasync.exceptions import (
     AQLQueryExecuteError,
     AsyncJobCancelError,
     AsyncJobListError,
+    AsyncJobResultError,
 )
 
 
@@ -101,3 +102,34 @@ async def test_async_result(db, bad_db, doc_col, docs):
     job4 = await aql.execute("RETURN 1")
     await job4.wait()
     await job4.clear()
+
+    # Attempt to get the result of a pending job
+    job5 = await aql.execute("RETURN SLEEP(5)")
+    time.sleep(1)
+    with pytest.raises(AsyncJobResultError):
+        _ = await job5.result()
+    await job5.wait()
+
+
+@pytest.mark.asyncio
+async def test_async_cursor(db, doc_col, docs):
+    # Insert some documents first
+    await asyncio.gather(*(doc_col.insert(doc) for doc in docs))
+
+    async_db = db.begin_async_execution()
+    aql = async_db.aql
+    job = await aql.execute(
+        f"FOR d IN {doc_col.name} SORT d._key RETURN d",
+        count=True,
+        batch_size=1,
+        ttl=1000,
+    )
+    await job.wait()
+
+    # Get the cursor. Bear in mind that its underlying executor is async.
+    doc_cnt = 0
+    cursor = await job.result()
+    async with cursor as ctx:
+        async for _ in ctx:
+            doc_cnt += 1
+    assert doc_cnt == len(docs)
