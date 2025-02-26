@@ -13,6 +13,8 @@ from arangoasync.collection import StandardCollection
 from arangoasync.connection import Connection
 from arangoasync.errno import HTTP_FORBIDDEN, HTTP_NOT_FOUND
 from arangoasync.exceptions import (
+    AsyncJobClearError,
+    AsyncJobListError,
     CollectionCreateError,
     CollectionDeleteError,
     CollectionListError,
@@ -41,9 +43,15 @@ from arangoasync.exceptions import (
     UserReplaceError,
     UserUpdateError,
 )
-from arangoasync.executor import ApiExecutor, DefaultApiExecutor, TransactionApiExecutor
+from arangoasync.executor import (
+    ApiExecutor,
+    AsyncApiExecutor,
+    DefaultApiExecutor,
+    TransactionApiExecutor,
+)
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
+from arangoasync.result import Result
 from arangoasync.serialization import Deserializer, Serializer
 from arangoasync.typings import (
     CollectionInfo,
@@ -53,7 +61,6 @@ from arangoasync.typings import (
     Jsons,
     KeyOptions,
     Params,
-    Result,
     ServerStatusInformation,
     UserInfo,
 )
@@ -1314,7 +1321,7 @@ class StandardDatabase(Database):
             return cast(str, result["id"])
 
         transaction_id = await self._executor.execute(request, response_handler)
-        return TransactionDatabase(self.connection, transaction_id)
+        return TransactionDatabase(self.connection, cast(str, transaction_id))
 
     def fetch_transaction(self, transaction_id: str) -> "TransactionDatabase":
         """Fetch an existing transaction.
@@ -1327,6 +1334,86 @@ class StandardDatabase(Database):
                 transactions.
         """
         return TransactionDatabase(self.connection, transaction_id)
+
+    def begin_async_execution(self, return_result: bool = True) -> "AsyncDatabase":
+        """Begin async execution.
+
+        Args:
+            return_result (bool): If set to `True`, API executions return instances of
+                `arangoasync.job.AsyncJob`, which you can be used to retrieve
+                results from server once available. Otherwise, API executions
+                return `None` and no results are stored on server.
+
+        Returns:
+            AsyncDatabase: Database API wrapper tailored for async execution.
+        """
+        return AsyncDatabase(self.connection, return_result)
+
+    async def async_jobs(
+        self, status: str, count: Optional[int] = None
+    ) -> Result[List[str]]:
+        """Return IDs of async jobs with given status.
+
+        Args:
+            status (str): Job status (e.g. "pending", "done").
+            count (int | None): Max number of job IDs to return.
+
+        Returns:
+            list: List of job IDs.
+
+        Raises:
+            AsyncJobListError: If retrieval fails.
+
+        References:
+            - `list-async-jobs-by-status-or-get-the-status-of-specific-job <https://docs.arangodb.com/stable/develop/http-api/jobs/#list-async-jobs-by-status-or-get-the-status-of-specific-job>`__
+        """  # noqa: E501
+        params: Params = {}
+        if count is not None:
+            params["count"] = count
+
+        request = Request(
+            method=Method.GET, endpoint=f"/_api/job/{status}", params=params
+        )
+
+        def response_handler(resp: Response) -> List[str]:
+            if resp.is_success:
+                return cast(List[str], self.deserializer.loads(resp.raw_body))
+            raise AsyncJobListError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def clear_async_jobs(self, threshold: Optional[float] = None) -> None:
+        """Clear async job results from the server.
+
+        Async jobs that are still queued or running are not stopped.
+        Clients can use this method to perform an eventual garbage
+        collection of job results.
+
+        Args:
+            threshold (float | None): If specified, only the job results created
+                prior to the threshold (a Unix timestamp) are deleted. Otherwise,
+                all job results are deleted.
+
+        Raises:
+            AsyncJobClearError: If the operation fails.
+
+        References:
+            - `delete-async-job-results <https://docs.arangodb.com/stable/develop/http-api/jobs/#delete-async-job-results>`__
+        """  # noqa: E501
+        if threshold is None:
+            request = Request(method=Method.DELETE, endpoint="/_api/job/all")
+        else:
+            request = Request(
+                method=Method.DELETE,
+                endpoint="/_api/job/expired",
+                params={"stamp": threshold},
+            )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise AsyncJobClearError(resp, request)
+
+        await self._executor.execute(request, response_handler)
 
 
 class TransactionDatabase(Database):
@@ -1420,3 +1507,26 @@ class TransactionDatabase(Database):
                 raise TransactionAbortError(resp, request)
 
         await self._standard_executor.execute(request, response_handler)
+
+
+class AsyncDatabase(Database):
+    """Database API wrapper tailored specifically for async execution.
+
+    See :func:`arangoasync.database.StandardDatabase.begin_async_execution`.
+
+    Args:
+        connection (Connection): HTTP connection.
+        return_result (bool): If set to `True`, API executions return instances of
+            :class:`arangoasync.job.AsyncJob`, which you can use to retrieve results
+            from server once available. If set to `False`, API executions return `None`
+            and no results are stored on server.
+
+    References:
+        - `jobs <https://docs.arangodb.com/stable/develop/http-api/jobs/>`__
+    """  # noqa: E501
+
+    def __init__(self, connection: Connection, return_result: bool) -> None:
+        super().__init__(executor=AsyncApiExecutor(connection, return_result))
+
+    def __repr__(self) -> str:
+        return f"<AsyncDatabase {self.name}>"

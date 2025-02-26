@@ -1,6 +1,8 @@
-from typing import Callable, TypeVar
+from typing import Callable, Optional, TypeVar
 
 from arangoasync.connection import Connection
+from arangoasync.exceptions import AsyncExecuteError
+from arangoasync.job import AsyncJob
 from arangoasync.request import Request
 from arangoasync.response import Response
 from arangoasync.serialization import Deserializer, Serializer
@@ -95,4 +97,50 @@ class TransactionApiExecutor(DefaultApiExecutor):
         return response_handler(response)
 
 
-ApiExecutor = DefaultApiExecutor | TransactionApiExecutor
+class AsyncApiExecutor(DefaultApiExecutor):
+    """Executes asynchronous API requests (jobs).
+
+    Args:
+        connection: HTTP connection.
+        return_result: If set to `True`, API executions return instances of
+        :class:`arangoasync.job.AsyncJob` and results can be retrieved from server
+        once available. If set to `False`, API executions return `None` and no
+        results are stored on server.
+    """
+
+    def __init__(self, connection: Connection, return_result: bool) -> None:
+        super().__init__(connection)
+        self._return_result = return_result
+
+    @property
+    def context(self) -> str:
+        return "async"
+
+    async def execute(
+        self, request: Request, response_handler: Callable[[Response], T]
+    ) -> Optional[AsyncJob[T]]:
+        """Execute an API request asynchronously.
+
+        Args:
+            request: HTTP request.
+            response_handler: HTTP response handler.
+
+        Returns: `AsyncJob` job or `None` if **return_result** parameter was set to
+            `False` during initialization.
+        """
+        if self._return_result:
+            request.headers["x-arango-async"] = "store"
+        else:
+            request.headers["x-arango-async"] = "true"
+
+        response = await self._conn.send_request(request)
+        if not response.is_success:
+            raise AsyncExecuteError(response, request)
+        if not self._return_result:
+            return None
+
+        job_id = response.headers["x-arango-async-id"]
+        return AsyncJob(self._conn, job_id, response_handler)
+
+
+ApiExecutor = DefaultApiExecutor | TransactionApiExecutor | AsyncApiExecutor

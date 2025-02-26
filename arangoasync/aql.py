@@ -26,6 +26,7 @@ from arangoasync.exceptions import (
 from arangoasync.executor import ApiExecutor
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
+from arangoasync.result import Result
 from arangoasync.serialization import Deserializer, Serializer
 from arangoasync.typings import (
     Json,
@@ -34,7 +35,6 @@ from arangoasync.typings import (
     QueryExplainOptions,
     QueryProperties,
     QueryTrackingConfiguration,
-    Result,
 )
 
 

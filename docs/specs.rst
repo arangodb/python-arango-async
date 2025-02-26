@@ -19,6 +19,9 @@ python-arango-async.
 .. automodule:: arangoasync.aql
     :members:
 
+.. automodule:: arangoasync.job
+    :members:
+
 .. automodule:: arangoasync.cursor
     :members:
 
@@ -47,4 +50,7 @@ python-arango-async.
     :members:
 
 .. automodule:: arangoasync.typings
+    :members:
+
+.. automodule:: arangoasync.result
     :members:
