@@ -1,11 +1,15 @@
 import pytest
 
-from arangoasync.exceptions import DocumentParseError
+from arangoasync.exceptions import (
+    DocumentInsertError,
+    DocumentParseError,
+    DocumentUpdateError,
+)
 from tests.helpers import generate_col_name
 
 
 @pytest.mark.asyncio
-async def test_document_insert(doc_col, docs):
+async def test_document_insert(doc_col, bad_col, docs):
     # Test insert document with no key
     result = await doc_col.insert({})
     assert await doc_col.get(result["_key"]) is not None
@@ -22,6 +26,9 @@ async def test_document_insert(doc_col, docs):
         await doc_col.insert({"_id": f"{generate_col_name()}/foo"})
     assert "Bad collection name" in err.value.message
 
+    with pytest.raises(DocumentInsertError):
+        await bad_col.insert({})
+
     # Test insert with default options
     for doc in docs:
         result = await doc_col.insert(doc)
@@ -29,3 +36,27 @@ async def test_document_insert(doc_col, docs):
         assert result["_key"] == doc["_key"]
         assert isinstance(result["_rev"], str)
         assert (await doc_col.get(doc["_key"]))["val"] == doc["val"]
+
+
+@pytest.mark.asyncio
+async def test_document_update(doc_col, bad_col, docs):
+    # Test updating a non-existent document
+    with pytest.raises(DocumentUpdateError):
+        await bad_col.update({"_key": "non-existent", "val": 42})
+
+    # Verbose update
+    doc = docs[0]
+    assert doc["val"] != 42
+    await doc_col.insert(doc)
+    doc["val"] = 42
+    updated = await doc_col.update(doc)
+    assert updated["_key"] == doc["_key"]
+    new_value = await doc_col.get(doc)
+    assert new_value["val"] == doc["val"]
+
+    # Silent update
+    doc["val"] = None
+    updated = await doc_col.update(doc, silent=True, keep_null=False)
+    assert updated is True
+    new_value = await doc_col.get(doc)
+    assert "val" not in new_value

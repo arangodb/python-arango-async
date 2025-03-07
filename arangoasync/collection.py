@@ -14,6 +14,7 @@ from arangoasync.exceptions import (
     DocumentInsertError,
     DocumentParseError,
     DocumentRevisionError,
+    DocumentUpdateError,
     IndexCreateError,
     IndexDeleteError,
     IndexGetError,
@@ -474,15 +475,15 @@ class StandardCollection(Collection[T, U, V]):
                 retained in the document. Otherwise, they are removed completely.
                 Applies only when **overwrite_mode** is set to "update"
                 (update-insert).
-            merge_objects (bool | None): If set to True, sub-dictionaries are merged
+            merge_objects (bool | None): If set to `True`, sub-dictionaries are merged
                 instead of the new one overwriting the old one. Applies only when
                 **overwrite_mode** is set to "update" (update-insert).
             refill_index_caches (bool | None): Whether to add new entries to
                 in-memory index caches if document insertions affect the edge index
                 or cache-enabled persistent indexes.
             version_attribute (str | None): Support for simple external versioning to
-                document operations. Only applicable if **overwrite** is set to true
-                or **overwriteMode** is set to "update" or "replace".
+                document operations. Only applicable if **overwrite** is set to `True`
+                or **overwrite_mode** is set to "update" or "replace".
 
         Returns:
             bool | dict: Document metadata (e.g. document id, key, revision) or `True`
@@ -541,5 +542,99 @@ class StandardCollection(Collection[T, U, V]):
             elif resp.status_code == HTTP_NOT_FOUND:
                 msg = "Collection not found."
             raise DocumentInsertError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def update(
+        self,
+        document: T,
+        ignore_revs: Optional[bool] = None,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        merge_objects: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+        version_attribute: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Insert a new document.
+
+        Args:
+            document (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field.
+            ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
+                document is ignored. If this is set to `False`, then the `_rev`
+                attribute given in the body document is taken as a precondition.
+                The document is only updated if the current revision is the one
+                specified.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            silent (bool | None): If set to `True`, no document metadata is returned.
+                This can be used to save resources.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            merge_objects (bool | None): Controls whether objects (not arrays) are
+                merged if present in both the existing and the patch document.
+                If set to `False`, the value in the patch document overwrites the
+                existing document’s value. If set to `True`, objects are merged.
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document updates affect the edge index
+                or cache-enabled persistent indexes.
+            version_attribute (str | None): Support for simple external versioning to
+                document operations.
+
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
+                if **silent** is set to `True`.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentUpdateError: If update fails.
+
+        References:
+            - `update-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#update-a-document>`__
+        """  # noqa: E501
+        params: Params = {}
+        if ignore_revs is not None:
+            params["ignoreRevs"] = ignore_revs
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+        if silent is not None:
+            params["silent"] = silent
+        if keep_null is not None:
+            params["keepNull"] = keep_null
+        if merge_objects is not None:
+            params["mergeObjects"] = merge_objects
+        if refill_index_caches is not None:
+            params["refillIndexCaches"] = refill_index_caches
+        if version_attribute is not None:
+            params["versionAttribute"] = version_attribute
+
+        request = Request(
+            method=Method.PATCH,
+            endpoint=f"/_api/document/{self._extract_id(cast(Json, document))}",
+            params=params,
+            data=self._doc_serializer.dumps(document),
+        )
+
+        def response_handler(resp: Response) -> bool | Json:
+            if resp.is_success:
+                if silent is True:
+                    return True
+                return self._executor.deserialize(resp.raw_body)
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                msg = "Document, collection or transaction not found."
+            raise DocumentUpdateError(resp, request, msg)
 
         return await self._executor.execute(request, response_handler)

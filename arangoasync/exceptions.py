@@ -243,6 +243,10 @@ class DocumentRevisionError(ArangoServerError):
     """The expected and actual document revisions mismatched."""
 
 
+class DocumentUpdateError(ArangoServerError):
+    """Failed to update document."""
+
+
 class IndexCreateError(ArangoServerError):
     """Failed to create collection index."""
 
