@@ -239,6 +239,10 @@ class DocumentParseError(ArangoClientError):
     """Failed to parse document input."""
 
 
+class DocumentReplaceError(ArangoServerError):
+    """Failed to replace document."""
+
+
 class DocumentRevisionError(ArangoServerError):
     """The expected and actual document revisions mismatched."""
 
