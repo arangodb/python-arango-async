@@ -4,12 +4,14 @@ __all__ = ["Collection", "StandardCollection"]
 from typing import Generic, List, Optional, Tuple, TypeVar, cast
 
 from arangoasync.errno import (
+    DOCUMENT_NOT_FOUND,
     HTTP_BAD_PARAMETER,
     HTTP_NOT_FOUND,
     HTTP_PRECONDITION_FAILED,
 )
 from arangoasync.exceptions import (
     CollectionPropertiesError,
+    DocumentDeleteError,
     DocumentGetError,
     DocumentInsertError,
     DocumentParseError,
@@ -33,6 +35,7 @@ from arangoasync.typings import (
     Json,
     Jsons,
     Params,
+    RequestHeaders,
 )
 
 T = TypeVar("T")
@@ -392,23 +395,23 @@ class StandardCollection(Collection[T, U, V]):
     async def get(
         self,
         document: str | Json,
-        rev: Optional[str] = None,
-        check_rev: bool = True,
         allow_dirty_read: bool = False,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
     ) -> Result[Optional[U]]:
         """Return a document.
 
         Args:
             document (str | dict): Document ID, key or body.
-            Document body must contain the "_id" or "_key" field.
-            rev (str | None): Expected document revision. Overrides the
-            value of "_rev" field in **document** if present.
-            check_rev (bool): If set to True, revision of **document** (if given)
-            is compared against the revision of target document.
+                Document body must contain the "_id" or "_key" field.
             allow_dirty_read (bool):  Allow reads from followers in a cluster.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
 
         Returns:
-            Document or None if not found.
+            Document or `None` if not found.
 
         Raises:
             DocumentRevisionError: If the revision is incorrect.
@@ -417,10 +420,15 @@ class StandardCollection(Collection[T, U, V]):
         References:
             - `get-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document>`__
         """  # noqa: E501
-        handle, headers = self._prep_from_doc(document, rev, check_rev)
+        handle, _ = self._prep_from_doc(document)
 
+        headers: RequestHeaders = {}
         if allow_dirty_read:
             headers["x-arango-allow-dirty-read"] = "true"
+        if if_match is not None:
+            headers["If-Match"] = if_match
+        if if_none_match is not None:
+            headers["If-None-Match"] = if_none_match
 
         request = Request(
             method=Method.GET,
@@ -432,7 +440,66 @@ class StandardCollection(Collection[T, U, V]):
             if resp.is_success:
                 return self._doc_deserializer.loads(resp.raw_body)
             elif resp.status_code == HTTP_NOT_FOUND:
-                return None
+                if resp.error_code == DOCUMENT_NOT_FOUND:
+                    return None
+                else:
+                    raise DocumentGetError(resp, request)
+            elif resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            else:
+                raise DocumentGetError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def has(
+        self,
+        document: str | Json,
+        allow_dirty_read: bool = False,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
+    ) -> Result[bool]:
+        """Check if a document exists in the collection.
+
+        Args:
+            document (str | dict): Document ID, key or body.
+                Document body must contain the "_id" or "_key" field.
+            allow_dirty_read (bool):  Allow reads from followers in a cluster.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
+
+        Returns:
+            `True` if the document exists, `False` otherwise.
+
+        Raises:
+            DocumentRevisionError: If the revision is incorrect.
+            DocumentGetError: If retrieval fails.
+
+        References:
+            - `get-a-document-header <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document-header>`__
+        """  # noqa: E501
+        handle, _ = self._prep_from_doc(document)
+
+        headers: RequestHeaders = {}
+        if allow_dirty_read:
+            headers["x-arango-allow-dirty-read"] = "true"
+        if if_match is not None:
+            headers["If-Match"] = if_match
+        if if_none_match is not None:
+            headers["If-None-Match"] = if_none_match
+
+        request = Request(
+            method=Method.HEAD,
+            endpoint=f"/_api/document/{handle}",
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> bool:
+            if resp.is_success:
+                return True
+            elif resp.status_code == HTTP_NOT_FOUND:
+                return False
             elif resp.status_code == HTTP_PRECONDITION_FAILED:
                 raise DocumentRevisionError(resp, request)
             else:
@@ -558,6 +625,7 @@ class StandardCollection(Collection[T, U, V]):
         merge_objects: Optional[bool] = None,
         refill_index_caches: Optional[bool] = None,
         version_attribute: Optional[str] = None,
+        if_match: Optional[str] = None,
     ) -> Result[bool | Json]:
         """Insert a new document.
 
@@ -587,6 +655,8 @@ class StandardCollection(Collection[T, U, V]):
                 or cache-enabled persistent indexes.
             version_attribute (str | None): Support for simple external versioning to
                 document operations.
+            if_match (str | None): You can conditionally update a document based on a
+                target revision id by using the "if-match" HTTP header.
 
         Returns:
             bool | dict: Document metadata (e.g. document id, key, revision) or `True`
@@ -619,10 +689,15 @@ class StandardCollection(Collection[T, U, V]):
         if version_attribute is not None:
             params["versionAttribute"] = version_attribute
 
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
         request = Request(
             method=Method.PATCH,
             endpoint=f"/_api/document/{self._extract_id(cast(Json, document))}",
             params=params,
+            headers=headers,
             data=self._doc_serializer.dumps(document),
         )
 
@@ -650,6 +725,7 @@ class StandardCollection(Collection[T, U, V]):
         silent: Optional[bool] = None,
         refill_index_caches: Optional[bool] = None,
         version_attribute: Optional[str] = None,
+        if_match: Optional[str] = None,
     ) -> Result[bool | Json]:
         """Replace a document.
 
@@ -673,6 +749,8 @@ class StandardCollection(Collection[T, U, V]):
                 or cache-enabled persistent indexes.
             version_attribute (str | None): Support for simple external versioning to
                 document operations.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
 
         Returns:
             bool | dict: Document metadata (e.g. document id, key, revision) or `True`
@@ -701,10 +779,15 @@ class StandardCollection(Collection[T, U, V]):
         if version_attribute is not None:
             params["versionAttribute"] = version_attribute
 
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
         request = Request(
             method=Method.PUT,
             endpoint=f"/_api/document/{self._extract_id(cast(Json, document))}",
             params=params,
+            headers=headers,
             data=self._doc_serializer.dumps(document),
         )
 
@@ -719,5 +802,90 @@ class StandardCollection(Collection[T, U, V]):
             elif resp.status_code == HTTP_NOT_FOUND:
                 msg = "Document, collection or transaction not found."
             raise DocumentReplaceError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete(
+        self,
+        document: T,
+        ignore_revs: Optional[bool] = None,
+        ignore_missing: bool = False,
+        wait_for_sync: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Delete a document.
+
+        Args:
+            document (dict): Document ID, key or body. The body must contain the
+                "_key" or "_id" field.
+            ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
+                document is ignored. If this is set to `False`, then the `_rev`
+                attribute given in the body document is taken as a precondition.
+                The document is only replaced if the current revision is the one
+                specified.
+            ignore_missing (bool): Do not raise an exception on missing document.
+                This parameter has no effect in transactions where an exception is
+                always raised on failures.
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            silent (bool | None): If set to `True`, no document metadata is returned.
+                This can be used to save resources.
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document updates affect the edge index
+                or cache-enabled persistent indexes.
+            if_match (bool | None): You can conditionally remove a document based
+                on a target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
+                if **silent** is set to `True` and the document was found.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentDeleteError: If deletion fails.
+
+        References:
+            - `remove-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#remove-a-document>`__
+        """  # noqa: E501
+        params: Params = {}
+        if ignore_revs is not None:
+            params["ignoreRevs"] = ignore_revs
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_old is not None:
+            params["returnOld"] = return_old
+        if silent is not None:
+            params["silent"] = silent
+        if refill_index_caches is not None:
+            params["refillIndexCaches"] = refill_index_caches
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/document/{self._extract_id(cast(Json, document))}",
+            params=params,
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> bool | Json:
+            if resp.is_success:
+                if silent is True:
+                    return True
+                return self._executor.deserialize(resp.raw_body)
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                if resp.error_code == DOCUMENT_NOT_FOUND and ignore_missing:
+                    return False
+                msg = "Document, collection or transaction not found."
+            raise DocumentDeleteError(resp, request, msg)
 
         return await self._executor.execute(request, response_handler)

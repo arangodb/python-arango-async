@@ -227,6 +227,10 @@ class DeserializationError(ArangoClientError):
     """Failed to deserialize the server response."""
 
 
+class DocumentDeleteError(ArangoServerError):
+    """Failed to delete document."""
+
+
 class DocumentGetError(ArangoServerError):
     """Failed to retrieve document."""
 

@@ -1,9 +1,12 @@
 import pytest
 
 from arangoasync.exceptions import (
+    DocumentDeleteError,
+    DocumentGetError,
     DocumentInsertError,
     DocumentParseError,
     DocumentReplaceError,
+    DocumentRevisionError,
     DocumentUpdateError,
 )
 from tests.helpers import generate_col_name
@@ -64,13 +67,21 @@ async def test_document_update(doc_col, bad_col, docs):
     new_value = await doc_col.get(doc)
     assert "val" not in new_value
 
+    # Test wrong revision
+    with pytest.raises(DocumentRevisionError):
+        await doc_col.update(new_value, if_match="foobar")
+
+    # Update using correct revision
+    doc["val"] = 24
+    result = await doc_col.update(new_value, silent=True, if_match=new_value["_rev"])
+    assert result is True
+
 
 @pytest.mark.asyncio
 async def test_document_replace(doc_col, bad_col, docs):
     # Test updating a non-existent document
     with pytest.raises(DocumentReplaceError):
         await bad_col.replace({"_key": "non-existent", "val": 42})
-
     # Verbose replace
     doc = docs[0]
     assert doc["val"] != 42
@@ -95,3 +106,97 @@ async def test_document_replace(doc_col, bad_col, docs):
     new_value = await doc_col.get(doc)
     assert new_value["text"] == doc["text"]
     assert new_value["new_entry"] == doc["new_entry"]
+
+    # Test wrong revision
+    with pytest.raises(DocumentRevisionError):
+        await doc_col.replace(new_value, if_match="foobar")
+
+    # Replace using correct revision
+    doc["foo"] = "foobar"
+    result = await doc_col.replace(new_value, silent=True, if_match=new_value["_rev"])
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_document_delete(doc_col, bad_col, docs):
+    # Test deleting a non-existent document
+    with pytest.raises(DocumentDeleteError):
+        await bad_col.delete({"_key": "non-existent"})
+    deleted = await doc_col.delete({"_key": "non-existent"}, ignore_missing=True)
+    assert deleted is False
+
+    # Verbose delete
+    doc = docs[0]
+    inserted = await doc_col.insert(doc)
+    deleted = await doc_col.delete(doc, return_old=True)
+    assert deleted["_key"] == inserted["_key"]
+
+    # Silent delete
+    await doc_col.insert(doc)
+    deleted = await doc_col.delete(doc, silent=True, ignore_missing=True)
+    assert deleted is True
+
+    # Test wrong revision
+    inserted = await doc_col.insert(doc)
+    with pytest.raises(DocumentRevisionError):
+        await doc_col.delete(inserted, if_match="foobar")
+
+    # Delete using correct revision
+    deleted = await doc_col.delete(doc, silent=True, if_match=inserted["_rev"])
+    assert deleted is True
+
+
+@pytest.mark.asyncio
+async def test_document_get(doc_col, bad_col, docs):
+    # Test getting a non-existent document
+    with pytest.raises(DocumentGetError):
+        await bad_col.get({"_key": "non-existent"})
+    result = await doc_col.get({"_key": "non-existent"})
+    assert result is None
+
+    doc = docs[0]
+    inserted = await doc_col.insert(doc)
+    result = await doc_col.get(doc)
+    assert result["_key"] == inserted["_key"]
+
+    # Test with good revision
+    result = await doc_col.get(inserted["_key"], if_match=inserted["_rev"])
+    assert result["_key"] == inserted["_key"]
+
+    # Test with non-matching revision
+    result = await doc_col.get(inserted["_id"], if_none_match="foobar")
+    assert result["_key"] == inserted["_key"]
+
+    # Test with incorrect revision
+    with pytest.raises(DocumentGetError):
+        await doc_col.get(inserted["_id"], if_none_match=inserted["_rev"])
+    with pytest.raises(DocumentRevisionError):
+        await doc_col.get(inserted["_id"], if_match="foobar")
+
+
+@pytest.mark.asyncio
+async def test_document_has(doc_col, bad_col, docs):
+    # Test getting a non-existent document
+    result = await bad_col.has({"_key": "non-existent"})
+    assert result is False
+    result = await doc_col.has({"_key": "non-existent"})
+    assert result is False
+
+    doc = docs[0]
+    inserted = await doc_col.insert(doc)
+    result = await doc_col.has(doc)
+    assert result is True
+
+    # Test with good revision
+    result = await doc_col.has(inserted["_key"], if_match=inserted["_rev"])
+    assert result is True
+
+    # Test with non-matching revision
+    result = await doc_col.has(inserted["_id"], if_none_match="foobar")
+    assert result is True
+
+    # Test with incorrect revision
+    with pytest.raises(DocumentGetError):
+        await doc_col.has(inserted["_id"], if_none_match=inserted["_rev"])
+    with pytest.raises(DocumentRevisionError):
+        await doc_col.has(inserted["_id"], if_match="foobar")
