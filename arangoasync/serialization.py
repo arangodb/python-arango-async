@@ -9,7 +9,7 @@ __all__ = [
 
 import json
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import Generic, Sequence, TypeVar
 
 from arangoasync.exceptions import DeserializationError, SerializationError
 from arangoasync.typings import Json, Jsons
@@ -26,7 +26,7 @@ class Serializer(ABC, Generic[T]):  # pragma: no cover
     """
 
     @abstractmethod
-    def dumps(self, data: T) -> str:
+    def dumps(self, data: str | bool | T | Sequence[T | str]) -> str:
         """Serialize any generic data.
 
         Args:

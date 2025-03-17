@@ -1,7 +1,7 @@
 __all__ = ["Collection", "StandardCollection"]
 
 
-from typing import Generic, List, Optional, Tuple, TypeVar, cast
+from typing import Generic, List, Optional, Sequence, Tuple, TypeVar, cast
 
 from arangoasync.errno import (
     DOCUMENT_NOT_FOUND,
@@ -887,5 +887,57 @@ class StandardCollection(Collection[T, U, V]):
                     return False
                 msg = "Document, collection or transaction not found."
             raise DocumentDeleteError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def get_many(
+        self,
+        documents: Sequence[str | Json],
+        allow_dirty_read: Optional[bool] = None,
+        ignore_revs: Optional[bool] = None,
+    ) -> Result[V]:
+        """Return multiple documents ignoring any missing ones.
+
+        Args:
+            documents (list): List of document IDs, keys or bodies. A search document
+                must contain at least a value for the `_key` field. A value for `_rev`
+                may be specified to verify whether the document has the same revision
+                value, unless `ignoreRevs` is set to false.
+            allow_dirty_read (bool | None): Allow reads from followers in a cluster.
+            ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
+                document is ignored. If this is set to `False`, then the `_rev`
+                attribute given in the body document is taken as a precondition.
+                The document is only replaced if the current revision is the one
+                specified.
+
+        Returns:
+            list: List of documents. Missing ones are not included.
+
+        Raises:
+            DocumentGetError: If retrieval fails.
+
+        References:
+            - `get-multiple-documents <https://docs.arangodb.com/stable/develop/http-api/documents/#get-multiple-documents>`__
+        """  # noqa: E501
+        params: Params = {"onlyget": True}
+        if ignore_revs is not None:
+            params["ignoreRevs"] = ignore_revs
+
+        headers: RequestHeaders = {}
+        if allow_dirty_read is not None:
+            headers["x-arango-allow-dirty-read"] = allow_dirty_read
+
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/document/{self.name}",
+            params=params,
+            headers=headers,
+            data=self.serializer.dumps(documents),
+        )
+
+        def response_handler(resp: Response) -> V:
+            if not resp.is_success:
+                raise DocumentGetError(resp, request)
+            return self._doc_deserializer.loads_many(resp.raw_body)
 
         return await self._executor.execute(request, response_handler)

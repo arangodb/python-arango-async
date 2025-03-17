@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from arangoasync.exceptions import (
@@ -200,3 +202,35 @@ async def test_document_has(doc_col, bad_col, docs):
         await doc_col.has(inserted["_id"], if_none_match=inserted["_rev"])
     with pytest.raises(DocumentRevisionError):
         await doc_col.has(inserted["_id"], if_match="foobar")
+
+
+@pytest.mark.asyncio
+async def test_document_get_many(doc_col, bad_col, docs):
+    # Test with invalid collection
+    with pytest.raises(DocumentGetError):
+        await bad_col.get_many(["non-existent"])
+
+    # Insert all documents first
+    await asyncio.gather(*[doc_col.insert(doc) for doc in docs])
+
+    # Test with good keys
+    many = await doc_col.get_many([doc["_key"] for doc in docs])
+    assert len(many) == len(docs)
+
+    # Test with full documents
+    many = await doc_col.get_many(docs)
+    assert len(many) == len(docs)
+
+    # Revs
+    bad_rev = many
+    bad_rev[0]["_rev"] = "foobar"
+    many = await doc_col.get_many([bad_rev[0]], ignore_revs=True)
+    assert len(many) == 1
+    assert "error" not in many[0]
+    many = await doc_col.get_many([bad_rev[0]], ignore_revs=False)
+    assert len(many) == 1
+    assert "error" in many[0]
+
+    # Empty list
+    many = await doc_col.get_many([])
+    assert len(many) == 0
