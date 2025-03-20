@@ -11,6 +11,8 @@ from arangoasync.errno import (
 )
 from arangoasync.exceptions import (
     CollectionPropertiesError,
+    CollectionTruncateError,
+    DocumentCountError,
     DocumentDeleteError,
     DocumentGetError,
     DocumentInsertError,
@@ -389,6 +391,66 @@ class StandardCollection(Collection[T, U, V]):
             if not resp.is_success:
                 raise CollectionPropertiesError(resp, request)
             return CollectionProperties(self._executor.deserialize(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def truncate(
+        self,
+        wait_for_sync: Optional[bool] = None,
+        compact: Optional[bool] = None,
+    ) -> None:
+        """Removes all documents, but leaves indexes intact.
+
+        Args:
+            wait_for_sync (bool | None): If set to `True`, the data is synchronized
+                to disk before returning from the truncate operation.
+            compact (bool | None): If set to `True`, the storage engine is told to
+                start a compaction in order to free up disk space. This can be
+                resource intensive. If the only intention is to start over with an
+                empty collection, specify `False`.
+
+        Raises:
+            CollectionTruncateError: If truncation fails.
+
+        References:
+            - `truncate-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#truncate-a-collection>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if compact is not None:
+            params["compact"] = compact
+
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self.name}/truncate",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise CollectionTruncateError(resp, request)
+
+        await self._executor.execute(request, response_handler)
+
+    async def count(self) -> Result[int]:
+        """Return the total document count.
+
+        Returns:
+            int: Total document count.
+
+        Raises:
+            DocumentCountError: If retrieval fails.
+        """
+        request = Request(
+            method=Method.GET, endpoint=f"/_api/collection/{self.name}/count"
+        )
+
+        def response_handler(resp: Response) -> int:
+            if resp.is_success:
+                result: int = self.deserializer.loads(resp.raw_body)["count"]
+                return result
+            raise DocumentCountError(resp, request)
 
         return await self._executor.execute(request, response_handler)
 

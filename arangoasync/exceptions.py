@@ -187,6 +187,10 @@ class ClientConnectionError(ArangoClientError):
     """The request was unable to reach the server."""
 
 
+class CollectionTruncateError(ArangoServerError):
+    """Failed to truncate collection."""
+
+
 class CursorCloseError(ArangoServerError):
     """Failed to delete the cursor result from server."""
 
@@ -225,6 +229,10 @@ class DatabasePropertiesError(ArangoServerError):
 
 class DeserializationError(ArangoClientError):
     """Failed to deserialize the server response."""
+
+
+class DocumentCountError(ArangoServerError):
+    """Failed to retrieve document count."""
 
 
 class DocumentDeleteError(ArangoServerError):

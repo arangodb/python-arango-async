@@ -5,6 +5,8 @@ import pytest
 from arangoasync.errno import DATA_SOURCE_NOT_FOUND, INDEX_NOT_FOUND
 from arangoasync.exceptions import (
     CollectionPropertiesError,
+    CollectionTruncateError,
+    DocumentCountError,
     IndexCreateError,
     IndexDeleteError,
     IndexGetError,
@@ -157,3 +159,26 @@ async def test_collection_index(doc_col, bad_col, cluster):
         await doc_col.delete_index(idx1.id)
     assert err.value.error_code == INDEX_NOT_FOUND
     assert await doc_col.delete_index(idx2.id, ignore_missing=True) is False
+
+
+@pytest.mark.asyncio
+async def test_collection_truncate_count(docs, doc_col, bad_col):
+    # Test errors
+    with pytest.raises(CollectionTruncateError):
+        await bad_col.truncate()
+    with pytest.raises(DocumentCountError):
+        await bad_col.count()
+
+    # Test regular operations
+    await asyncio.gather(*[doc_col.insert(doc) for doc in docs])
+    cnt = await doc_col.count()
+    assert cnt == len(docs)
+
+    await doc_col.truncate()
+    cnt = await doc_col.count()
+    assert cnt == 0
+
+    await asyncio.gather(*[doc_col.insert(doc) for doc in docs])
+    await doc_col.truncate(wait_for_sync=True, compact=True)
+    cnt = await doc_col.count()
+    assert cnt == 0
