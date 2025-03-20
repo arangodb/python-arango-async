@@ -26,7 +26,7 @@ class Serializer(ABC, Generic[T]):  # pragma: no cover
     """
 
     @abstractmethod
-    def dumps(self, data: str | bool | T | Sequence[T | str]) -> str:
+    def dumps(self, data: T | Sequence[T | str]) -> str:
         """Serialize any generic data.
 
         Args:
@@ -87,7 +87,7 @@ class Deserializer(ABC, Generic[T, U]):  # pragma: no cover
 class JsonSerializer(Serializer[Json]):
     """JSON serializer."""
 
-    def dumps(self, data: T) -> str:
+    def dumps(self, data: Json | Sequence[str | Json]) -> str:
         try:
             return json.dumps(data, separators=(",", ":"))
         except Exception as e:

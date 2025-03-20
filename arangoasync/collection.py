@@ -38,9 +38,9 @@ from arangoasync.typings import (
     RequestHeaders,
 )
 
-T = TypeVar("T")
-U = TypeVar("U")
-V = TypeVar("V")
+T = TypeVar("T")  # Serializer type
+U = TypeVar("U")  # Deserializer loads
+V = TypeVar("V")  # Deserializer loads_many
 
 
 class Collection(Generic[T, U, V]):
@@ -892,7 +892,7 @@ class StandardCollection(Collection[T, U, V]):
 
     async def get_many(
         self,
-        documents: Sequence[str | Json],
+        documents: Sequence[str | T],
         allow_dirty_read: Optional[bool] = None,
         ignore_revs: Optional[bool] = None,
     ) -> Result[V]:
@@ -925,14 +925,17 @@ class StandardCollection(Collection[T, U, V]):
 
         headers: RequestHeaders = {}
         if allow_dirty_read is not None:
-            headers["x-arango-allow-dirty-read"] = allow_dirty_read
+            if allow_dirty_read is True:
+                headers["x-arango-allow-dirty-read"] = "true"
+            else:
+                headers["x-arango-allow-dirty-read"] = "false"
 
         request = Request(
             method=Method.PUT,
             endpoint=f"/_api/document/{self.name}",
             params=params,
             headers=headers,
-            data=self.serializer.dumps(documents),
+            data=self._doc_serializer.dumps(documents),
         )
 
         def response_handler(resp: Response) -> V:
