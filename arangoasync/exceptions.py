@@ -327,6 +327,10 @@ class ServerVersionError(ArangoServerError):
     """Failed to retrieve server version."""
 
 
+class SortValidationError(ArangoClientError):
+    """Invalid sort parameters."""
+
+
 class TransactionAbortError(ArangoServerError):
     """Failed to abort transaction."""
 

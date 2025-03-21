@@ -1,8 +1,9 @@
 __all__ = ["Collection", "StandardCollection"]
 
 
-from typing import Generic, List, Optional, Sequence, Tuple, TypeVar, cast
+from typing import Any, Generic, List, Optional, Sequence, Tuple, TypeVar, cast
 
+from arangoasync.cursor import Cursor
 from arangoasync.errno import (
     DOCUMENT_NOT_FOUND,
     HTTP_BAD_PARAMETER,
@@ -25,8 +26,9 @@ from arangoasync.exceptions import (
     IndexGetError,
     IndexListError,
     IndexLoadError,
+    SortValidationError,
 )
-from arangoasync.executor import ApiExecutor
+from arangoasync.executor import ApiExecutor, DefaultApiExecutor, NonAsyncExecutor
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
 from arangoasync.result import Result
@@ -155,6 +157,90 @@ class Collection(Generic[T, U, V]):
             return doc_id, {}
         else:
             return doc_id, {"If-Match": rev}
+
+    def _build_filter_conditions(self, filters: Optional[Json]) -> str:
+        """Build filter conditions for an AQL query.
+
+        Args:
+            filters (dict | None): Document filters.
+
+        Returns:
+            str: The complete AQL filter condition.
+        """
+        if not filters:
+            return ""
+
+        conditions = []
+        for k, v in filters.items():
+            field = k if "." in k else f"`{k}`"
+            conditions.append(f"doc.{field} == {self.serializer.dumps(v)}")
+
+        return "FILTER " + " AND ".join(conditions)
+
+    @staticmethod
+    def _is_none_or_int(obj: Any) -> bool:
+        """Check if obj is `None` or a positive integer.
+
+        Args:
+            obj: Object to check.
+
+        Returns:
+            bool: `True` if object is `None` or a positive integer.
+        """
+        return obj is None or isinstance(obj, int) and obj >= 0
+
+    @staticmethod
+    def _is_none_or_dict(obj: Any) -> bool:
+        """Check if obj is `None` or a dict.
+
+        Args:
+            obj: Object to check.
+
+        Returns:
+            bool: `True` if object is `None` or a dict.
+        """
+        return obj is None or isinstance(obj, dict)
+
+    @staticmethod
+    def _validate_sort_parameters(sort: Optional[Jsons]) -> None:
+        """Validate sort parameters for an AQL query.
+
+        Args:
+            sort (list | None): Document sort parameters.
+
+        Raises:
+            SortValidationError: If sort parameters are invalid.
+        """
+        if not sort:
+            return
+
+        for param in sort:
+            if "sort_by" not in param or "sort_order" not in param:
+                raise SortValidationError(
+                    "Each sort parameter must have 'sort_by' and 'sort_order'."
+                )
+            if param["sort_order"].upper() not in ["ASC", "DESC"]:
+                raise SortValidationError("'sort_order' must be either 'ASC' or 'DESC'")
+
+    @staticmethod
+    def _build_sort_expression(sort: Optional[Jsons]) -> str:
+        """Build a sort condition for an AQL query.
+
+        Args:
+            sort (list | None): Document sort parameters.
+
+        Returns:
+            str: The complete AQL sort condition.
+        """
+        if not sort:
+            return ""
+
+        sort_chunks = []
+        for sort_param in sort:
+            chunk = f"doc.{sort_param['sort_by']} {sort_param['sort_order']}"
+            sort_chunks.append(chunk)
+
+        return "SORT " + ", ".join(sort_chunks)
 
     @property
     def name(self) -> str:
@@ -1004,5 +1090,76 @@ class StandardCollection(Collection[T, U, V]):
             if not resp.is_success:
                 raise DocumentGetError(resp, request)
             return self._doc_deserializer.loads_many(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def find(
+        self,
+        filters: Optional[Json] = None,
+        skip: Optional[int] = None,
+        limit: Optional[int | str] = None,
+        allow_dirty_read: Optional[bool] = False,
+        sort: Optional[Jsons] = None,
+    ) -> Result[Cursor]:
+        """Return all documents that match the given filters.
+
+        Args:
+            filters (dict | None): Query filters.
+            skip (int | None): Number of documents to skip.
+            limit (int | str | None): Maximum number of documents to return.
+            allow_dirty_read (bool): Allow reads from followers in a cluster.
+            sort (list | None): Document sort parameters.
+
+        Returns:
+            Cursor: Document cursor.
+
+        Raises:
+            DocumentGetError: If retrieval fails.
+            SortValidationError: If sort parameters are invalid.
+        """
+        if not self._is_none_or_dict(filters):
+            raise ValueError("filters parameter must be a dict")
+        self._validate_sort_parameters(sort)
+        if not self._is_none_or_int(skip):
+            raise ValueError("skip parameter must be a non-negative int")
+        if not (self._is_none_or_int(limit) or limit == "null"):
+            raise ValueError("limit parameter must be a non-negative int")
+
+        skip = skip if skip is not None else 0
+        limit = limit if limit is not None else "null"
+        query = f"""
+            FOR doc IN @@collection
+                {self._build_filter_conditions(filters)}
+                LIMIT {skip}, {limit}
+                {self._build_sort_expression(sort)}
+                RETURN doc
+        """
+        bind_vars = {"@collection": self.name}
+        data: Json = {"query": query, "bindVars": bind_vars, "count": True}
+        headers: RequestHeaders = {}
+        if allow_dirty_read is not None:
+            if allow_dirty_read is True:
+                headers["x-arango-allow-dirty-read"] = "true"
+            else:
+                headers["x-arango-allow-dirty-read"] = "false"
+
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/cursor",
+            data=self.serializer.dumps(data),
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> Cursor:
+            if not resp.is_success:
+                raise DocumentGetError(resp, request)
+            if self._executor.context == "async":
+                # We cannot have a cursor giving back async jobs
+                executor: NonAsyncExecutor = DefaultApiExecutor(
+                    self._executor.connection
+                )
+            else:
+                executor = cast(NonAsyncExecutor, self._executor)
+            return Cursor(executor, self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)

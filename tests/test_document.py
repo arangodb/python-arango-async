@@ -10,6 +10,7 @@ from arangoasync.exceptions import (
     DocumentReplaceError,
     DocumentRevisionError,
     DocumentUpdateError,
+    SortValidationError,
 )
 from tests.helpers import generate_col_name
 
@@ -234,3 +235,63 @@ async def test_document_get_many(doc_col, bad_col, docs):
     # Empty list
     many = await doc_col.get_many([])
     assert len(many) == 0
+
+
+@pytest.mark.asyncio
+async def test_document_find(doc_col, bad_col, docs):
+    # Check errors first
+    with pytest.raises(DocumentGetError):
+        await bad_col.find()
+    with pytest.raises(ValueError):
+        await doc_col.find(limit=-1)
+    with pytest.raises(ValueError):
+        await doc_col.find(skip="abcd")
+    with pytest.raises(ValueError):
+        await doc_col.find(filters="abcd")
+    with pytest.raises(SortValidationError):
+        await doc_col.find(sort="abcd")
+    with pytest.raises(SortValidationError):
+        await doc_col.find(sort=[{"x": "text", "sort_order": "ASC"}])
+
+    # Insert all documents
+    await asyncio.gather(*[doc_col.insert(doc) for doc in docs])
+
+    # Empty find
+    filter_docs = []
+    async for doc in await doc_col.find():
+        filter_docs.append(doc)
+    assert len(filter_docs) == len(docs)
+
+    # Test with filter
+    filter_docs = []
+    async for doc in await doc_col.find(filters={"val": 42}):
+        filter_docs.append(doc)
+    assert len(filter_docs) == 0
+    async for doc in await doc_col.find(filters={"text": "foo"}):
+        filter_docs.append(doc)
+    assert len(filter_docs) == 3
+    filter_docs = []
+    async for doc in await doc_col.find(filters={"text": "foo", "val": 1}):
+        filter_docs.append(doc)
+    assert len(filter_docs) == 1
+
+    # Test with limit
+    filter_docs = []
+    async for doc in await doc_col.find(limit=2):
+        filter_docs.append(doc)
+    assert len(filter_docs) == 2
+
+    # Test with skip
+    filter_docs = []
+    async for doc in await doc_col.find(skip=2, allow_dirty_read=True):
+        filter_docs.append(doc)
+    assert len(filter_docs) == len(docs) - 2
+
+    # Test with sort
+    filter_docs = []
+    async for doc in await doc_col.find(
+        {}, sort=[{"sort_by": "text", "sort_order": "ASC"}]
+    ):
+        filter_docs.append(doc)
+    for idx in range(len(filter_docs) - 1):
+        assert filter_docs[idx]["text"] <= filter_docs[idx + 1]["text"]
