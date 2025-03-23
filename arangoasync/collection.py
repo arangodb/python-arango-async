@@ -1288,9 +1288,8 @@ class StandardCollection(Collection[T, U, V]):
             (returns exception object).
 
         Args:
-            documents (list): New documents to replace the old ones. If an item
-                contains the "_key" or "_id" field, the value is used as the key
-                of the new document (otherwise it is auto-generated).
+            documents (list): New documents to replace the old ones. An item must
+                contain the "_key" or "_id" field.
             wait_for_sync (bool | None): Wait until documents have been synced to disk.
             ignore_revs (bool | None): If this is set to `False`, then any `_rev`
                 attribute given in a body document is taken as a precondition. The
@@ -1299,8 +1298,7 @@ class StandardCollection(Collection[T, U, V]):
             return_new (bool | None): Additionally return the complete new document
                 under the attribute `new` in the result.
             return_old (bool | None): Additionally return the complete old document
-                under the attribute `old` in the result. Only available if the
-                `overwrite` option is used.
+                under the attribute `old` in the result.
             silent (bool | None): If set to `True`, an empty object is returned as
                 response if all document operations succeed. No meta-data is returned
                 for the created documents. If any of the operations raises an error,
@@ -1309,8 +1307,7 @@ class StandardCollection(Collection[T, U, V]):
                 in-memory index caches if document operations affect the edge index
                 or cache-enabled persistent indexes.
             version_attribute (str | None): Support for simple external versioning to
-                document operations. Only applicable if **overwrite** is set to `True`
-                or **overwrite_mode** is set to "update" or "replace".
+                document operations.
 
         Returns:
             list: Documents metadata (e.g. document id, key, revision) and
@@ -1350,6 +1347,103 @@ class StandardCollection(Collection[T, U, V]):
         ) -> Jsons:
             if not resp.is_success:
                 raise DocumentReplaceError(resp, request)
+            return self.deserializer.loads_many(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def update_many(
+        self,
+        documents: Sequence[T],
+        wait_for_sync: Optional[bool] = None,
+        ignore_revs: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        merge_objects: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+        version_attribute: Optional[str] = None,
+    ) -> Result[Jsons]:
+        """Insert multiple documents.
+
+        Note:
+            If updating a document fails, the exception is not raised but
+            returned as an object in the "errors" list. It is up to you to
+            inspect the list to determine which documents were updated
+            successfully (returned as document metadata) and which were not
+            (returned as exception object).
+
+        Args:
+            documents (list): Documents to update. An item must contain the "_key" or
+                "_id" field.
+            wait_for_sync (bool | None): Wait until documents have been synced to disk.
+            ignore_revs (bool | None): If this is set to `False`, then any `_rev`
+                attribute given in a body document is taken as a precondition. The
+                document is only updated if the current revision is the one
+                specified.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            silent (bool | None): If set to `True`, an empty object is returned as
+                response if all document operations succeed. No meta-data is returned
+                for the created documents. If any of the operations raises an error,
+                an array with the error object(s) is returned.
+            keep_null (bool | None): If set to `True`, fields with value None are
+                retained in the document. Otherwise, they are removed completely.
+                Applies only when **overwrite_mode** is set to "update"
+                (update-insert).
+            merge_objects (bool | None): If set to `True`, sub-dictionaries are merged
+                instead of the new one overwriting the old one. Applies only when
+                **overwrite_mode** is set to "update" (update-insert).
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document operations affect the edge index
+                or cache-enabled persistent indexes.
+            version_attribute (str | None): Support for simple external versioning to
+                document operations.
+
+        Returns:
+            list: Documents metadata (e.g. document id, key, revision) and
+                errors or just errors if **silent** is set to `True`.
+
+        Raises:
+            DocumentUpdateError: If update fails.
+
+        References:
+            - `update-multiple-documents <https://docs.arangodb.com/stable/develop/http-api/documents/#update-multiple-documents>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if ignore_revs is not None:
+            params["ignoreRevs"] = ignore_revs
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+        if silent is not None:
+            params["silent"] = silent
+        if keep_null is not None:
+            params["keepNull"] = keep_null
+        if merge_objects is not None:
+            params["mergeObjects"] = merge_objects
+        if refill_index_caches is not None:
+            params["refillIndexCaches"] = refill_index_caches
+        if version_attribute is not None:
+            params["versionAttribute"] = version_attribute
+
+        request = Request(
+            method=Method.PATCH,
+            endpoint=f"/_api/document/{self.name}",
+            data=self._doc_serializer.dumps(documents),
+            params=params,
+        )
+
+        def response_handler(
+            resp: Response,
+        ) -> Jsons:
+            if not resp.is_success:
+                raise DocumentUpdateError(resp, request)
             return self.deserializer.loads_many(resp.raw_body)
 
         return await self._executor.execute(request, response_handler)

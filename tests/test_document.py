@@ -362,12 +362,50 @@ async def test_document_replace_many(doc_col, bad_col, docs):
     assert len(result) == len(docs)
     for doc in result:
         assert doc["new"]["val"] == 42
+        assert "text" not in doc["new"]
 
     # Silent mode
     result = await doc_col.replace_many(docs, silent=True)
     assert len(result) == 0
     await doc_col.truncate()
     result = await doc_col.replace_many(docs, silent=True)
+    assert len(result) == len(docs)
+    for res in result:
+        assert "error" in res
+
+
+@pytest.mark.asyncio
+async def test_document_update_many(doc_col, bad_col, docs):
+    # Check errors
+    with pytest.raises(DocumentUpdateError):
+        await bad_col.update_many(docs)
+
+    # Empty list
+    result = await doc_col.update_many([])
+    assert len(result) == 0
+
+    # Update "not found" documents
+    result = await doc_col.update_many(docs, return_new=True)
+    assert len(result) == len(docs)
+    for res in result:
+        assert "error" in res
+
+    # Update successfully
+    result = await doc_col.insert_many(docs, return_new=True)
+    updates = []
+    for doc in result:
+        updates.append({"_key": doc["_key"], "val": 42})
+    result = await doc_col.update_many(updates, return_new=True)
+    assert len(result) == len(docs)
+    for doc in result:
+        assert doc["new"]["val"] == 42
+        assert "text" in doc["new"]
+
+    # Silent mode
+    result = await doc_col.update_many(docs, silent=True)
+    assert len(result) == 0
+    await doc_col.truncate()
+    result = await doc_col.update_many(docs, silent=True)
     assert len(result) == len(docs)
     for res in result:
         assert "error" in res
