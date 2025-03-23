@@ -104,10 +104,7 @@ class JsonDeserializer(Deserializer[Json, Jsons]):
             raise DeserializationError("Failed to deserialize data from JSON.") from e
 
     def loads_many(self, data: bytes) -> Jsons:
-        try:
-            return json.loads(data)  # type: ignore[no-any-return]
-        except Exception as e:
-            raise DeserializationError("Failed to deserialize data from JSON.") from e
+        return self.loads(data)  # type: ignore[return-value]
 
 
 DefaultSerializer = JsonSerializer

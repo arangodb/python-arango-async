@@ -1163,3 +1163,106 @@ class StandardCollection(Collection[T, U, V]):
             return Cursor(executor, self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
+
+    async def insert_many(
+        self,
+        documents: Sequence[T],
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        overwrite: Optional[bool] = None,
+        overwrite_mode: Optional[str] = None,
+        keep_null: Optional[bool] = None,
+        merge_objects: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+        version_attribute: Optional[str] = None,
+    ) -> Result[Optional[Jsons]]:
+        """Insert multiple documents.
+
+        Note:
+            If inserting a document fails, the exception is not raised but
+            returned as an object in the "errors" list. It is up to you to
+            inspect the list to determine which documents were inserted
+            successfully (returns document metadata) and which were not
+            (returns exception object).
+
+        Args:
+            documents (list): Documents to insert. If an item contains the "_key" or
+                "_id" field, the value is used as the key of the new document
+                (otherwise it is auto-generated). Any "_rev" field is ignored.
+            wait_for_sync (bool | None): Wait until documents have been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result. Only available if the
+                `overwrite` option is used.
+            silent (bool | None): If set to `True`, an empty object is returned as
+                response if all document operations succeed. No meta-data is returned
+                for the created documents. If any of the operations raises an error,
+                an array with the error object(s) is returned.
+            overwrite (bool | None): If set to `True`, operation does not fail on
+                duplicate key and existing document is overwritten (replace-insert).
+            overwrite_mode (str | None): Overwrite mode. Supersedes **overwrite**
+                option. May be one of "ignore", "replace", "update" or "conflict".
+            keep_null (bool | None): If set to `True`, fields with value None are
+                retained in the document. Otherwise, they are removed completely.
+                Applies only when **overwrite_mode** is set to "update"
+                (update-insert).
+            merge_objects (bool | None): If set to `True`, sub-dictionaries are merged
+                instead of the new one overwriting the old one. Applies only when
+                **overwrite_mode** is set to "update" (update-insert).
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document insertions affect the edge index
+                or cache-enabled persistent indexes.
+            version_attribute (str | None): Support for simple external versioning to
+                document operations. Only applicable if **overwrite** is set to `True`
+                or **overwrite_mode** is set to "update" or "replace".
+
+        Returns:
+            None | list: Documents metadata (e.g. document id, key, revision) and
+                errors or `None` if **silent** is set to `True`.
+
+        Raises:
+            DocumentInsertError: If insertion fails.
+
+        References:
+            - `create-multiple-documents <https://docs.arangodb.com/stable/develop/http-api/documents/#create-multiple-documents>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+        if silent is not None:
+            params["silent"] = silent
+        if overwrite is not None:
+            params["overwrite"] = overwrite
+        if overwrite_mode is not None:
+            params["overwriteMode"] = overwrite_mode
+        if keep_null is not None:
+            params["keepNull"] = keep_null
+        if merge_objects is not None:
+            params["mergeObjects"] = merge_objects
+        if refill_index_caches is not None:
+            params["refillIndexCaches"] = refill_index_caches
+        if version_attribute is not None:
+            params["versionAttribute"] = version_attribute
+
+        request = Request(
+            method=Method.POST,
+            endpoint=f"/_api/document/{self.name}",
+            data=self._doc_serializer.dumps(documents),
+            params=params,
+        )
+
+        def response_handler(
+            resp: Response,
+        ) -> Jsons:
+            if not resp.is_success:
+                raise DocumentInsertError(resp, request)
+            return self.deserializer.loads_many(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)

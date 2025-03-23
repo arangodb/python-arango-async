@@ -218,6 +218,13 @@ async def test_document_get_many(doc_col, bad_col, docs):
     many = await doc_col.get_many([doc["_key"] for doc in docs])
     assert len(many) == len(docs)
 
+    # Test with partially good keys
+    keys = [doc["_key"] for doc in docs]
+    keys.append("invalid_key")
+    many = await doc_col.get_many(keys)
+    assert len(many) == len(keys)
+    assert "error" in many[-1]
+
     # Test with full documents
     many = await doc_col.get_many(docs)
     assert len(many) == len(docs)
@@ -293,5 +300,38 @@ async def test_document_find(doc_col, bad_col, docs):
         {}, sort=[{"sort_by": "text", "sort_order": "ASC"}]
     ):
         filter_docs.append(doc)
+
     for idx in range(len(filter_docs) - 1):
         assert filter_docs[idx]["text"] <= filter_docs[idx + 1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_document_insert_many(doc_col, bad_col, docs):
+    # Check errors
+    with pytest.raises(DocumentInsertError):
+        await bad_col.insert_many(docs)
+
+    # Insert all documents
+    result = await doc_col.insert_many(docs, return_new=True)
+    assert len(result) == len(docs)
+    for res in result:
+        assert "error" not in res
+
+    # Empty list
+    result = await doc_col.insert_many([])
+    assert len(result) == 0
+
+    # Insert again (should not work due to unique constraint)
+    result = await doc_col.insert_many(docs)
+    assert len(result) == len(docs)
+    for res in result:
+        assert "error" in res
+
+    # Silent mode
+    result = await doc_col.insert_many(docs, silent=True)
+    assert len(result) == len(docs)
+    for res in result:
+        assert "error" in res
+    await doc_col.truncate()
+    result = await doc_col.insert_many(docs, silent=True)
+    assert len(result) == 0
