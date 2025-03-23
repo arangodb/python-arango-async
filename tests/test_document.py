@@ -335,3 +335,39 @@ async def test_document_insert_many(doc_col, bad_col, docs):
     await doc_col.truncate()
     result = await doc_col.insert_many(docs, silent=True)
     assert len(result) == 0
+
+
+@pytest.mark.asyncio
+async def test_document_replace_many(doc_col, bad_col, docs):
+    # Check errors
+    with pytest.raises(DocumentReplaceError):
+        await bad_col.replace_many(docs)
+
+    # Empty list
+    result = await doc_col.replace_many([])
+    assert len(result) == 0
+
+    # Replace "not found" documents
+    result = await doc_col.replace_many(docs, return_new=True)
+    assert len(result) == len(docs)
+    for res in result:
+        assert "error" in res
+
+    # Replace successfully
+    result = await doc_col.insert_many(docs, return_new=True)
+    replacements = []
+    for doc in result:
+        replacements.append({"_key": doc["_key"], "val": 42})
+    result = await doc_col.replace_many(replacements, return_new=True)
+    assert len(result) == len(docs)
+    for doc in result:
+        assert doc["new"]["val"] == 42
+
+    # Silent mode
+    result = await doc_col.replace_many(docs, silent=True)
+    assert len(result) == 0
+    await doc_col.truncate()
+    result = await doc_col.replace_many(docs, silent=True)
+    assert len(result) == len(docs)
+    for res in result:
+        assert "error" in res
