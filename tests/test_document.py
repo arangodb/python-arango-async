@@ -409,3 +409,46 @@ async def test_document_update_many(doc_col, bad_col, docs):
     assert len(result) == len(docs)
     for res in result:
         assert "error" in res
+
+
+@pytest.mark.asyncio
+async def test_document_delete_many(doc_col, bad_col, docs):
+    # Check errors
+    with pytest.raises(DocumentDeleteError):
+        await bad_col.delete_many(docs)
+
+    # Empty list
+    result = await doc_col.delete_many([])
+    assert len(result) == 0
+
+    # Delete "not found" documents
+    result = await doc_col.delete_many(docs, return_old=True)
+    assert len(result) == len(docs)
+    for res in result:
+        assert "error" in res
+
+    # Delete successfully
+    result = await doc_col.insert_many(docs, return_new=True)
+    deleted = []
+    for doc in result:
+        deleted.append({"_key": doc["_key"], "val": 42})
+    result = await doc_col.delete_many(deleted, return_old=True)
+    assert len(result) == len(docs)
+
+    # Wrong and right rev
+    result = await doc_col.insert_many(docs, return_new=True)
+    deleted = [result[0]["new"], result[1]["new"]]
+    deleted[1]["_rev"] = "foobar"
+    result = await doc_col.delete_many(deleted, ignore_revs=False)
+    assert "_key" in result[0]
+    assert "error" in result[1]
+
+    # Silent mode
+    await doc_col.truncate()
+    _ = await doc_col.insert_many(docs)
+    result = await doc_col.delete_many(docs, silent=True)
+    assert len(result) == 0
+    result = await doc_col.delete_many(docs, silent=True)
+    assert len(result) == len(docs)
+    for res in result:
+        assert "error" in res

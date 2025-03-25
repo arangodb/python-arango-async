@@ -1447,3 +1447,77 @@ class StandardCollection(Collection[T, U, V]):
             return self.deserializer.loads_many(resp.raw_body)
 
         return await self._executor.execute(request, response_handler)
+
+    async def delete_many(
+        self,
+        documents: Sequence[T],
+        wait_for_sync: Optional[bool] = None,
+        ignore_revs: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+    ) -> Result[Jsons]:
+        """Delete multiple documents.
+
+        Note:
+            If deleting a document fails, the exception is not raised but
+            returned as an object in the "errors" list. It is up to you to
+            inspect the list to determine which documents were deleted
+            successfully (returned as document metadata) and which were not
+            (returned as exception object).
+
+        Args:
+            documents (list): Documents to delete. An item must contain the "_key" or
+                "_id" field.
+            wait_for_sync (bool | None): Wait until documents have been synced to disk.
+            ignore_revs (bool | None): If this is set to `False`, then any `_rev`
+                attribute given in a body document is taken as a precondition. The
+                document is only updated if the current revision is the one
+                specified.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            silent (bool | None): If set to `True`, an empty object is returned as
+                response if all document operations succeed. No meta-data is returned
+                for the created documents. If any of the operations raises an error,
+                an array with the error object(s) is returned.
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document operations affect the edge index
+                or cache-enabled persistent indexes.
+
+        Returns:
+            list: Documents metadata (e.g. document id, key, revision) and
+                errors or just errors if **silent** is set to `True`.
+
+        Raises:
+            DocumentRemoveError: If removal fails.
+
+        References:
+            - `remove-multiple-documents <https://docs.arangodb.com/stable/develop/http-api/documents/#remove-multiple-documents>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if ignore_revs is not None:
+            params["ignoreRevs"] = ignore_revs
+        if return_old is not None:
+            params["returnOld"] = return_old
+        if silent is not None:
+            params["silent"] = silent
+        if refill_index_caches is not None:
+            params["refillIndexCaches"] = refill_index_caches
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/document/{self.name}",
+            data=self._doc_serializer.dumps(documents),
+            params=params,
+        )
+
+        def response_handler(
+            resp: Response,
+        ) -> Jsons:
+            if not resp.is_success:
+                raise DocumentDeleteError(resp, request)
+            return self.deserializer.loads_many(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
