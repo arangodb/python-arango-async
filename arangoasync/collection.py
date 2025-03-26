@@ -1164,6 +1164,79 @@ class StandardCollection(Collection[T, U, V]):
 
         return await self._executor.execute(request, response_handler)
 
+    async def update_match(
+        self,
+        filters: Json,
+        body: T,
+        limit: Optional[int | str] = None,
+        keep_none: Optional[bool] = None,
+        wait_for_sync: Optional[bool] = None,
+        merge_objects: Optional[bool] = None,
+        allow_dirty_read: Optional[bool] = None,
+    ) -> Result[int]:
+        """Update matching documents.
+
+        Args:
+            filters (dict | None): Query filters.
+            body (dict): Full or partial document body with the updates.
+            limit (int | str | None): Maximum number of documents to return.
+            keep_none (bool | None): If set to `True`, fields with value `None` are
+                retained in the document. Otherwise, they are removed completely.
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            merge_objects (bool | None): If set to `True`, sub-dictionaries are merged
+                instead of the new one overwriting the old one.
+            allow_dirty_read (bool | None): Allow reads from followers in a cluster.
+
+        Returns:
+            int: Number of documents updated.
+
+        Raises:
+           DocumentUpdateError: If update fails.
+        """
+        if not self._is_none_or_dict(filters):
+            raise ValueError("filters parameter must be a dict")
+        if not (self._is_none_or_int(limit) or limit == "null"):
+            raise ValueError("limit parameter must be a non-negative int")
+
+        # If the waitForSync parameter is not specified or set to false,
+        # then the collection’s default waitForSync behavior is applied.
+        sync = f", waitForSync: {wait_for_sync}" if wait_for_sync is not None else ""
+        query = f"""
+            FOR doc IN @@collection
+                {self._build_filter_conditions(filters)}
+                {f"LIMIT {limit}" if limit is not None else ""}
+                UPDATE doc WITH @body IN @@collection
+                OPTIONS {{ keepNull: @keep_none, mergeObjects: @merge {sync} }}
+        """  # noqa: E201 E202
+        bind_vars = {
+            "@collection": self.name,
+            "body": body,
+            "keep_none": keep_none,
+            "merge": merge_objects,
+        }
+        data = {"query": query, "bindVars": bind_vars}
+        headers: RequestHeaders = {}
+        if allow_dirty_read is not None:
+            if allow_dirty_read is True:
+                headers["x-arango-allow-dirty-read"] = "true"
+            else:
+                headers["x-arango-allow-dirty-read"] = "false"
+
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/cursor",
+            data=self.serializer.dumps(data),
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> int:
+            if resp.is_success:
+                result = self.deserializer.loads(resp.raw_body)
+                return cast(int, result["extra"]["stats"]["writesExecuted"])
+            raise DocumentUpdateError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
     async def insert_many(
         self,
         documents: Sequence[T],

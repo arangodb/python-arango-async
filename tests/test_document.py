@@ -452,3 +452,36 @@ async def test_document_delete_many(doc_col, bad_col, docs):
     assert len(result) == len(docs)
     for res in result:
         assert "error" in res
+
+
+@pytest.mark.asyncio
+async def test_document_update_match(doc_col, bad_col, docs):
+    # Check errors first
+    with pytest.raises(DocumentUpdateError):
+        await bad_col.update_match({}, {})
+    with pytest.raises(ValueError):
+        await doc_col.update_match({}, {}, limit=-1)
+    with pytest.raises(ValueError):
+        await doc_col.update_match("abcd", {})
+
+    # Insert all documents
+    await doc_col.insert_many(docs)
+
+    # Update value for all documents
+    count = await doc_col.update_match({}, {"val": 42})
+    async for doc in await doc_col.find():
+        assert doc["val"] == 42
+    assert count == len(docs)
+
+    # Update documents partially
+    count = await doc_col.update_match({"text": "foo"}, {"val": 24})
+    async for doc in await doc_col.find():
+        if doc["text"] == "foo":
+            assert doc["val"] == 24
+    assert count == sum([1 for doc in docs if doc["text"] == "foo"])
+
+    # No matching documents
+    count = await doc_col.update_match({"text": "no_matching"}, {"val": -1})
+    async for doc in await doc_col.find():
+        assert doc["val"] != -1
+    assert count == 0
