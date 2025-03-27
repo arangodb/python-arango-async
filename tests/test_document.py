@@ -523,3 +523,33 @@ async def test_document_replace_match(doc_col, bad_col, docs):
     async for doc in await doc_col.find():
         assert doc["val"] != -1
     assert count == 0
+
+
+@pytest.mark.asyncio
+async def test_document_delete_match(doc_col, bad_col, docs):
+    # Check errors first
+    with pytest.raises(DocumentDeleteError):
+        await bad_col.delete_match({})
+    with pytest.raises(ValueError):
+        await doc_col.delete_match({}, limit=-1)
+    with pytest.raises(ValueError):
+        await doc_col.delete_match("abcd")
+
+    # Delete all documents
+    await doc_col.insert_many(docs)
+    count = await doc_col.delete_match({})
+    assert count == len(docs)
+    assert await doc_col.count() == 0
+
+    # Delete documents partially
+    await doc_col.insert_many(docs)
+    count = await doc_col.delete_match({"text": "foo"})
+    async for doc in await doc_col.find():
+        assert doc["text"] != "foo"
+    assert count == sum([1 for doc in docs if doc["text"] == "foo"])
+    await doc_col.truncate()
+
+    # No matching documents
+    await doc_col.insert_many(docs)
+    count = await doc_col.delete_match({"text": "no_matching"})
+    assert count == 0

@@ -1172,7 +1172,6 @@ class StandardCollection(Collection[T, U, V]):
         keep_none: Optional[bool] = None,
         wait_for_sync: Optional[bool] = None,
         merge_objects: Optional[bool] = None,
-        allow_dirty_read: Optional[bool] = None,
     ) -> Result[int]:
         """Update matching documents.
 
@@ -1185,10 +1184,9 @@ class StandardCollection(Collection[T, U, V]):
             wait_for_sync (bool | None): Wait until operation has been synced to disk.
             merge_objects (bool | None): If set to `True`, sub-dictionaries are merged
                 instead of the new one overwriting the old one.
-            allow_dirty_read (bool | None): Allow reads from followers in a cluster.
 
         Returns:
-            int: Number of documents updated.
+            int: Number of documents that got updated.
 
         Raises:
            DocumentUpdateError: If update fails.
@@ -1213,18 +1211,11 @@ class StandardCollection(Collection[T, U, V]):
             "merge": merge_objects,
         }
         data = {"query": query, "bindVars": bind_vars}
-        headers: RequestHeaders = {}
-        if allow_dirty_read is not None:
-            if allow_dirty_read is True:
-                headers["x-arango-allow-dirty-read"] = "true"
-            else:
-                headers["x-arango-allow-dirty-read"] = "false"
 
         request = Request(
             method=Method.POST,
             endpoint="/_api/cursor",
             data=self.serializer.dumps(data),
-            headers=headers,
         )
 
         def response_handler(resp: Response) -> int:
@@ -1241,7 +1232,6 @@ class StandardCollection(Collection[T, U, V]):
         body: T,
         limit: Optional[int | str] = None,
         wait_for_sync: Optional[bool] = None,
-        allow_dirty_read: Optional[bool] = None,
     ) -> Result[int]:
         """Replace matching documents.
 
@@ -1250,7 +1240,6 @@ class StandardCollection(Collection[T, U, V]):
             body (dict): New document body.
             limit (int | str | None): Maximum number of documents to replace.
             wait_for_sync (bool | None): Wait until operation has been synced to disk.
-            allow_dirty_read (bool | None): Allow reads from followers in a cluster.
 
         Returns:
             int: Number of documents that got replaced.
@@ -1276,18 +1265,11 @@ class StandardCollection(Collection[T, U, V]):
             "body": body,
         }
         data = {"query": query, "bindVars": bind_vars}
-        headers: RequestHeaders = {}
-        if allow_dirty_read is not None:
-            if allow_dirty_read is True:
-                headers["x-arango-allow-dirty-read"] = "true"
-            else:
-                headers["x-arango-allow-dirty-read"] = "false"
 
         request = Request(
             method=Method.POST,
             endpoint="/_api/cursor",
             data=self.serializer.dumps(data),
-            headers=headers,
         )
 
         def response_handler(resp: Response) -> int:
@@ -1295,6 +1277,55 @@ class StandardCollection(Collection[T, U, V]):
                 result = self.deserializer.loads(resp.raw_body)
                 return cast(int, result["extra"]["stats"]["writesExecuted"])
             raise DocumentReplaceError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete_match(
+        self,
+        filters: Json,
+        limit: Optional[int | str] = None,
+        wait_for_sync: Optional[bool] = None,
+    ) -> Result[int]:
+        """Delete matching documents.
+
+        Args:
+            filters (dict | None): Query filters.
+            limit (int | str | None): Maximum number of documents to delete.
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+
+        Returns:
+            int: Number of documents that got deleted.
+
+        Raises:
+           DocumentDeleteError: If delete fails.
+        """
+        if not self._is_none_or_dict(filters):
+            raise ValueError("filters parameter must be a dict")
+        if not (self._is_none_or_int(limit) or limit == "null"):
+            raise ValueError("limit parameter must be a non-negative int")
+
+        sync = f"waitForSync: {wait_for_sync}" if wait_for_sync is not None else ""
+        query = f"""
+            FOR doc IN @@collection
+                {self._build_filter_conditions(filters)}
+                {f"LIMIT {limit}" if limit is not None else ""}
+                REMOVE doc IN @@collection
+                {f"OPTIONS {{ {sync} }}" if sync else ""}
+        """  # noqa: E201 E202
+        bind_vars = {"@collection": self.name}
+        data = {"query": query, "bindVars": bind_vars}
+
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/cursor",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> int:
+            if resp.is_success:
+                result = self.deserializer.loads(resp.raw_body)
+                return cast(int, result["extra"]["stats"]["writesExecuted"])
+            raise DocumentDeleteError(resp, request)
 
         return await self._executor.execute(request, response_handler)
 
