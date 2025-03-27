@@ -11,9 +11,9 @@ from typing import Any, List, Optional
 
 from jwt import ExpiredSignatureError
 
-from arangoasync import errno, logger
 from arangoasync.auth import Auth, JwtToken
 from arangoasync.compression import CompressionManager
+from arangoasync.errno import HTTP_UNAUTHORIZED
 from arangoasync.exceptions import (
     AuthHeaderError,
     ClientConnectionAbortedError,
@@ -24,6 +24,7 @@ from arangoasync.exceptions import (
     ServerConnectionError,
 )
 from arangoasync.http import HTTPClient
+from arangoasync.logger import logger
 from arangoasync.request import Method, Request
 from arangoasync.resolver import HostResolver
 from arangoasync.response import Response
@@ -417,7 +418,7 @@ class JwtConnection(BaseConnection):
 
         resp = await self.process_request(request)
         if (
-            resp.status_code == errno.HTTP_UNAUTHORIZED
+            resp.status_code == HTTP_UNAUTHORIZED
             and self._token is not None
             and self._token.needs_refresh(self._expire_leeway)
         ):
