@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+from packaging import version
 
 from arangoasync.exceptions import (
     DocumentDeleteError,
@@ -306,7 +307,7 @@ async def test_document_find(doc_col, bad_col, docs):
 
 
 @pytest.mark.asyncio
-async def test_document_insert_many(doc_col, bad_col, docs):
+async def test_document_insert_many(cluster, db_version, doc_col, bad_col, docs):
     # Check errors
     with pytest.raises(DocumentInsertError):
         await bad_col.insert_many(docs)
@@ -328,6 +329,9 @@ async def test_document_insert_many(doc_col, bad_col, docs):
         assert "error" in res
 
     # Silent mode
+    if cluster and db_version < version.parse("3.12.0"):
+        pytest.skip("Skipping silent option")
+
     result = await doc_col.insert_many(docs, silent=True)
     assert len(result) == len(docs)
     for res in result:
@@ -338,7 +342,7 @@ async def test_document_insert_many(doc_col, bad_col, docs):
 
 
 @pytest.mark.asyncio
-async def test_document_replace_many(doc_col, bad_col, docs):
+async def test_document_replace_many(cluster, db_version, doc_col, bad_col, docs):
     # Check errors
     with pytest.raises(DocumentReplaceError):
         await bad_col.replace_many(docs)
@@ -365,6 +369,9 @@ async def test_document_replace_many(doc_col, bad_col, docs):
         assert "text" not in doc["new"]
 
     # Silent mode
+    if cluster and db_version < version.parse("3.12.0"):
+        pytest.skip("Skipping silent option")
+
     result = await doc_col.replace_many(docs, silent=True)
     assert len(result) == 0
     await doc_col.truncate()
@@ -375,7 +382,7 @@ async def test_document_replace_many(doc_col, bad_col, docs):
 
 
 @pytest.mark.asyncio
-async def test_document_update_many(doc_col, bad_col, docs):
+async def test_document_update_many(db_version, cluster, doc_col, bad_col, docs):
     # Check errors
     with pytest.raises(DocumentUpdateError):
         await bad_col.update_many(docs)
@@ -402,6 +409,9 @@ async def test_document_update_many(doc_col, bad_col, docs):
         assert "text" in doc["new"]
 
     # Silent mode
+    if cluster and db_version < version.parse("3.12.0"):
+        pytest.skip("Skipping silent option")
+
     result = await doc_col.update_many(docs, silent=True)
     assert len(result) == 0
     await doc_col.truncate()
@@ -412,7 +422,7 @@ async def test_document_update_many(doc_col, bad_col, docs):
 
 
 @pytest.mark.asyncio
-async def test_document_delete_many(doc_col, bad_col, docs):
+async def test_document_delete_many(db_version, cluster, doc_col, bad_col, docs):
     # Check errors
     with pytest.raises(DocumentDeleteError):
         await bad_col.delete_many(docs)
@@ -444,6 +454,9 @@ async def test_document_delete_many(doc_col, bad_col, docs):
     assert "error" in result[1]
 
     # Silent mode
+    if cluster and db_version < version.parse("3.12.0"):
+        pytest.skip("Skipping silent option")
+
     await doc_col.truncate()
     _ = await doc_col.insert_many(docs)
     result = await doc_col.delete_many(docs, silent=True)
