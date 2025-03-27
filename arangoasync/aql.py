@@ -327,7 +327,7 @@ class AQL:
             if not resp.is_success:
                 raise AQLQueryExecuteError(resp, request)
             if self._executor.context == "async":
-                # We cannot have a cursor getting back async jobs
+                # We cannot have a cursor giving back async jobs
                 executor: NonAsyncExecutor = DefaultApiExecutor(
                     self._executor.connection
                 )

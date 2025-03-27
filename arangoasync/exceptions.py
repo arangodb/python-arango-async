@@ -187,6 +187,10 @@ class ClientConnectionError(ArangoClientError):
     """The request was unable to reach the server."""
 
 
+class CollectionTruncateError(ArangoServerError):
+    """Failed to truncate collection."""
+
+
 class CursorCloseError(ArangoServerError):
     """Failed to delete the cursor result from server."""
 
@@ -227,6 +231,14 @@ class DeserializationError(ArangoClientError):
     """Failed to deserialize the server response."""
 
 
+class DocumentCountError(ArangoServerError):
+    """Failed to retrieve document count."""
+
+
+class DocumentDeleteError(ArangoServerError):
+    """Failed to delete document."""
+
+
 class DocumentGetError(ArangoServerError):
     """Failed to retrieve document."""
 
@@ -239,8 +251,16 @@ class DocumentParseError(ArangoClientError):
     """Failed to parse document input."""
 
 
+class DocumentReplaceError(ArangoServerError):
+    """Failed to replace document."""
+
+
 class DocumentRevisionError(ArangoServerError):
     """The expected and actual document revisions mismatched."""
+
+
+class DocumentUpdateError(ArangoServerError):
+    """Failed to update document."""
 
 
 class IndexCreateError(ArangoServerError):
@@ -305,6 +325,10 @@ class ServerStatusError(ArangoServerError):
 
 class ServerVersionError(ArangoServerError):
     """Failed to retrieve server version."""
+
+
+class SortValidationError(ArangoClientError):
+    """Invalid sort parameters."""
 
 
 class TransactionAbortError(ArangoServerError):
