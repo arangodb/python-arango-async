@@ -485,3 +485,41 @@ async def test_document_update_match(doc_col, bad_col, docs):
     async for doc in await doc_col.find():
         assert doc["val"] != -1
     assert count == 0
+
+
+@pytest.mark.asyncio
+async def test_document_replace_match(doc_col, bad_col, docs):
+    # Check errors first
+    with pytest.raises(DocumentReplaceError):
+        await bad_col.replace_match({}, {})
+    with pytest.raises(ValueError):
+        await doc_col.replace_match({}, {}, limit=-1)
+    with pytest.raises(ValueError):
+        await doc_col.replace_match("abcd", {})
+
+    # Replace all documents
+    await doc_col.insert_many(docs)
+    count = await doc_col.replace_match({}, {"replacement": 42})
+    async for doc in await doc_col.find():
+        assert "replacement" in doc
+        assert "val" not in doc
+    assert count == len(docs)
+    await doc_col.truncate()
+
+    # Replace documents partially
+    await doc_col.insert_many(docs)
+    count = await doc_col.replace_match({"text": "foo"}, {"replacement": 24})
+    async for doc in await doc_col.find():
+        if doc.get("text") == "bar":
+            assert "replacement" not in doc
+        else:
+            assert "replacement" in doc
+    assert count == sum([1 for doc in docs if doc["text"] == "foo"])
+    await doc_col.truncate()
+
+    # No matching documents
+    await doc_col.insert_many(docs)
+    count = await doc_col.replace_match({"text": "no_matching"}, {"val": -1})
+    async for doc in await doc_col.find():
+        assert doc["val"] != -1
+    assert count == 0
