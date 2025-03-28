@@ -21,7 +21,7 @@ response details.
 
 **Example**
 
-.. testcode::
+.. code-block:: python
 
     from arangoasync.exceptions import ArangoClientError, ArangoServerError
 
