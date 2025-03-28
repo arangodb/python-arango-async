@@ -16,5 +16,18 @@ Client Errors
 =============
 
 :class:`arangoasync.exceptions.ArangoClientError` exceptions originate from
-python-arango client itself. They do not contain error codes nor HTTP request
+python-arango-async client itself. They do not contain error codes nor HTTP request
 response details.
+
+**Example**
+
+.. testcode::
+
+    from arangoasync.exceptions import ArangoClientError, ArangoServerError
+
+    try:
+        # Some operation that raises an error
+    except ArangoClientError:
+        # An error occurred on the client side
+    except ArangoServerError:
+        # An error occurred on the server side
