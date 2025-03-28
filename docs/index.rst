@@ -63,6 +63,7 @@ Miscellaneous
 .. toctree::
     :maxdepth: 1
 
+    cursor
     errors
     errno
 

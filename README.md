@@ -17,7 +17,7 @@
 Python driver for [ArangoDB](https://www.arangodb.com), a scalable multi-model
 database natively supporting documents, graphs and search.
 
-This is the _asyncio_ alternative of the officially supported [python-arango](https://github.com/arangodb/python-arango)
+This is the _asyncio_ alternative of the [python-arango](https://github.com/arangodb/python-arango)
 driver.
 
 **Note: This project is still in active development, features might be added or removed.**
