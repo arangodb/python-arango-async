@@ -252,6 +252,15 @@ class Collection(Generic[T, U, V]):
         return self._name
 
     @property
+    def context(self) -> str:
+        """Return the context of the collection.
+
+        Returns:
+            str: Context.
+        """
+        return self._executor.context
+
+    @property
     def db_name(self) -> str:
         """Return the name of the current database.
 
@@ -270,8 +279,16 @@ class Collection(Generic[T, U, V]):
         """Return the deserializer."""
         return self._executor.deserializer
 
-    async def indexes(self) -> Result[List[IndexProperties]]:
+    async def indexes(
+        self,
+        with_stats: Optional[bool],
+        with_hidden: Optional[bool],
+    ) -> Result[List[IndexProperties]]:
         """Fetch all index descriptions for the given collection.
+
+        Args:
+            with_stats (bool | None): Whether to include figures and estimates in the result.
+            with_hidden (bool | None): Whether to include hidden indexes in the result.
 
         Returns:
             list: List of index properties.
@@ -282,10 +299,16 @@ class Collection(Generic[T, U, V]):
         References:
             - `list-all-indexes-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/indexes/#list-all-indexes-of-a-collection>`__
         """  # noqa: E501
+        params: Params = dict(collection=self._name)
+        if with_stats is not None:
+            params["withStats"] = with_stats
+        if with_hidden is not None:
+            params["withHidden"] = with_hidden
+
         request = Request(
             method=Method.GET,
             endpoint="/_api/index",
-            params=dict(collection=self._name),
+            params=params,
         )
 
         def response_handler(resp: Response) -> List[IndexProperties]:

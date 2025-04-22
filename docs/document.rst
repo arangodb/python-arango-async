@@ -20,26 +20,26 @@ properties:
   to validate a document against its current revision.
 
 For more information on documents and associated terminologies, refer to
-`ArangoDB manual`_. Here is an example of a valid document in "students"
+`ArangoDB Manual`_. Here is an example of a valid document in "students"
 collection:
 
-.. _ArangoDB manual: https://docs.arangodb.com
+.. _ArangoDB Manual: https://docs.arangodb.com
 
-.. testcode::
+.. code-block:: json
 
     {
-        '_id': 'students/bruce',
-        '_key': 'bruce',
-        '_rev': '_Wm3dzEi--_',
-        'first_name': 'Bruce',
-        'last_name': 'Wayne',
-        'address': {
-            'street' : '1007 Mountain Dr.',
-            'city': 'Gotham',
-            'state': 'NJ'
+        "_id": "students/bruce",
+        "_key": "bruce",
+        "_rev": "_Wm3dzEi--_",
+        "first_name": "Bruce",
+        "last_name": "Wayne",
+        "address": {
+            "street" : "1007 Mountain Dr.",
+            "city": "Gotham",
+            "state": "NJ"
         },
-        'is_rich': True,
-        'friends': ['robin', 'gordon']
+        "is_rich": true,
+        "friends": ["robin", "gordon"]
     }
 
 Standard documents are managed via collection API wrapper:
@@ -129,3 +129,5 @@ Standard documents are managed via collection API wrapper:
 
         # Delete one or more matching documents.
         await students.delete_match({"first": "Emma"})
+
+See :class:`arangoasync.database.StandardDatabase` and :class:`arangoasync.collection.StandardCollection` for API specification.

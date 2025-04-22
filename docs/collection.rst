@@ -3,7 +3,12 @@ Collections
 
 A **collection** contains :doc:`documents <document>`. It is uniquely identified
 by its name which must consist only of hyphen, underscore and alphanumeric
-characters.
+characters. There are three types of collections in python-arango:
+
+* **Standard Collection:** contains regular documents.
+* **Vertex Collection:** contains vertex documents for graphs (not supported yet).
+* **Edge Collection:** contains edge documents for graphs (not supported yet).
+
 
 Here is an example showing how you can manage standard collections:
 
@@ -40,3 +45,5 @@ Here is an example showing how you can manage standard collections:
 
         # Delete the collection.
         await db.delete_collection("students")
+
+See :class:`arangoasync.collection.StandardCollection` for API specification.

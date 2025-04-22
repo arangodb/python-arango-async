@@ -5,15 +5,15 @@ AQL
 to SQL for relational databases, but without the support for data definition
 operations such as creating or deleting :doc:`databases <database>`,
 :doc:`collections <collection>` or :doc:`indexes <indexes>`. For more
-information, refer to `ArangoDB manual`_.
+information, refer to `ArangoDB Manual`_.
 
-.. _ArangoDB manual: https://docs.arangodb.com
+.. _ArangoDB Manual: https://docs.arangodb.com
 
 AQL Queries
 ===========
 
-AQL queries are invoked from AQL API wrapper. Executing queries returns
-:doc:`result cursors <cursor>`.
+AQL queries are invoked from AQL wrapper. Executing queries returns
+:doc:`cursors <cursor>`.
 
 **Example:**
 
@@ -153,10 +153,19 @@ are not.
         # Retrieve AQL query cache properties.
         await aql.cache.properties()
 
-        # Configure AQL query cache properties
+        # Configure AQL query cache properties.
         await aql.cache.configure(mode="demand", max_results=10000)
+
+        # List results cache entries.
+        entries = await aql.cache.entries()
+
+        # List plan cache entries.
+        plan_entries = await aql.cache.plan_entries()
 
         # Clear results in AQL query cache.
         await aql.cache.clear()
+
+        # Clear results in AQL query plan cache.
+        await aql.cache.clear_plan()
 
 See :class:`arangoasync.aql.AQLQueryCache` for API specification.
