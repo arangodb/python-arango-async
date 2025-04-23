@@ -126,7 +126,7 @@ async def test_async_cursor(db, doc_col, docs):
     )
     await job.wait()
 
-    # Get the cursor. Bear in mind that its underlying executor is async.
+    # Get the cursor. Bear in mind that its underlying executor is no longer async.
     doc_cnt = 0
     cursor = await job.result()
     async with cursor as ctx:
