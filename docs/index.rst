@@ -67,6 +67,7 @@ Contents
     compression
     errors
     errno
+    logging
 
 **Development**
 
