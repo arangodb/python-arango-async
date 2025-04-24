@@ -34,9 +34,6 @@ python-arango-async.
 .. automodule:: arangoasync.connection
     :members:
 
-.. automodule:: arangoasync.exceptions
-    :members:
-
 .. automodule:: arangoasync.http
     :members:
 

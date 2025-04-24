@@ -587,6 +587,7 @@ class StandardCollection(Collection[T, U, V]):
         Raises:
             DocumentRevisionError: If the revision is incorrect.
             DocumentGetError: If retrieval fails.
+            DocumentParseError: If the document is malformed.
 
         References:
             - `get-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document>`__
@@ -730,6 +731,7 @@ class StandardCollection(Collection[T, U, V]):
 
         Raises:
             DocumentInsertError: If insertion fails.
+            DocumentParseError: If the document is malformed.
 
         References:
             - `create-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#create-a-document>`__
