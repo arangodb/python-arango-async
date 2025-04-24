@@ -281,8 +281,8 @@ class Collection(Generic[T, U, V]):
 
     async def indexes(
         self,
-        with_stats: Optional[bool],
-        with_hidden: Optional[bool],
+        with_stats: Optional[bool] = None,
+        with_hidden: Optional[bool] = None,
     ) -> Result[List[IndexProperties]]:
         """Fetch all index descriptions for the given collection.
 

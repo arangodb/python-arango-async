@@ -596,7 +596,6 @@ class Database:
         )
 
         def response_handler(resp: Response) -> StandardCollection[T, U, V]:
-            nonlocal doc_serializer, doc_deserializer
             if not resp.is_success:
                 raise CollectionCreateError(resp, request)
             if doc_serializer is None:
@@ -648,7 +647,6 @@ class Database:
         )
 
         def response_handler(resp: Response) -> bool:
-            nonlocal ignore_missing
             if resp.is_success:
                 return True
             if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
@@ -1001,7 +999,6 @@ class Database:
         )
 
         def response_handler(resp: Response) -> bool:
-            nonlocal ignore_failure
             if resp.is_success:
                 return True
             if ignore_failure:
@@ -1046,7 +1043,6 @@ class Database:
         )
 
         def response_handler(resp: Response) -> bool:
-            nonlocal ignore_failure
             if resp.is_success:
                 return True
             if ignore_failure:
