@@ -68,6 +68,7 @@ Contents
     errors
     errno
     logging
+    helpers
 
 **Development**
 
