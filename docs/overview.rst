@@ -42,6 +42,7 @@ Here is an example showing how **python-arango-async** client can be used:
 You may also use the client without a context manager, but you must ensure to close the client when done:
 
 .. code-block:: python
+
     from arangoasync import ArangoClient
     from arangoasync.auth import Auth
 
