@@ -2,8 +2,9 @@ Authentication
 --------------
 
 Two HTTP authentication methods are supported out of the box:
-- basic username and password authentication
-- JSON Web Tokens (JWT)
+
+1. Basic username and password authentication
+2. JSON Web Tokens (JWT)
 
 Basic Authentication
 ====================
@@ -27,10 +28,10 @@ This is the default authentication method.
 
         # Connect to "test" database as root user.
         db = await client.db(
-            "test",  # database name
+            "test",               # database name
             auth_method="basic",  # use basic authentication (default)
-            auth=auth,  # authentication details
-            verify=True,  # verify the connection (optional)
+            auth=auth,            # authentication details
+            verify=True,          # verify the connection (optional)
         )
 
 JSON Web Tokens (JWT)
