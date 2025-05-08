@@ -65,6 +65,8 @@ Contents
 
     cursor
     authentication
+    http
+    certificates
     compression
     errors
     errno
