@@ -139,7 +139,9 @@ class ArangoClient:
 
     async def close(self) -> None:
         """Close HTTP sessions."""
-        await asyncio.gather(*(session.close() for session in self._sessions))
+        await asyncio.gather(
+            *(self._http_client.close_session(session) for session in self._sessions)
+        )
 
     async def db(
         self,
