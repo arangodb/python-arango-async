@@ -64,6 +64,7 @@ Contents
     :maxdepth: 1
 
     cursor
+    authentication
     compression
     errors
     errno
