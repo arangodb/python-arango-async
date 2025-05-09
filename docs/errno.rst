@@ -1,11 +1,11 @@
 Error Codes
 -----------
 
-Python-Arango-Async provides ArangoDB error code constants for convenience.
+ArangoDB error code constants are provided for convenience.
 
 **Example**
 
-.. testcode::
+.. code-block:: python
 
     from arangoasync import errno
 
@@ -14,6 +14,9 @@ Python-Arango-Async provides ArangoDB error code constants for convenience.
     assert errno.DOCUMENT_REV_BAD == 1239
     assert errno.DOCUMENT_NOT_FOUND == 1202
 
-For more information, refer to `ArangoDB manual`_.
+You can see the full list of error codes in the `errno.py`_ file.
 
-.. _ArangoDB manual: https://www.arangodb.com/docs/stable/appendix-error-codes.html
+For more information, refer to the `ArangoDB Manual`_.
+
+.. _ArangoDB Manual: https://www.arangodb.com/docs/stable/appendix-error-codes.html
+.. _errno.py: https://github.com/arangodb/python-arango-async/blob/main/arangoasync/errno.py

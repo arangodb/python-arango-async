@@ -33,6 +33,8 @@ class HTTPClient(ABC):  # pragma: no cover
             class MyCustomHTTPClient(HTTPClient):
                 def create_session(self, host):
                     pass
+                async def close_session(self, session):
+                    pass
                 async def send_request(self, session, request):
                     pass
     """
@@ -49,6 +51,18 @@ class HTTPClient(ABC):  # pragma: no cover
 
         Returns:
             Requests session object.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def close_session(self, session: Any) -> None:
+        """Close the session.
+
+        Note:
+            This method must be overridden by the user.
+
+        Args:
+            session (Any): Client session object.
         """
         raise NotImplementedError
 
@@ -128,6 +142,14 @@ class AioHTTPClient(HTTPClient):
             timeout=self._timeout,
             read_bufsize=self._read_bufsize,
         )
+
+    async def close_session(self, session: ClientSession) -> None:
+        """Close the session.
+
+        Args:
+            session (Any): Client session object.
+        """
+        await session.close()
 
     async def send_request(
         self,

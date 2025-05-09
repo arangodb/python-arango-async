@@ -177,6 +177,9 @@ class BaseConnection(ABC):
         host_index = self._host_resolver.get_host_index()
         for tries in range(self._host_resolver.max_tries):
             try:
+                logger.debug(
+                    f"Sending request to host {host_index} ({tries}): {request}"
+                )
                 resp = await self._http_client.send_request(
                     self._sessions[host_index], request
                 )

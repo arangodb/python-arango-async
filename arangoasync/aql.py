@@ -239,6 +239,11 @@ class AQL:
         return self._executor.db_name
 
     @property
+    def context(self) -> str:
+        """Return the current API execution context."""
+        return self._executor.context
+
+    @property
     def serializer(self) -> Serializer[Json]:
         """Return the serializer."""
         return self._executor.serializer

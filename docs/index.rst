@@ -5,7 +5,7 @@
 python-arango-async
 -------------------
 
-Welcome to the documentation for **python-arango-async**, a Python driver for ArangoDB_.
+Welcome to the documentation for python-arango-async_, a Python driver for ArangoDB_.
 
 **Note: This project is still in active development, features might be added or removed.**
 
@@ -13,7 +13,7 @@ Requirements
 =============
 
 - ArangoDB version 3.11+
-- Python version 3.9+
+- Python version 3.10+
 
 Installation
 ============
@@ -25,7 +25,7 @@ Installation
 Contents
 ========
 
-Basics
+**Basics**
 
 .. toctree::
     :maxdepth: 1
@@ -37,36 +37,45 @@ Basics
     document
     aql
 
-Specialized Features
+**Specialized Features**
 
 .. toctree::
     :maxdepth: 1
 
     transaction
 
-API Executions
+**API Executions**
 
 .. toctree::
     :maxdepth: 1
 
     async
 
-Administration
+**Administration**
 
 .. toctree::
     :maxdepth: 1
 
     user
 
-Miscellaneous
+**Miscellaneous**
 
 .. toctree::
     :maxdepth: 1
 
+    cursor
+    authentication
+    http
+    certificates
+    compression
+    serialization
     errors
     errno
+    logging
+    helpers
+    migration
 
-Development
+**Development**
 
 .. toctree::
     :maxdepth: 1
@@ -74,3 +83,4 @@ Development
     specs
 
 .. _ArangoDB: https://www.arangodb.com
+.. _python-arango-async: https://github.com/arangodb/python-arango-async

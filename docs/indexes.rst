@@ -5,9 +5,9 @@ Indexes
 collection has a primary hash index on ``_key`` field by default. This index
 cannot be deleted or modified. Every edge collection has additional indexes
 on fields ``_from`` and ``_to``. For more information on indexes, refer to
-`ArangoDB manual`_.
+`ArangoDB Manual`_.
 
-.. _ArangoDB manual: https://docs.arangodb.com
+.. _ArangoDB Manual: https://docs.arangodb.com
 
 **Example:**
 
@@ -30,11 +30,11 @@ on fields ``_from`` and ``_to``. For more information on indexes, refer to
         indexes = await cities.indexes()
 
         # Add a new persistent index on document fields "continent" and "country".
-        persistent_index = {"type": "persistent", "fields": ["continent", "country"], "unique": True}
+        # Indexes may be added with a name that can be referred to in AQL queries.
         persistent_index = await cities.add_index(
             type="persistent",
             fields=['continent', 'country'],
-            options={"unique": True}
+            options={"unique": True, "name": "continent_country_index"}
         )
 
         # Add new fulltext indexes on fields "continent" and "country".
@@ -49,3 +49,5 @@ on fields ``_from`` and ``_to``. For more information on indexes, refer to
 
         # Delete the last index from the collection.
         await cities.delete_index(index["id"])
+
+See :class:`arangoasync.collection.StandardCollection` for API specification.

@@ -59,3 +59,5 @@ information.
 
         # Delete the database. Note that the new users will remain.
         await sys_db.delete_database("test")
+
+See :class:`arangoasync.client.ArangoClient` and :class:`arangoasync.database.StandardDatabase` for API specification.

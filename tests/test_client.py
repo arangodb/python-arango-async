@@ -102,15 +102,15 @@ async def test_client_jwt_auth(url, sys_db_name, basic_auth_root):
     async with ArangoClient(hosts=url) as client:
         await client.db(sys_db_name, auth_method="jwt", token=token, verify=True)
 
-        # successful authentication with both
-        async with ArangoClient(hosts=url) as client:
-            await client.db(
-                sys_db_name,
-                auth_method="jwt",
-                auth=basic_auth_root,
-                token=token,
-                verify=True,
-            )
+    # successful authentication with both
+    async with ArangoClient(hosts=url) as client:
+        await client.db(
+            sys_db_name,
+            auth_method="jwt",
+            auth=basic_auth_root,
+            token=token,
+            verify=True,
+        )
 
     # auth and token missing
     async with ArangoClient(hosts=url) as client:
