@@ -68,6 +68,7 @@ Contents
     http
     certificates
     compression
+    serialization
     errors
     errno
     logging
