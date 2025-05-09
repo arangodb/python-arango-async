@@ -1,3 +1,5 @@
+.. _Helpers:
+
 Helper Types
 ------------
 

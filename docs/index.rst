@@ -73,6 +73,7 @@ Contents
     errno
     logging
     helpers
+    migration
 
 **Development**
 
