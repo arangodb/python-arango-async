@@ -4,6 +4,8 @@ from arangoasync.typings import (
     CollectionInfo,
     CollectionStatus,
     CollectionType,
+    GraphOptions,
+    GraphProperties,
     JsonWrapper,
     KeyOptions,
     QueryCacheProperties,
@@ -22,6 +24,9 @@ def test_basic_wrapper():
     wrapper = JsonWrapper({"a": 1, "b": 2})
     assert wrapper["a"] == 1
     assert wrapper["b"] == 2
+
+    assert list(wrapper.keys()) == ["a", "b"]
+    assert list(wrapper.values()) == [1, 2]
 
     wrapper["c"] = 3
     assert wrapper["c"] == 3
@@ -330,3 +335,36 @@ def test_QueryCacheProperties():
     assert cache_properties._data["maxResults"] == 128
     assert cache_properties._data["maxEntrySize"] == 1024
     assert cache_properties._data["includeSystem"] is False
+
+
+def test_GraphProperties():
+    data = {
+        "name": "myGraph",
+        "edgeDefinitions": [
+            {"collection": "edges", "from": ["vertices1"], "to": ["vertices2"]}
+        ],
+        "orphanCollections": ["orphan1", "orphan2"],
+    }
+    graph_properties = GraphProperties(data)
+
+    assert graph_properties.name == "myGraph"
+    assert graph_properties.edge_definitions == [
+        {"collection": "edges", "from": ["vertices1"], "to": ["vertices2"]}
+    ]
+    assert graph_properties.orphan_collections == ["orphan1", "orphan2"]
+
+
+def test_GraphOptions():
+    graph_options = GraphOptions(
+        number_of_shards=3,
+        replication_factor=2,
+        satellites=["satellite1", "satellite2"],
+        smart_graph_attribute="region",
+        write_concern=1,
+    )
+
+    assert graph_options.number_of_shards == 3
+    assert graph_options.replication_factor == 2
+    assert graph_options.satellites == ["satellite1", "satellite2"]
+    assert graph_options.smart_graph_attribute == "region"
+    assert graph_options.write_concern == 1

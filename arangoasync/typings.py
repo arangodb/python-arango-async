@@ -167,6 +167,14 @@ class JsonWrapper:
         """Return an iterator over the dictionary’s key-value pairs."""
         return iter(self._data.items())
 
+    def keys(self) -> Iterator[str]:
+        """Return an iterator over the dictionary’s keys."""
+        return iter(self._data.keys())
+
+    def values(self) -> Iterator[Any]:
+        """Return an iterator over the dictionary’s values."""
+        return iter(self._data.values())
+
     def to_dict(self) -> Json:
         """Return the dictionary."""
         return self._data
@@ -227,15 +235,15 @@ class KeyOptions(JsonWrapper):
         data: Optional[Json] = None,
     ) -> None:
         if data is None:
-            data = {
+            data: Json = {  # type: ignore[no-redef]
                 "allowUserKeys": allow_user_keys,
                 "type": generator_type,
             }
             if increment is not None:
-                data["increment"] = increment
+                data["increment"] = increment  # type: ignore[index]
             if offset is not None:
-                data["offset"] = offset
-        super().__init__(data)
+                data["offset"] = offset  # type: ignore[index]
+        super().__init__(cast(Json, data))
 
     def validate(self) -> None:
         """Validate key options."""
@@ -386,7 +394,7 @@ class UserInfo(JsonWrapper):
         active: bool = True,
         extra: Optional[Json] = None,
     ) -> None:
-        data = {"user": user, "active": active}
+        data: Json = {"user": user, "active": active}
         if password is not None:
             data["password"] = password
         if extra is not None:
@@ -1644,3 +1652,113 @@ class QueryCacheProperties(JsonWrapper):
     @property
     def include_system(self) -> bool:
         return cast(bool, self._data.get("includeSystem", False))
+
+
+class GraphProperties(JsonWrapper):
+    """Graph properties.
+
+    Example:
+        .. code-block:: json
+
+           {
+             "_key" : "myGraph",
+             "edgeDefinitions" : [
+               {
+                 "collection" : "edges",
+                 "from" : [
+                   "startVertices"
+                 ],
+                 "to" : [
+                   "endVertices"
+                 ]
+               }
+             ],
+             "orphanCollections" : [ ],
+             "_rev" : "_jJdpHEy--_",
+             "_id" : "_graphs/myGraph",
+             "name" : "myGraph"
+           }
+
+    References:
+        - `get-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-a-graph>`__
+        - `list-all-graphs <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#list-all-graphs>`__
+        - `create-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#create-a-graph>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def name(self) -> str:
+        return cast(str, self._data["name"])
+
+    @property
+    def edge_definitions(self) -> Jsons:
+        return cast(Jsons, self._data.get("edgeDefinitions", list()))
+
+    @property
+    def orphan_collections(self) -> List[str]:
+        return cast(List[str], self._data.get("orphanCollections", list()))
+
+
+class GraphOptions(JsonWrapper):
+    """Special options for graph creation.
+
+    Args:
+        number_of_shards (int): The number of shards that is used for every
+            collection within this graph. Cannot be modified later.
+        replication_factor (int | str): The replication factor used when initially
+            creating collections for this graph. Can be set to "satellite" to create
+            a SatelliteGraph, which then ignores `numberOfShards`,
+            `minReplicationFactor`, and `writeConcern` (Enterprise Edition only).
+        satellites (list[str] | None): An array of collection names that is used to
+            create SatelliteCollections for a (Disjoint) SmartGraph using
+            SatelliteCollections (Enterprise Edition only). Each array element must
+            be a string and a valid collection name.
+        smart_graph_attribute (str | None): The attribute name that is used to
+            smartly shard the vertices of a graph. Only available in
+            Enterprise Edition.
+        write_concern (int | None): The write concern for new collections in the
+            graph.
+    """  # noqa: E501
+
+    def __init__(
+        self,
+        number_of_shards: Optional[int],
+        replication_factor: Optional[int | str],
+        satellites: Optional[List[str]],
+        smart_graph_attribute: Optional[str],
+        write_concern: Optional[int],
+    ) -> None:
+        data: Json = dict()
+        if number_of_shards is not None:
+            data["numberOfShards"] = number_of_shards
+        if replication_factor is not None:
+            data["replicationFactor"] = replication_factor
+        if satellites is not None:
+            data["satellites"] = satellites
+        if smart_graph_attribute is not None:
+            data["smartGraphAttribute"] = smart_graph_attribute
+        if write_concern is not None:
+            data["writeConcern"] = write_concern
+        super().__init__(data)
+
+    @property
+    def number_of_shards(self) -> Optional[int]:
+        return cast(int, self._data.get("numberOfShards"))
+
+    @property
+    def replication_factor(self) -> Optional[int | str]:
+        return cast(int | str, self._data.get("replicationFactor"))
+
+    @property
+    def satellites(self) -> Optional[List[str]]:
+        return cast(Optional[List[str]], self._data.get("satellites"))
+
+    @property
+    def smart_graph_attribute(self) -> Optional[str]:
+        return cast(Optional[str], self._data.get("smartGraphAttribute"))
+
+    @property
+    def write_concern(self) -> Optional[int]:
+        return cast(Optional[int], self._data.get("writeConcern"))
