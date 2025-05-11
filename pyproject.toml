@@ -20,7 +20,7 @@ keywords = ["arangodb", "python", "driver", "async"]
 readme = "README.md"
 dynamic = ["version"]
 license = "MIT"
-license-files = "LICENSE"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 
 classifiers = [
