@@ -133,7 +133,7 @@ back using one of the formats provided by pandas_.
             # Load multiple documents.
             return pd.DataFrame(json.loads(data))
 
-You would then use the custom serializer/deserializer when working with collections:
+You would then use the custom serializer/deserializer when working with collections.
 
 **Example:**
 
