@@ -5,7 +5,7 @@
 [![Last commit](https://img.shields.io/github/last-commit/arangodb/python-arango-async)](https://github.com/arangodb/python-arango-async/commits/main)
 
 [![PyPI version badge](https://img.shields.io/pypi/v/python-arango-async?color=3775A9&style=for-the-badge&logo=pypi&logoColor=FFD43B)](https://pypi.org/project/python-arango-async/)
-[![Python versions badge](https://img.shields.io/badge/3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=FFD43B&label=Python)](https://pypi.org/project/python-arango-async/)
+[![Python versions badge](https://img.shields.io/badge/3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=FFD43B&label=Python)](https://pypi.org/project/python-arango-async/)
 
 [![License](https://img.shields.io/github/license/arangodb/python-arango?color=9E2165&style=for-the-badge)](https://github.com/arangodb/python-arango/blob/main/LICENSE)
 [![Code style: black](https://img.shields.io/static/v1?style=for-the-badge&label=code%20style&message=black&color=black)](https://github.com/psf/black)
