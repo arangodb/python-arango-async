@@ -263,6 +263,18 @@ class DocumentUpdateError(ArangoServerError):
     """Failed to update document."""
 
 
+class GraphCreateError(ArangoServerError):
+    """Failed to create the graph."""
+
+
+class GraphDeleteError(ArangoServerError):
+    """Failed to delete the graph."""
+
+
+class GraphListError(ArangoServerError):
+    """Failed to retrieve graphs."""
+
+
 class IndexCreateError(ArangoServerError):
     """Failed to create collection index."""
 

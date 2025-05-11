@@ -23,6 +23,9 @@ from arangoasync.exceptions import (
     DatabaseDeleteError,
     DatabaseListError,
     DatabasePropertiesError,
+    GraphCreateError,
+    GraphDeleteError,
+    GraphListError,
     JWTSecretListError,
     JWTSecretReloadError,
     PermissionGetError,
@@ -50,6 +53,7 @@ from arangoasync.executor import (
     DefaultApiExecutor,
     TransactionApiExecutor,
 )
+from arangoasync.graph import Graph
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
 from arangoasync.result import Result
@@ -58,6 +62,8 @@ from arangoasync.typings import (
     CollectionInfo,
     CollectionType,
     DatabaseProperties,
+    GraphOptions,
+    GraphProperties,
     Json,
     Jsons,
     KeyOptions,
@@ -652,6 +658,175 @@ class Database:
             if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
                 return False
             raise CollectionDeleteError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    def graph(self, name: str) -> Graph:
+        """Return the graph API wrapper.
+
+        Args:
+            name (str): Graph name.
+
+        Returns:
+            Graph: Graph API wrapper.
+        """
+        return Graph(self._executor, name)
+
+    async def has_graph(self, name: str) -> Result[bool]:
+        """Check if a graph exists in the database.
+
+        Args:
+            name (str): Graph name.
+
+        Returns:
+            bool: True if the graph exists, False otherwise.
+
+        Raises:
+            GraphListError: If the operation fails.
+        """
+        request = Request(method=Method.GET, endpoint=f"/_api/gharial/{name}")
+
+        def response_handler(resp: Response) -> bool:
+            if resp.is_success:
+                return True
+            if resp.status_code == HTTP_NOT_FOUND:
+                return False
+            raise GraphListError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def graphs(self) -> Result[List[GraphProperties]]:
+        """List all graphs stored in the database.
+
+        Returns:
+            list: Graph properties.
+
+        Raises:
+            GraphListError: If the operation fails.
+
+        References:
+            - `list-all-graphs <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#list-all-graphs>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/gharial")
+
+        def response_handler(resp: Response) -> List[GraphProperties]:
+            if not resp.is_success:
+                raise GraphListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return [GraphProperties(u) for u in body["graphs"]]
+
+        return await self._executor.execute(request, response_handler)
+
+    async def create_graph(
+        self,
+        name: str,
+        edge_definitions: Optional[Sequence[Json]] = None,
+        is_disjoint: Optional[bool] = None,
+        is_smart: Optional[bool] = None,
+        options: Optional[GraphOptions | Json] = None,
+        orphan_collections: Optional[Sequence[str]] = None,
+        wait_for_sync: Optional[bool] = None,
+    ) -> Result[Graph]:
+        """Create a new graph.
+
+        Args:
+            name (str): Graph name.
+            edge_definitions (list | None): List of edge definitions, where each edge
+                definition entry is a dictionary with fields "collection" (name of the
+                edge collection), "from" (list of vertex collection names) and "to"
+                (list of vertex collection names).
+            is_disjoint (bool | None): Whether to create a Disjoint SmartGraph
+                instead of a regular SmartGraph (Enterprise Edition only).
+            is_smart (bool | None): Define if the created graph should be smart
+                (Enterprise Edition only).
+            options (GraphOptions | dict | None): Options for creating collections
+                within this graph.
+            orphan_collections (list | None): An array of additional vertex
+                collections. Documents in these collections do not have edges
+                within this graph.
+            wait_for_sync (bool | None): If `True`, wait until everything is
+                synced to disk.
+
+        Returns:
+            Graph: Graph API wrapper.
+
+        Raises:
+            GraphCreateError: If the operation fails.
+
+        References:
+            - `create-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#create-a-graph>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+
+        data: Json = {"name": name}
+        if edge_definitions is not None:
+            data["edgeDefinitions"] = edge_definitions
+        if is_disjoint is not None:
+            data["isDisjoint"] = is_disjoint
+        if is_smart is not None:
+            data["isSmart"] = is_smart
+        if options is not None:
+            if isinstance(options, GraphOptions):
+                data["options"] = options.to_dict()
+            else:
+                data["options"] = options
+        if orphan_collections is not None:
+            data["orphanCollections"] = orphan_collections
+
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/gharial",
+            data=self.serializer.dumps(data),
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> Graph:
+            if resp.is_success:
+                return Graph(self._executor, name)
+            raise GraphCreateError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete_graph(
+        self,
+        name: str,
+        drop_collections: Optional[bool] = None,
+        ignore_missing: bool = False,
+    ) -> Result[bool]:
+        """Drops an existing graph object by name.
+
+        Args:
+            name (str): Graph name.
+            drop_collections (bool | None): Optionally all collections not used by
+                other graphs can be dropped as well.
+            ignore_missing (bool): Do not raise an exception on missing graph.
+
+        Returns:
+            bool: True if the graph was deleted successfully, `False` if the
+                graph was not found but **ignore_missing** was set to `True`.
+
+        Raises:
+            GraphDeleteError: If the operation fails.
+
+        References:
+            - `drop-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#drop-a-graph>`__
+        """  # noqa: E501
+        params: Params = {}
+        if drop_collections is not None:
+            params["dropCollections"] = drop_collections
+
+        request = Request(
+            method=Method.DELETE, endpoint=f"/_api/gharial/{name}", params=params
+        )
+
+        def response_handler(resp: Response) -> bool:
+            if not resp.is_success:
+                if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
+                    return False
+                raise GraphDeleteError(resp, request)
+            return True
 
         return await self._executor.execute(request, response_handler)
 
