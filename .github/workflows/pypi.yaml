@@ -14,7 +14,6 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          ref: ${{ github.event.release.tag_name }}
 
       - uses: actions/setup-python@v4
         with:
