@@ -679,7 +679,7 @@ class Database:
             name (str): Graph name.
 
         Returns:
-            bool: True if the graph exists, False otherwise.
+            bool: `True` if the graph exists, `False` otherwise.
 
         Raises:
             GraphListError: If the operation fails.
