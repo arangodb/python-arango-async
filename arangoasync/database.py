@@ -88,6 +88,40 @@ class Database:
     def __init__(self, executor: ApiExecutor) -> None:
         self._executor = executor
 
+    def _get_doc_serializer(
+        self,
+        doc_serializer: Optional[Serializer[T]] = None,
+    ) -> Serializer[T]:
+        """Figure out the document serializer, defaulting to `Json`.
+
+        Args:
+            doc_serializer (Serializer | None): Optional serializer.
+
+        Returns:
+            Serializer: Either the passed serializer or the default one.
+        """
+        if doc_serializer is None:
+            return cast(Serializer[T], self.serializer)
+        else:
+            return doc_serializer
+
+    def _get_doc_deserializer(
+        self,
+        doc_deserializer: Optional[Deserializer[U, V]] = None,
+    ) -> Deserializer[U, V]:
+        """Figure out the document deserializer, defaulting to `Json`.
+
+        Args:
+            doc_deserializer (Deserializer | None): Optional deserializer.
+
+        Returns:
+            Deserializer: Either the passed deserializer or the default one.
+        """
+        if doc_deserializer is None:
+            return cast(Deserializer[U, V], self.deserializer)
+        else:
+            return doc_deserializer
+
     @property
     def connection(self) -> Connection:
         """Return the HTTP connection."""
@@ -390,17 +424,11 @@ class Database:
         Returns:
             StandardCollection: Collection API wrapper.
         """
-        if doc_serializer is None:
-            serializer = cast(Serializer[T], self.serializer)
-        else:
-            serializer = doc_serializer
-        if doc_deserializer is None:
-            deserializer = cast(Deserializer[U, V], self.deserializer)
-        else:
-            deserializer = doc_deserializer
-
         return StandardCollection[T, U, V](
-            self._executor, name, serializer, deserializer
+            self._executor,
+            name,
+            self._get_doc_serializer(doc_serializer),
+            self._get_doc_deserializer(doc_deserializer),
         )
 
     async def collections(
@@ -604,16 +632,11 @@ class Database:
         def response_handler(resp: Response) -> StandardCollection[T, U, V]:
             if not resp.is_success:
                 raise CollectionCreateError(resp, request)
-            if doc_serializer is None:
-                serializer = cast(Serializer[T], self.serializer)
-            else:
-                serializer = doc_serializer
-            if doc_deserializer is None:
-                deserializer = cast(Deserializer[U, V], self.deserializer)
-            else:
-                deserializer = doc_deserializer
             return StandardCollection[T, U, V](
-                self._executor, name, serializer, deserializer
+                self._executor,
+                name,
+                self._get_doc_serializer(doc_serializer),
+                self._get_doc_deserializer(doc_deserializer),
             )
 
         return await self._executor.execute(request, response_handler)
@@ -661,16 +684,30 @@ class Database:
 
         return await self._executor.execute(request, response_handler)
 
-    def graph(self, name: str) -> Graph:
+    def graph(
+        self,
+        name: str,
+        doc_serializer: Optional[Serializer[T]] = None,
+        doc_deserializer: Optional[Deserializer[U, V]] = None,
+    ) -> Graph[T, U, V]:
         """Return the graph API wrapper.
 
         Args:
             name (str): Graph name.
+            doc_serializer (Serializer): Custom document serializer.
+                This will be used only for document operations.
+            doc_deserializer (Deserializer): Custom document deserializer.
+                This will be used only for document operations.
 
         Returns:
             Graph: Graph API wrapper.
         """
-        return Graph(self._executor, name)
+        return Graph[T, U, V](
+            self._executor,
+            name,
+            self._get_doc_serializer(doc_serializer),
+            self._get_doc_deserializer(doc_deserializer),
+        )
 
     async def has_graph(self, name: str) -> Result[bool]:
         """Check if a graph exists in the database.
@@ -720,17 +757,23 @@ class Database:
     async def create_graph(
         self,
         name: str,
+        doc_serializer: Optional[Serializer[T]] = None,
+        doc_deserializer: Optional[Deserializer[U, V]] = None,
         edge_definitions: Optional[Sequence[Json]] = None,
         is_disjoint: Optional[bool] = None,
         is_smart: Optional[bool] = None,
         options: Optional[GraphOptions | Json] = None,
         orphan_collections: Optional[Sequence[str]] = None,
         wait_for_sync: Optional[bool] = None,
-    ) -> Result[Graph]:
+    ) -> Result[Graph[T, U, V]]:
         """Create a new graph.
 
         Args:
             name (str): Graph name.
+            doc_serializer (Serializer): Custom document serializer.
+                This will be used only for document operations.
+            doc_deserializer (Deserializer): Custom document deserializer.
+                This will be used only for document operations.
             edge_definitions (list | None): List of edge definitions, where each edge
                 definition entry is a dictionary with fields "collection" (name of the
                 edge collection), "from" (list of vertex collection names) and "to"
@@ -782,10 +825,15 @@ class Database:
             params=params,
         )
 
-        def response_handler(resp: Response) -> Graph:
-            if resp.is_success:
-                return Graph(self._executor, name)
-            raise GraphCreateError(resp, request)
+        def response_handler(resp: Response) -> Graph[T, U, V]:
+            if not resp.is_success:
+                raise GraphCreateError(resp, request)
+            return Graph[T, U, V](
+                self._executor,
+                name,
+                self._get_doc_serializer(doc_serializer),
+                self._get_doc_deserializer(doc_deserializer),
+            )
 
         return await self._executor.execute(request, response_handler)
 
