@@ -295,6 +295,10 @@ class GraphListError(ArangoServerError):
     """Failed to retrieve graphs."""
 
 
+class GraphPropertiesError(ArangoServerError):
+    """Failed to retrieve graph properties."""
+
+
 class IndexCreateError(ArangoServerError):
     """Failed to create collection index."""
 

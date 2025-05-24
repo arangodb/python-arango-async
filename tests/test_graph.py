@@ -1,6 +1,14 @@
 import pytest
 
-from arangoasync.exceptions import GraphCreateError, GraphDeleteError, GraphListError
+from arangoasync.exceptions import (
+    GraphCreateError,
+    GraphDeleteError,
+    GraphListError,
+    GraphPropertiesError,
+    VertexCollectionCreateError,
+    VertexCollectionDeleteError,
+    VertexCollectionListError,
+)
 from arangoasync.typings import GraphOptions
 from tests.helpers import generate_col_name, generate_graph_name
 
@@ -41,12 +49,15 @@ async def test_graph_basic(db, bad_db):
         await bad_db.delete_graph(graph1_name)
 
 
-async def test_graph_properties(db, cluster, enterprise):
+async def test_graph_properties(db, bad_graph, cluster, enterprise):
     # Create a graph
     name = generate_graph_name()
     is_smart = cluster and enterprise
     options = GraphOptions(number_of_shards=3)
     graph = await db.create_graph(name, is_smart=is_smart, options=options)
+
+    with pytest.raises(GraphPropertiesError):
+        await bad_graph.properties()
 
     # Create first vertex collection
     vcol_name = generate_col_name()
@@ -85,3 +96,33 @@ async def test_graph_properties(db, cluster, enterprise):
     assert properties.edge_definitions[0]["from"][0] == vcol_name
     assert len(properties.edge_definitions[0]["to"]) == 1
     assert properties.edge_definitions[0]["to"][0] == vcol2_name
+
+
+async def test_vertex_collections(db, bad_graph):
+    # Test errors
+    with pytest.raises(VertexCollectionCreateError):
+        await bad_graph.create_vertex_collection("bad_col")
+    with pytest.raises(VertexCollectionListError):
+        await bad_graph.vertex_collections()
+    with pytest.raises(VertexCollectionListError):
+        await bad_graph.has_vertex_collection("bad_col")
+    with pytest.raises(VertexCollectionDeleteError):
+        await bad_graph.delete_vertex_collection("bad_col")
+
+    # Create graph
+    graph = await db.create_graph(generate_graph_name())
+
+    # Create vertex collections
+    names = [generate_col_name() for _ in range(3)]
+    cols = [await graph.create_vertex_collection(name) for name in names]
+
+    # List vertex collection
+    col_list = await graph.vertex_collections()
+    assert len(col_list) == 3
+    for c in cols:
+        assert c.name in col_list
+        assert await graph.has_vertex_collection(c.name)
+
+    # Delete collections
+    await graph.delete_vertex_collection(names[0])
+    assert await graph.has_vertex_collection(names[0]) is False

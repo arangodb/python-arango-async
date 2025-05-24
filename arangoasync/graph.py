@@ -1,13 +1,15 @@
 __all__ = ["Graph"]
 
 
-from typing import Generic, Optional, Sequence, TypeVar
+from typing import Generic, List, Optional, Sequence, TypeVar
 
 from arangoasync.collection import EdgeCollection, VertexCollection
 from arangoasync.exceptions import (
     EdgeDefinitionCreateError,
-    GraphListError,
+    GraphPropertiesError,
     VertexCollectionCreateError,
+    VertexCollectionDeleteError,
+    VertexCollectionListError,
 )
 from arangoasync.executor import ApiExecutor
 from arangoasync.request import Method, Request
@@ -74,7 +76,7 @@ class Graph(Generic[T, U, V]):
             GraphProperties: Properties of the graph.
 
         Raises:
-            GraphListError: If the operation fails.
+            GraphProperties: If the operation fails.
 
         References:
             - `get-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-a-graph>`__
@@ -83,7 +85,7 @@ class Graph(Generic[T, U, V]):
 
         def response_handler(resp: Response) -> GraphProperties:
             if not resp.is_success:
-                raise GraphListError(resp, request)
+                raise GraphPropertiesError(resp, request)
             body = self.deserializer.loads(resp.raw_body)
             return GraphProperties(body["graph"])
 
@@ -105,6 +107,56 @@ class Graph(Generic[T, U, V]):
             doc_serializer=self._doc_serializer,
             doc_deserializer=self._doc_deserializer,
         )
+
+    async def vertex_collections(self) -> Result[List[str]]:
+        """Get the names of all vertex collections in the graph.
+
+        Returns:
+            list: List of vertex collection names.
+
+        Raises:
+            VertexCollectionListError: If the operation fails.
+
+        References:
+            - `list-vertex-collections <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#list-vertex-collections>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/gharial/{self._name}/vertex",
+        )
+
+        def response_handler(resp: Response) -> List[str]:
+            if not resp.is_success:
+                raise VertexCollectionListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return list(sorted(set(body["collections"])))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def has_vertex_collection(self, name: str) -> Result[bool]:
+        """Check if the graph has the given vertex collection.
+
+        Args:
+            name (str): Vertex collection mame.
+
+        Returns:
+            bool: `True` if the graph has the vertex collection, `False` otherwise.
+
+        Raises:
+            VertexCollectionListError: If the operation fails.
+        """
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/gharial/{self._name}/vertex",
+        )
+
+        def response_handler(resp: Response) -> bool:
+            if not resp.is_success:
+                raise VertexCollectionListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return name in body["collections"]
+
+        return await self._executor.execute(request, response_handler)
 
     async def create_vertex_collection(
         self,
@@ -147,6 +199,34 @@ class Graph(Generic[T, U, V]):
             return self.vertex_collection(name)
 
         return await self._executor.execute(request, response_handler)
+
+    async def delete_vertex_collection(self, name: str, purge: bool = False) -> None:
+        """Remove a vertex collection from the graph.
+
+        Args:
+            name (str): Vertex collection name.
+            purge (bool): If set to `True`, the vertex collection is not just deleted
+                from the graph but also from the database completely. Note that you
+                cannot remove vertex collections that are used in one of the edge
+                definitions of the graph.
+
+        Raises:
+            VertexCollectionDeleteError: If the operation fails.
+
+        References:
+           - `remove-a-vertex-collection <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#remove-a-vertex-collection>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/gharial/{self._name}/vertex/{name}",
+            params={"dropCollection": purge},
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise VertexCollectionDeleteError(resp, request)
+
+        await self._executor.execute(request, response_handler)
 
     def edge_collection(self, name: str) -> EdgeCollection[T, U, V]:
         """Returns the edge collection API wrapper.
