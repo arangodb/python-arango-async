@@ -1,6 +1,10 @@
 import pytest
 
 from arangoasync.exceptions import (
+    EdgeCollectionListError,
+    EdgeDefinitionDeleteError,
+    EdgeDefinitionListError,
+    EdgeDefinitionReplaceError,
     GraphCreateError,
     GraphDeleteError,
     GraphListError,
@@ -126,3 +130,66 @@ async def test_vertex_collections(db, bad_graph):
     # Delete collections
     await graph.delete_vertex_collection(names[0])
     assert await graph.has_vertex_collection(names[0]) is False
+
+
+async def test_edge_collections(db, bad_graph):
+    # Test errors
+    with pytest.raises(EdgeDefinitionListError):
+        await bad_graph.edge_definitions()
+    with pytest.raises(EdgeDefinitionListError):
+        await bad_graph.has_edge_definition("bad_col")
+    with pytest.raises(EdgeCollectionListError):
+        await bad_graph.edge_collections()
+    with pytest.raises(EdgeDefinitionReplaceError):
+        await bad_graph.replace_edge_definition("foo", ["bar1"], ["bar2"])
+    with pytest.raises(EdgeDefinitionDeleteError):
+        await bad_graph.delete_edge_definition("foo")
+
+    # Create full graph
+    name = generate_graph_name()
+    graph = await db.create_graph(name)
+    vcol_name = generate_col_name()
+    await graph.create_vertex_collection(vcol_name)
+    vcol2_name = generate_col_name()
+    await graph.create_vertex_collection(vcol2_name)
+    edge_name = generate_col_name()
+    edge_col = await graph.create_edge_definition(
+        edge_name,
+        from_vertex_collections=[vcol_name],
+        to_vertex_collections=[vcol2_name],
+    )
+    assert edge_col.name == edge_name
+
+    # List edge definitions
+    edge_definitions = await graph.edge_definitions()
+    assert len(edge_definitions) == 1
+    assert "edge_collection" in edge_definitions[0]
+    assert "from_vertex_collections" in edge_definitions[0]
+    assert "to_vertex_collections" in edge_definitions[0]
+    assert await graph.has_edge_definition(edge_name) is True
+    assert await graph.has_edge_definition("bad_edge") is False
+
+    edge_cols = await graph.edge_collections()
+    assert len(edge_cols) == 1
+    assert edge_name in edge_cols
+
+    # Replace the edge definition
+    new_from_collections = [vcol2_name]
+    new_to_collections = [vcol_name]
+    replaced_edge_col = await graph.replace_edge_definition(
+        edge_name,
+        from_vertex_collections=new_from_collections,
+        to_vertex_collections=new_to_collections,
+    )
+    assert replaced_edge_col.name == edge_name
+
+    # Verify the updated edge definition
+    edge_definitions = await graph.edge_definitions()
+    assert len(edge_definitions) == 1
+    assert edge_definitions[0]["edge_collection"] == edge_name
+    assert edge_definitions[0]["from_vertex_collections"] == new_from_collections
+    assert edge_definitions[0]["to_vertex_collections"] == new_to_collections
+
+    # Delete the edge definition
+    await graph.delete_edge_definition(edge_name)
+    assert await graph.has_edge_definition(edge_name) is False

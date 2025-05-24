@@ -1726,6 +1726,47 @@ class GraphProperties(JsonWrapper):
     def orphan_collections(self) -> List[str]:
         return cast(List[str], self._data.get("orphanCollections", list()))
 
+    @staticmethod
+    def compatibility_formatter(data: Json) -> Json:
+        result: Json = {}
+
+        if "_id" in data:
+            result["id"] = data["_id"]
+        if "_key" in data:
+            result["key"] = data["_key"]
+        if "name" in data:
+            result["name"] = data["name"]
+        if "_rev" in data:
+            result["revision"] = data["_rev"]
+        if "orphanCollections" in data:
+            result["orphan_collection"] = data["orphanCollections"]
+        if "edgeDefinitions" in data:
+            result["edge_definitions"] = [
+                {
+                    "edge_collection": edge_definition["collection"],
+                    "from_vertex_collections": edge_definition["from"],
+                    "to_vertex_collections": edge_definition["to"],
+                }
+                for edge_definition in data["edgeDefinitions"]
+            ]
+        if "isSmart" in data:
+            result["smart"] = data["isSmart"]
+        if "isDisjoint" in data:
+            result["disjoint"] = data["isDisjoint"]
+        if "isSatellite" in data:
+            result["is_satellite"] = data["isSatellite"]
+        if "smartGraphAttribute" in data:
+            result["smart_field"] = data["smartGraphAttribute"]
+        if "numberOfShards" in data:
+            result["shard_count"] = data["numberOfShards"]
+        if "replicationFactor" in data:
+            result["replication_factor"] = data["replicationFactor"]
+        if "minReplicationFactor" in data:
+            result["min_replication_factor"] = data["minReplicationFactor"]
+        if "writeConcern" in data:
+            result["write_concern"] = data["writeConcern"]
+        return result
+
 
 class GraphOptions(JsonWrapper):
     """Special options for graph creation.

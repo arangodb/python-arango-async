@@ -263,6 +263,10 @@ class DocumentUpdateError(ArangoServerError):
     """Failed to update document."""
 
 
+class EdgeCollectionListError(ArangoServerError):
+    """Failed to retrieve edge collections."""
+
+
 class EdgeDefinitionListError(ArangoServerError):
     """Failed to retrieve edge definitions."""
 

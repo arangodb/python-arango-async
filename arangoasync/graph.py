@@ -1,11 +1,15 @@
 __all__ = ["Graph"]
 
 
-from typing import Generic, List, Optional, Sequence, TypeVar
+from typing import Generic, List, Optional, Sequence, TypeVar, cast
 
 from arangoasync.collection import EdgeCollection, VertexCollection
 from arangoasync.exceptions import (
+    EdgeCollectionListError,
     EdgeDefinitionCreateError,
+    EdgeDefinitionDeleteError,
+    EdgeDefinitionListError,
+    EdgeDefinitionReplaceError,
     GraphPropertiesError,
     VertexCollectionCreateError,
     VertexCollectionDeleteError,
@@ -21,6 +25,7 @@ from arangoasync.typings import (
     GraphProperties,
     Json,
     Jsons,
+    Params,
     VertexCollectionOptions,
 )
 
@@ -129,7 +134,7 @@ class Graph(Generic[T, U, V]):
             if not resp.is_success:
                 raise VertexCollectionListError(resp, request)
             body = self.deserializer.loads(resp.raw_body)
-            return list(sorted(set(body["collections"])))
+            return list(sorted(body["collections"]))
 
         return await self._executor.execute(request, response_handler)
 
@@ -245,6 +250,76 @@ class Graph(Generic[T, U, V]):
             doc_deserializer=self._doc_deserializer,
         )
 
+    async def edge_definitions(self) -> Result[Jsons]:
+        """Return the edge definitions from the graph.
+
+        Returns:
+            list: List of edge definitions.
+
+        Raises:
+            EdgeDefinitionListError: If the operation fails.
+        """
+        request = Request(method=Method.GET, endpoint=f"/_api/gharial/{self._name}")
+
+        def response_handler(resp: Response) -> Jsons:
+            if not resp.is_success:
+                raise EdgeDefinitionListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            properties = GraphProperties(body["graph"])
+            edge_definitions = properties.format(
+                GraphProperties.compatibility_formatter
+            )["edge_definitions"]
+            return cast(Jsons, edge_definitions)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def has_edge_definition(self, name: str) -> Result[bool]:
+        """Check if the graph has the given edge definition.
+
+        Returns:
+            bool: `True` if the graph has the edge definitions, `False` otherwise.
+
+        Raises:
+            EdgeDefinitionListError: If the operation fails.
+        """
+        request = Request(method=Method.GET, endpoint=f"/_api/gharial/{self._name}")
+
+        def response_handler(resp: Response) -> bool:
+            if not resp.is_success:
+                raise EdgeDefinitionListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return any(
+                edge_definition["collection"] == name
+                for edge_definition in body["graph"]["edgeDefinitions"]
+            )
+
+        return await self._executor.execute(request, response_handler)
+
+    async def edge_collections(self) -> Result[List[str]]:
+        """Get the names of all edge collections in the graph.
+
+        Returns:
+            list: List of edge collection names.
+
+        Raises:
+            EdgeCollectionListError: If the operation fails.
+
+        References:
+            - `list-edge-collections <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#list-edge-collections>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/gharial/{self._name}/edge",
+        )
+
+        def response_handler(resp: Response) -> List[str]:
+            if not resp.is_success:
+                raise EdgeCollectionListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return list(sorted(body["collections"]))
+
+        return await self._executor.execute(request, response_handler)
+
     async def create_edge_definition(
         self,
         edge_collection: str,
@@ -307,3 +382,104 @@ class Graph(Generic[T, U, V]):
             return self.edge_collection(edge_collection)
 
         return await self._executor.execute(request, response_handler)
+
+    async def replace_edge_definition(
+        self,
+        edge_collection: str,
+        from_vertex_collections: Sequence[str],
+        to_vertex_collections: Sequence[str],
+        options: Optional[EdgeDefinitionOptions | Json] = None,
+        wait_for_sync: Optional[bool] = None,
+        drop_collections: Optional[bool] = None,
+    ) -> Result[EdgeCollection[T, U, V]]:
+        """Replace an edge definition.
+
+        Args:
+            edge_collection (str): Edge collection name.
+            from_vertex_collections (list): Names of "from" vertex collections.
+            to_vertex_collections (list): Names of "to" vertex collections.
+            options (dict | EdgeDefinitionOptions | None): Extra options for
+                modifying collections withing this edge definition.
+            wait_for_sync (bool | None): If set to `True`, the operation waits for
+                data to be synced to disk before returning.
+            drop_collections (bool | None): Drop the edge collection in addition to
+                removing it from the graph. The collection is only dropped if it is
+                not used in other graphs.
+
+        Returns:
+            EdgeCollection: API wrapper.
+
+        Raises:
+            EdgeDefinitionReplaceError: If the operation fails.
+
+        References:
+            - `replace-an-edge-definition <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#replace-an-edge-definition>`__
+        """  # noqa: E501
+        data: Json = {
+            "collection": edge_collection,
+            "from": from_vertex_collections,
+            "to": to_vertex_collections,
+        }
+        if options is not None:
+            if isinstance(options, VertexCollectionOptions):
+                data["options"] = options.to_dict()
+            else:
+                data["options"] = options
+
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if drop_collections is not None:
+            params["dropCollections"] = drop_collections
+
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/gharial/{self._name}/edge/{edge_collection}",
+            data=self.serializer.dumps(data),
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> EdgeCollection[T, U, V]:
+            if resp.is_success:
+                return self.edge_collection(edge_collection)
+            raise EdgeDefinitionReplaceError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete_edge_definition(
+        self,
+        name: str,
+        purge: bool = False,
+        wait_for_sync: Optional[bool] = None,
+    ) -> None:
+        """Delete an edge definition from the graph.
+
+        Args:
+            name (str): Edge collection name.
+            purge (bool): If set to `True`, the edge definition is not just removed
+                from the graph but the edge collection is also deleted completely
+                from the database.
+            wait_for_sync (bool | None): If set to `True`, the operation waits for
+                changes to be synced to disk before returning.
+
+        Raises:
+            EdgeDefinitionDeleteError: If the operation fails.
+
+        References:
+            - `remove-an-edge-definition <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#remove-an-edge-definition>`__
+        """  # noqa: E501
+        params: Params = {"dropCollections": purge}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/gharial/{self._name}/edge/{name}",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise EdgeDefinitionDeleteError(resp, request)
+
+        await self._executor.execute(request, response_handler)
