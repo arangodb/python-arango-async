@@ -1,16 +1,60 @@
+__all__ = ["Graph"]
+
+
+from typing import Generic, List, Optional, Sequence, TypeVar, cast
+
+from arangoasync.collection import EdgeCollection, VertexCollection
+from arangoasync.exceptions import (
+    EdgeCollectionListError,
+    EdgeDefinitionCreateError,
+    EdgeDefinitionDeleteError,
+    EdgeDefinitionListError,
+    EdgeDefinitionReplaceError,
+    GraphPropertiesError,
+    VertexCollectionCreateError,
+    VertexCollectionDeleteError,
+    VertexCollectionListError,
+)
 from arangoasync.executor import ApiExecutor
+from arangoasync.request import Method, Request
+from arangoasync.response import Response
+from arangoasync.result import Result
+from arangoasync.serialization import Deserializer, Serializer
+from arangoasync.typings import (
+    EdgeDefinitionOptions,
+    GraphProperties,
+    Json,
+    Jsons,
+    Params,
+    VertexCollectionOptions,
+)
+
+T = TypeVar("T")  # Serializer type
+U = TypeVar("U")  # Deserializer loads
+V = TypeVar("V")  # Deserializer loads_many
 
 
-class Graph:
+class Graph(Generic[T, U, V]):
     """Graph API wrapper, representing a graph in ArangoDB.
 
     Args:
-        executor: API executor. Required to execute the API requests.
+        executor (APIExecutor): Required to execute the API requests.
+        name (str): Graph name.
+        doc_serializer (Serializer): Document serializer.
+        doc_deserializer (Deserializer): Document deserializer.
     """
 
-    def __init__(self, executor: ApiExecutor, name: str) -> None:
+    def __init__(
+        self,
+        executor: ApiExecutor,
+        name: str,
+        doc_serializer: Serializer[T],
+        doc_deserializer: Deserializer[U, V],
+    ) -> None:
         self._executor = executor
         self._name = name
+        self._doc_serializer = doc_serializer
+        self._doc_deserializer = doc_deserializer
 
     def __repr__(self) -> str:
         return f"<Graph {self._name}>"
@@ -19,3 +63,423 @@ class Graph:
     def name(self) -> str:
         """Name of the graph."""
         return self._name
+
+    @property
+    def serializer(self) -> Serializer[Json]:
+        """Return the serializer."""
+        return self._executor.serializer
+
+    @property
+    def deserializer(self) -> Deserializer[Json, Jsons]:
+        """Return the deserializer."""
+        return self._executor.deserializer
+
+    async def properties(self) -> Result[GraphProperties]:
+        """Get the properties of the graph.
+
+        Returns:
+            GraphProperties: Properties of the graph.
+
+        Raises:
+            GraphProperties: If the operation fails.
+
+        References:
+            - `get-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-a-graph>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint=f"/_api/gharial/{self._name}")
+
+        def response_handler(resp: Response) -> GraphProperties:
+            if not resp.is_success:
+                raise GraphPropertiesError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return GraphProperties(body["graph"])
+
+        return await self._executor.execute(request, response_handler)
+
+    def vertex_collection(self, name: str) -> VertexCollection[T, U, V]:
+        """Returns the vertex collection API wrapper.
+
+        Args:
+            name (str): Vertex collection name.
+
+        Returns:
+            VertexCollection: Vertex collection API wrapper.
+        """
+        return VertexCollection[T, U, V](
+            executor=self._executor,
+            graph=self._name,
+            name=name,
+            doc_serializer=self._doc_serializer,
+            doc_deserializer=self._doc_deserializer,
+        )
+
+    async def vertex_collections(self) -> Result[List[str]]:
+        """Get the names of all vertex collections in the graph.
+
+        Returns:
+            list: List of vertex collection names.
+
+        Raises:
+            VertexCollectionListError: If the operation fails.
+
+        References:
+            - `list-vertex-collections <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#list-vertex-collections>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/gharial/{self._name}/vertex",
+        )
+
+        def response_handler(resp: Response) -> List[str]:
+            if not resp.is_success:
+                raise VertexCollectionListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return list(sorted(body["collections"]))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def has_vertex_collection(self, name: str) -> Result[bool]:
+        """Check if the graph has the given vertex collection.
+
+        Args:
+            name (str): Vertex collection mame.
+
+        Returns:
+            bool: `True` if the graph has the vertex collection, `False` otherwise.
+
+        Raises:
+            VertexCollectionListError: If the operation fails.
+        """
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/gharial/{self._name}/vertex",
+        )
+
+        def response_handler(resp: Response) -> bool:
+            if not resp.is_success:
+                raise VertexCollectionListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return name in body["collections"]
+
+        return await self._executor.execute(request, response_handler)
+
+    async def create_vertex_collection(
+        self,
+        name: str,
+        options: Optional[VertexCollectionOptions | Json] = None,
+    ) -> Result[VertexCollection[T, U, V]]:
+        """Create a vertex collection in the graph.
+
+        Args:
+            name (str): Vertex collection name.
+            options (dict | VertexCollectionOptions | None): Extra options for
+                creating vertex collections.
+
+        Returns:
+            VertexCollection: Vertex collection API wrapper.
+
+        Raises:
+            VertexCollectionCreateError: If the operation fails.
+
+        References:
+           - `add-a-vertex-collection <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#add-a-vertex-collection>`__
+        """  # noqa: E501
+        data: Json = {"collection": name}
+
+        if options is not None:
+            if isinstance(options, VertexCollectionOptions):
+                data["options"] = options.to_dict()
+            else:
+                data["options"] = options
+
+        request = Request(
+            method=Method.POST,
+            endpoint=f"/_api/gharial/{self._name}/vertex",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> VertexCollection[T, U, V]:
+            if not resp.is_success:
+                raise VertexCollectionCreateError(resp, request)
+            return self.vertex_collection(name)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete_vertex_collection(self, name: str, purge: bool = False) -> None:
+        """Remove a vertex collection from the graph.
+
+        Args:
+            name (str): Vertex collection name.
+            purge (bool): If set to `True`, the vertex collection is not just deleted
+                from the graph but also from the database completely. Note that you
+                cannot remove vertex collections that are used in one of the edge
+                definitions of the graph.
+
+        Raises:
+            VertexCollectionDeleteError: If the operation fails.
+
+        References:
+           - `remove-a-vertex-collection <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#remove-a-vertex-collection>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/gharial/{self._name}/vertex/{name}",
+            params={"dropCollection": purge},
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise VertexCollectionDeleteError(resp, request)
+
+        await self._executor.execute(request, response_handler)
+
+    def edge_collection(self, name: str) -> EdgeCollection[T, U, V]:
+        """Returns the edge collection API wrapper.
+
+        Args:
+            name (str): Edge collection name.
+
+        Returns:
+            EdgeCollection: Edge collection API wrapper.
+        """
+        return EdgeCollection[T, U, V](
+            executor=self._executor,
+            graph=self._name,
+            name=name,
+            doc_serializer=self._doc_serializer,
+            doc_deserializer=self._doc_deserializer,
+        )
+
+    async def edge_definitions(self) -> Result[Jsons]:
+        """Return the edge definitions from the graph.
+
+        Returns:
+            list: List of edge definitions.
+
+        Raises:
+            EdgeDefinitionListError: If the operation fails.
+        """
+        request = Request(method=Method.GET, endpoint=f"/_api/gharial/{self._name}")
+
+        def response_handler(resp: Response) -> Jsons:
+            if not resp.is_success:
+                raise EdgeDefinitionListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            properties = GraphProperties(body["graph"])
+            edge_definitions = properties.format(
+                GraphProperties.compatibility_formatter
+            )["edge_definitions"]
+            return cast(Jsons, edge_definitions)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def has_edge_definition(self, name: str) -> Result[bool]:
+        """Check if the graph has the given edge definition.
+
+        Returns:
+            bool: `True` if the graph has the edge definitions, `False` otherwise.
+
+        Raises:
+            EdgeDefinitionListError: If the operation fails.
+        """
+        request = Request(method=Method.GET, endpoint=f"/_api/gharial/{self._name}")
+
+        def response_handler(resp: Response) -> bool:
+            if not resp.is_success:
+                raise EdgeDefinitionListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return any(
+                edge_definition["collection"] == name
+                for edge_definition in body["graph"]["edgeDefinitions"]
+            )
+
+        return await self._executor.execute(request, response_handler)
+
+    async def edge_collections(self) -> Result[List[str]]:
+        """Get the names of all edge collections in the graph.
+
+        Returns:
+            list: List of edge collection names.
+
+        Raises:
+            EdgeCollectionListError: If the operation fails.
+
+        References:
+            - `list-edge-collections <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#list-edge-collections>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/gharial/{self._name}/edge",
+        )
+
+        def response_handler(resp: Response) -> List[str]:
+            if not resp.is_success:
+                raise EdgeCollectionListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return list(sorted(body["collections"]))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def create_edge_definition(
+        self,
+        edge_collection: str,
+        from_vertex_collections: Sequence[str],
+        to_vertex_collections: Sequence[str],
+        options: Optional[EdgeDefinitionOptions | Json] = None,
+    ) -> Result[EdgeCollection[T, U, V]]:
+        """Create an edge definition in the graph.
+
+        This edge definition has to contain a collection and an array of each from
+        and to vertex collections.
+
+        .. code-block:: python
+
+            {
+                "edge_collection": "edge_collection_name",
+                "from_vertex_collections": ["from_vertex_collection_name"],
+                "to_vertex_collections": ["to_vertex_collection_name"]
+            }
+
+        Args:
+            edge_collection (str): Edge collection name.
+            from_vertex_collections (list): List of vertex collections
+                that can be used as the "from" vertex in edges.
+            to_vertex_collections (list): List of vertex collections
+                that can be used as the "to" vertex in edges.
+            options (dict | EdgeDefinitionOptions | None): Extra options for
+                creating edge definitions.
+
+        Returns:
+            EdgeCollection: Edge collection API wrapper.
+
+        Raises:
+            EdgeDefinitionCreateError: If the operation fails.
+
+        References:
+            - `add-an-edge-definition <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#add-an-edge-definition>`__
+        """  # noqa: E501
+        data: Json = {
+            "collection": edge_collection,
+            "from": from_vertex_collections,
+            "to": to_vertex_collections,
+        }
+
+        if options is not None:
+            if isinstance(options, VertexCollectionOptions):
+                data["options"] = options.to_dict()
+            else:
+                data["options"] = options
+
+        request = Request(
+            method=Method.POST,
+            endpoint=f"/_api/gharial/{self._name}/edge",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> EdgeCollection[T, U, V]:
+            if not resp.is_success:
+                raise EdgeDefinitionCreateError(resp, request)
+            return self.edge_collection(edge_collection)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def replace_edge_definition(
+        self,
+        edge_collection: str,
+        from_vertex_collections: Sequence[str],
+        to_vertex_collections: Sequence[str],
+        options: Optional[EdgeDefinitionOptions | Json] = None,
+        wait_for_sync: Optional[bool] = None,
+        drop_collections: Optional[bool] = None,
+    ) -> Result[EdgeCollection[T, U, V]]:
+        """Replace an edge definition.
+
+        Args:
+            edge_collection (str): Edge collection name.
+            from_vertex_collections (list): Names of "from" vertex collections.
+            to_vertex_collections (list): Names of "to" vertex collections.
+            options (dict | EdgeDefinitionOptions | None): Extra options for
+                modifying collections withing this edge definition.
+            wait_for_sync (bool | None): If set to `True`, the operation waits for
+                data to be synced to disk before returning.
+            drop_collections (bool | None): Drop the edge collection in addition to
+                removing it from the graph. The collection is only dropped if it is
+                not used in other graphs.
+
+        Returns:
+            EdgeCollection: API wrapper.
+
+        Raises:
+            EdgeDefinitionReplaceError: If the operation fails.
+
+        References:
+            - `replace-an-edge-definition <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#replace-an-edge-definition>`__
+        """  # noqa: E501
+        data: Json = {
+            "collection": edge_collection,
+            "from": from_vertex_collections,
+            "to": to_vertex_collections,
+        }
+        if options is not None:
+            if isinstance(options, VertexCollectionOptions):
+                data["options"] = options.to_dict()
+            else:
+                data["options"] = options
+
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if drop_collections is not None:
+            params["dropCollections"] = drop_collections
+
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/gharial/{self._name}/edge/{edge_collection}",
+            data=self.serializer.dumps(data),
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> EdgeCollection[T, U, V]:
+            if resp.is_success:
+                return self.edge_collection(edge_collection)
+            raise EdgeDefinitionReplaceError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete_edge_definition(
+        self,
+        name: str,
+        purge: bool = False,
+        wait_for_sync: Optional[bool] = None,
+    ) -> None:
+        """Delete an edge definition from the graph.
+
+        Args:
+            name (str): Edge collection name.
+            purge (bool): If set to `True`, the edge definition is not just removed
+                from the graph but the edge collection is also deleted completely
+                from the database.
+            wait_for_sync (bool | None): If set to `True`, the operation waits for
+                changes to be synced to disk before returning.
+
+        Raises:
+            EdgeDefinitionDeleteError: If the operation fails.
+
+        References:
+            - `remove-an-edge-definition <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#remove-an-edge-definition>`__
+        """  # noqa: E501
+        params: Params = {"dropCollections": purge}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/gharial/{self._name}/edge/{name}",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise EdgeDefinitionDeleteError(resp, request)
+
+        await self._executor.execute(request, response_handler)

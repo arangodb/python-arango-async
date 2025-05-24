@@ -4,6 +4,7 @@ from arangoasync.typings import (
     CollectionInfo,
     CollectionStatus,
     CollectionType,
+    EdgeDefinitionOptions,
     GraphOptions,
     GraphProperties,
     JsonWrapper,
@@ -17,6 +18,7 @@ from arangoasync.typings import (
     QueryProperties,
     QueryTrackingConfiguration,
     UserInfo,
+    VertexCollectionOptions,
 )
 
 
@@ -368,3 +370,19 @@ def test_GraphOptions():
     assert graph_options.satellites == ["satellite1", "satellite2"]
     assert graph_options.smart_graph_attribute == "region"
     assert graph_options.write_concern == 1
+
+
+def test_VertexCollectionOptions():
+    options = VertexCollectionOptions(
+        satellites=["col1", "col2"],
+    )
+
+    assert options.satellites == ["col1", "col2"]
+
+
+def test_EdgeDefinitionOptions():
+    options = EdgeDefinitionOptions(
+        satellites=["col1", "col2"],
+    )
+
+    assert options.satellites == ["col1", "col2"]

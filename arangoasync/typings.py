@@ -1693,12 +1693,79 @@ class GraphProperties(JsonWrapper):
         return cast(str, self._data["name"])
 
     @property
+    def is_smart(self) -> bool:
+        """Check if the graph is a smart graph."""
+        return cast(bool, self._data.get("isSmart", False))
+
+    @property
+    def is_satellite(self) -> bool:
+        """Check if the graph is a satellite graph."""
+        return cast(bool, self._data.get("isSatellite", False))
+
+    @property
+    def number_of_shards(self) -> Optional[int]:
+        return cast(Optional[int], self._data.get("numberOfShards"))
+
+    @property
+    def replication_factor(self) -> Optional[int | str]:
+        return cast(Optional[int | str], self._data.get("replicationFactor"))
+
+    @property
+    def min_replication_factor(self) -> Optional[int]:
+        return cast(Optional[int], self._data.get("minReplicationFactor"))
+
+    @property
+    def write_concern(self) -> Optional[int]:
+        return cast(Optional[int], self._data.get("writeConcern"))
+
+    @property
     def edge_definitions(self) -> Jsons:
         return cast(Jsons, self._data.get("edgeDefinitions", list()))
 
     @property
     def orphan_collections(self) -> List[str]:
         return cast(List[str], self._data.get("orphanCollections", list()))
+
+    @staticmethod
+    def compatibility_formatter(data: Json) -> Json:
+        result: Json = {}
+
+        if "_id" in data:
+            result["id"] = data["_id"]
+        if "_key" in data:
+            result["key"] = data["_key"]
+        if "name" in data:
+            result["name"] = data["name"]
+        if "_rev" in data:
+            result["revision"] = data["_rev"]
+        if "orphanCollections" in data:
+            result["orphan_collection"] = data["orphanCollections"]
+        if "edgeDefinitions" in data:
+            result["edge_definitions"] = [
+                {
+                    "edge_collection": edge_definition["collection"],
+                    "from_vertex_collections": edge_definition["from"],
+                    "to_vertex_collections": edge_definition["to"],
+                }
+                for edge_definition in data["edgeDefinitions"]
+            ]
+        if "isSmart" in data:
+            result["smart"] = data["isSmart"]
+        if "isDisjoint" in data:
+            result["disjoint"] = data["isDisjoint"]
+        if "isSatellite" in data:
+            result["is_satellite"] = data["isSatellite"]
+        if "smartGraphAttribute" in data:
+            result["smart_field"] = data["smartGraphAttribute"]
+        if "numberOfShards" in data:
+            result["shard_count"] = data["numberOfShards"]
+        if "replicationFactor" in data:
+            result["replication_factor"] = data["replicationFactor"]
+        if "minReplicationFactor" in data:
+            result["min_replication_factor"] = data["minReplicationFactor"]
+        if "writeConcern" in data:
+            result["write_concern"] = data["writeConcern"]
+        return result
 
 
 class GraphOptions(JsonWrapper):
@@ -1720,15 +1787,18 @@ class GraphOptions(JsonWrapper):
             Enterprise Edition.
         write_concern (int | None): The write concern for new collections in the
             graph.
+
+    References:
+        - `create-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#create-a-graph>`__
     """  # noqa: E501
 
     def __init__(
         self,
-        number_of_shards: Optional[int],
-        replication_factor: Optional[int | str],
-        satellites: Optional[List[str]],
-        smart_graph_attribute: Optional[str],
-        write_concern: Optional[int],
+        number_of_shards: Optional[int] = None,
+        replication_factor: Optional[int | str] = None,
+        satellites: Optional[List[str]] = None,
+        smart_graph_attribute: Optional[str] = None,
+        write_concern: Optional[int] = None,
     ) -> None:
         data: Json = dict()
         if number_of_shards is not None:
@@ -1762,3 +1832,57 @@ class GraphOptions(JsonWrapper):
     @property
     def write_concern(self) -> Optional[int]:
         return cast(Optional[int], self._data.get("writeConcern"))
+
+
+class VertexCollectionOptions(JsonWrapper):
+    """Special options for vertex collection creation.
+
+    Args:
+        satellites (list): An array of collection names that is used to create
+            SatelliteCollections for a (Disjoint) SmartGraph using
+            SatelliteCollections (Enterprise Edition only). Each array element must
+            be a string and a valid collection name.
+
+    References:
+        - `add-a-vertex-collection <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#add-a-vertex-collection>`__
+    """  # noqa: E501
+
+    def __init__(
+        self,
+        satellites: Optional[List[str]] = None,
+    ) -> None:
+        data: Json = dict()
+        if satellites is not None:
+            data["satellites"] = satellites
+        super().__init__(data)
+
+    @property
+    def satellites(self) -> Optional[List[str]]:
+        return cast(Optional[List[str]], self._data.get("satellites"))
+
+
+class EdgeDefinitionOptions(JsonWrapper):
+    """Special options for edge definition creation.
+
+    Args:
+        satellites (list): An array of collection names that is used to create
+            SatelliteCollections for a (Disjoint) SmartGraph using
+            SatelliteCollections (Enterprise Edition only). Each array element must
+            be a string and a valid collection name.
+
+    References:
+        - `add-an-edge-definition <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#add-an-edge-definition>`__
+    """  # noqa: E501
+
+    def __init__(
+        self,
+        satellites: Optional[List[str]] = None,
+    ) -> None:
+        data: Json = dict()
+        if satellites is not None:
+            data["satellites"] = satellites
+        super().__init__(data)
+
+    @property
+    def satellites(self) -> Optional[List[str]]:
+        return cast(Optional[List[str]], self._data.get("satellites"))

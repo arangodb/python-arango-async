@@ -263,6 +263,30 @@ class DocumentUpdateError(ArangoServerError):
     """Failed to update document."""
 
 
+class EdgeCollectionListError(ArangoServerError):
+    """Failed to retrieve edge collections."""
+
+
+class EdgeDefinitionListError(ArangoServerError):
+    """Failed to retrieve edge definitions."""
+
+
+class EdgeDefinitionCreateError(ArangoServerError):
+    """Failed to create edge definition."""
+
+
+class EdgeDefinitionReplaceError(ArangoServerError):
+    """Failed to replace edge definition."""
+
+
+class EdgeDefinitionDeleteError(ArangoServerError):
+    """Failed to delete edge definition."""
+
+
+class EdgeListError(ArangoServerError):
+    """Failed to retrieve edges coming in and out of a vertex."""
+
+
 class GraphCreateError(ArangoServerError):
     """Failed to create the graph."""
 
@@ -273,6 +297,10 @@ class GraphDeleteError(ArangoServerError):
 
 class GraphListError(ArangoServerError):
     """Failed to retrieve graphs."""
+
+
+class GraphPropertiesError(ArangoServerError):
+    """Failed to retrieve graph properties."""
 
 
 class IndexCreateError(ArangoServerError):
@@ -389,3 +417,15 @@ class UserReplaceError(ArangoServerError):
 
 class UserUpdateError(ArangoServerError):
     """Failed to update user."""
+
+
+class VertexCollectionCreateError(ArangoServerError):
+    """Failed to create vertex collection."""
+
+
+class VertexCollectionDeleteError(ArangoServerError):
+    """Failed to delete vertex collection."""
+
+
+class VertexCollectionListError(ArangoServerError):
+    """Failed to retrieve vertex collections."""

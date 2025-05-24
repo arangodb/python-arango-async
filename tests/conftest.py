@@ -8,7 +8,12 @@ from packaging import version
 from arangoasync.auth import Auth, JwtToken
 from arangoasync.client import ArangoClient
 from arangoasync.typings import UserInfo
-from tests.helpers import generate_col_name, generate_db_name, generate_username
+from tests.helpers import (
+    generate_col_name,
+    generate_db_name,
+    generate_graph_name,
+    generate_username,
+)
 
 
 @dataclass
@@ -19,6 +24,7 @@ class GlobalData:
     secret: str = None
     token: JwtToken = None
     sys_db_name: str = "_system"
+    graph_name: str = "test_graph"
     username: str = generate_username()
     cluster: bool = False
     enterprise: bool = False
@@ -64,6 +70,7 @@ def pytest_configure(config):
     global_data.token = JwtToken.generate_token(global_data.secret)
     global_data.cluster = config.getoption("cluster")
     global_data.enterprise = config.getoption("enterprise")
+    global_data.graph_name = generate_graph_name()
 
     async def get_db_version():
         async with ArangoClient(hosts=global_data.url) as client:
@@ -213,6 +220,11 @@ async def bad_db(arango_client):
         auth=Auth(username="bad_user", password="bad_password"),
         verify=False,
     )
+
+
+@pytest_asyncio.fixture
+def bad_graph(bad_db):
+    return bad_db.graph(global_data.graph_name)
 
 
 @pytest_asyncio.fixture

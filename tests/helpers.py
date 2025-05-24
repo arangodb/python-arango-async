@@ -19,6 +19,15 @@ def generate_col_name():
     return f"test_collection_{uuid4().hex}"
 
 
+def generate_graph_name():
+    """Generate and return a random graph name.
+
+    Returns:
+        str: Random graph name.
+    """
+    return f"test_graph_{uuid4().hex}"
+
+
 def generate_username():
     """Generate and return a random username.
 
