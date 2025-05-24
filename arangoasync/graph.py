@@ -1,16 +1,26 @@
 __all__ = ["Graph"]
 
 
-from typing import Generic, TypeVar
+from typing import Generic, Optional, Sequence, TypeVar
 
 from arangoasync.collection import EdgeCollection, VertexCollection
-from arangoasync.exceptions import GraphListError
+from arangoasync.exceptions import (
+    EdgeDefinitionCreateError,
+    GraphListError,
+    VertexCollectionCreateError,
+)
 from arangoasync.executor import ApiExecutor
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
 from arangoasync.result import Result
 from arangoasync.serialization import Deserializer, Serializer
-from arangoasync.typings import GraphProperties, Json, Jsons
+from arangoasync.typings import (
+    EdgeDefinitionOptions,
+    GraphProperties,
+    Json,
+    Jsons,
+    VertexCollectionOptions,
+)
 
 T = TypeVar("T")  # Serializer type
 U = TypeVar("U")  # Deserializer loads
@@ -67,7 +77,7 @@ class Graph(Generic[T, U, V]):
             GraphListError: If the operation fails.
 
         References:
-            - `get-a-graph <https://docs.arangodb.com/3.12/develop/http-api/graphs/named-graphs/#get-a-graph>`__
+            - `get-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-a-graph>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint=f"/_api/gharial/{self._name}")
 
@@ -96,6 +106,48 @@ class Graph(Generic[T, U, V]):
             doc_deserializer=self._doc_deserializer,
         )
 
+    async def create_vertex_collection(
+        self,
+        name: str,
+        options: Optional[VertexCollectionOptions | Json] = None,
+    ) -> Result[VertexCollection[T, U, V]]:
+        """Create a vertex collection in the graph.
+
+        Args:
+            name (str): Vertex collection name.
+            options (dict | VertexCollectionOptions | None): Extra options for
+                creating vertex collections.
+
+        Returns:
+            VertexCollection: Vertex collection API wrapper.
+
+        Raises:
+            VertexCollectionCreateError: If the operation fails.
+
+        References:
+           - `add-a-vertex-collection <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#add-a-vertex-collection>`__
+        """  # noqa: E501
+        data: Json = {"collection": name}
+
+        if options is not None:
+            if isinstance(options, VertexCollectionOptions):
+                data["options"] = options.to_dict()
+            else:
+                data["options"] = options
+
+        request = Request(
+            method=Method.POST,
+            endpoint=f"/_api/gharial/{self._name}/vertex",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> VertexCollection[T, U, V]:
+            if not resp.is_success:
+                raise VertexCollectionCreateError(resp, request)
+            return self.vertex_collection(name)
+
+        return await self._executor.execute(request, response_handler)
+
     def edge_collection(self, name: str) -> EdgeCollection[T, U, V]:
         """Returns the edge collection API wrapper.
 
@@ -112,3 +164,66 @@ class Graph(Generic[T, U, V]):
             doc_serializer=self._doc_serializer,
             doc_deserializer=self._doc_deserializer,
         )
+
+    async def create_edge_definition(
+        self,
+        edge_collection: str,
+        from_vertex_collections: Sequence[str],
+        to_vertex_collections: Sequence[str],
+        options: Optional[EdgeDefinitionOptions | Json] = None,
+    ) -> Result[EdgeCollection[T, U, V]]:
+        """Create an edge definition in the graph.
+
+        This edge definition has to contain a collection and an array of each from
+        and to vertex collections.
+
+        .. code-block:: python
+
+            {
+                "edge_collection": "edge_collection_name",
+                "from_vertex_collections": ["from_vertex_collection_name"],
+                "to_vertex_collections": ["to_vertex_collection_name"]
+            }
+
+        Args:
+            edge_collection (str): Edge collection name.
+            from_vertex_collections (list): List of vertex collections
+                that can be used as the "from" vertex in edges.
+            to_vertex_collections (list): List of vertex collections
+                that can be used as the "to" vertex in edges.
+            options (dict | EdgeDefinitionOptions | None): Extra options for
+                creating edge definitions.
+
+        Returns:
+            EdgeCollection: Edge collection API wrapper.
+
+        Raises:
+            EdgeDefinitionCreateError: If the operation fails.
+
+        References:
+            - `add-an-edge-definition <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#add-an-edge-definition>`__
+        """  # noqa: E501
+        data: Json = {
+            "collection": edge_collection,
+            "from": from_vertex_collections,
+            "to": to_vertex_collections,
+        }
+
+        if options is not None:
+            if isinstance(options, VertexCollectionOptions):
+                data["options"] = options.to_dict()
+            else:
+                data["options"] = options
+
+        request = Request(
+            method=Method.POST,
+            endpoint=f"/_api/gharial/{self._name}/edge",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> EdgeCollection[T, U, V]:
+            if not resp.is_success:
+                raise EdgeDefinitionCreateError(resp, request)
+            return self.edge_collection(edge_collection)
+
+        return await self._executor.execute(request, response_handler)
