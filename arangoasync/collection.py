@@ -1,4 +1,9 @@
-__all__ = ["Collection", "StandardCollection"]
+__all__ = [
+    "Collection",
+    "EdgeCollection",
+    "StandardCollection",
+    "VertexCollection",
+]
 
 
 from typing import Any, Generic, List, Optional, Sequence, Tuple, TypeVar, cast
@@ -1711,3 +1716,73 @@ class StandardCollection(Collection[T, U, V]):
             return self.deserializer.loads_many(resp.raw_body)
 
         return await self._executor.execute(request, response_handler)
+
+
+class VertexCollection(Collection[T, U, V]):
+    """Vertex collection API wrapper.
+
+    Args:
+        executor (ApiExecutor): API executor.
+        name (str): Collection name
+        graph (str): Graph name.
+        doc_serializer (Serializer): Document serializer.
+        doc_deserializer (Deserializer): Document deserializer.
+    """
+
+    def __init__(
+        self,
+        executor: ApiExecutor,
+        graph: str,
+        name: str,
+        doc_serializer: Serializer[T],
+        doc_deserializer: Deserializer[U, V],
+    ) -> None:
+        super().__init__(executor, name, doc_serializer, doc_deserializer)
+        self._graph = graph
+
+    def __repr__(self) -> str:
+        return f"<VertexCollection {self.name}>"
+
+    @property
+    def graph(self) -> str:
+        """Return the graph name.
+
+        Returns:
+            str: Graph name.
+        """
+        return self._graph
+
+
+class EdgeCollection(Collection[T, U, V]):
+    """Edge collection API wrapper.
+
+    Args:
+        executor (ApiExecutor): API executor.
+        name (str): Collection name
+        graph (str): Graph name.
+        doc_serializer (Serializer): Document serializer.
+        doc_deserializer (Deserializer): Document deserializer.
+    """
+
+    def __init__(
+        self,
+        executor: ApiExecutor,
+        graph: str,
+        name: str,
+        doc_serializer: Serializer[T],
+        doc_deserializer: Deserializer[U, V],
+    ) -> None:
+        super().__init__(executor, name, doc_serializer, doc_deserializer)
+        self._graph = graph
+
+    def __repr__(self) -> str:
+        return f"<EdgeCollection {self.name}>"
+
+    @property
+    def graph(self) -> str:
+        """Return the graph name.
+
+        Returns:
+            str: Graph name.
+        """
+        return self._graph
