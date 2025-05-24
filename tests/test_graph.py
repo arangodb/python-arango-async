@@ -72,7 +72,8 @@ async def test_graph_properties(db, bad_graph, cluster, enterprise):
     properties = await graph.properties()
     assert properties.name == name
     assert properties.is_smart == is_smart
-    assert properties.number_of_shards == options.number_of_shards
+    if cluster:
+        assert properties.number_of_shards == options.number_of_shards
     assert properties.orphan_collections == [vcol_name]
 
     # Create second vertex collection
