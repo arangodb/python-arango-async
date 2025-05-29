@@ -174,6 +174,10 @@ async def test_vertex_collections(db, docs, bad_graph):
     with pytest.raises(DocumentDeleteError):
         assert await graph.delete_vertex(v1["_id"])
 
+    # Check has method
+    assert await graph.has_vertex(v1) is False
+    assert await graph.has_vertex(v2["_id"]) is True
+
 
 async def test_edge_collections(db, bad_graph):
     # Test errors

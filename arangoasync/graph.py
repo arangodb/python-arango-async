@@ -233,6 +233,38 @@ class Graph(Generic[T, U, V]):
 
         await self._executor.execute(request, response_handler)
 
+    async def has_vertex(
+        self,
+        vertex: str | Json,
+        allow_dirty_read: bool = False,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
+    ) -> Result[bool]:
+        """Check if the vertex exists in the graph.
+
+        Args:
+            vertex (str | dict): Document ID, key or body.
+                Document body must contain the "_id" or "_key" field.
+            allow_dirty_read (bool):  Allow reads from followers in a cluster.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
+
+        Returns:
+            `True` if the document exists, `False` otherwise.
+
+        Raises:
+            DocumentRevisionError: If the revision is incorrect.
+            DocumentGetError: If retrieval fails.
+        """  # noqa: E501
+        return await self.vertex_collection(Collection.get_col_name(vertex)).has(
+            vertex,
+            allow_dirty_read=allow_dirty_read,
+            if_match=if_match,
+            if_none_match=if_none_match,
+        )
+
     async def vertex(
         self,
         vertex: str | Json,
