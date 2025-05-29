@@ -154,6 +154,7 @@ async def test_vertex_collections(db, docs, bad_graph):
     v1["text"] = "updated_text"
     v1_meta = await graph.update_vertex(v1, return_new=True)
     assert "new" in v1_meta
+    assert "vertex" in v1_meta
     v1 = await graph.vertex(v1_meta["vertex"])
     assert v1["text"] == "updated_text"
 
@@ -164,6 +165,7 @@ async def test_vertex_collections(db, docs, bad_graph):
     v1_meta = await graph.replace_vertex(v1, return_old=True, return_new=True)
     assert "old" in v1_meta
     assert "new" in v1_meta
+    assert "vertex" in v1_meta
     v1 = await graph.vertex(v1_meta["vertex"])
     assert v1["text"] == "replaced_text"
     assert "additional" in v1
@@ -255,16 +257,20 @@ async def test_edge_collections(db, bad_graph):
     ]
 
     # Create an edge
-    await graph.insert_vertex(teachers_col_name, teachers[0])
-    await graph.insert_vertex(students_col_name, students[0])
-    edge_meta = await graph.insert_edge(
-        edge_col_name,
-        edges[0],
-        return_new=True,
-    )
-    assert "new" in edge_meta
+    edge_metas = []
+    for idx in range(len(edges)):
+        await graph.insert_vertex(teachers_col_name, teachers[idx])
+        await graph.insert_vertex(students_col_name, students[idx])
+        edge_meta = await graph.insert_edge(
+            edge_col_name,
+            edges[0],
+            return_new=True,
+        )
+        assert "new" in edge_meta
+        edge_metas.append(edge_meta)
 
     # Check for edge existence
+    edge_meta = edge_metas[0]
     edge_id = edge_meta["new"]["_id"]
     assert await graph.has_edge(edge_id) is True
     assert await graph.has_edge(f"{edge_col_name}/bad_id") is False
@@ -276,8 +282,26 @@ async def test_edge_collections(db, bad_graph):
     updated_edge_meta = await graph.update_edge(edge, return_new=True, return_old=True)
     assert "new" in updated_edge_meta
     assert "old" in updated_edge_meta
+    assert "edge" in updated_edge_meta
     edge = await graph.edge(edge_id)
     assert edge["subject"] == "Advanced Math"
+
+    # Replace an edge
+    edge["subject"] = "Replaced Subject"
+    edge["extra_info"] = "Some additional data"
+    replaced_edge_meta = await graph.replace_edge(
+        edge, return_old=True, return_new=True
+    )
+    assert "old" in replaced_edge_meta
+    assert "new" in replaced_edge_meta
+    assert "edge" in replaced_edge_meta
+    edge = await graph.edge(edge_id)
+    assert edge["subject"] == "Replaced Subject"
+
+    # Delete the edge
+    deleted_edge = await graph.delete_edge(edge_id, return_old=True)
+    assert "_id" in deleted_edge
+    assert await graph.has_edge(edge_id) is False
 
     # Replace the edge definition
     new_from_collections = [students_col_name]

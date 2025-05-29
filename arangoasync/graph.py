@@ -857,7 +857,7 @@ class Graph(Generic[T, U, V]):
         Returns:
             dict: Document metadata (e.g. document id, key, revision).
                 If `return_new` or "return_old" are specified, the result contains
-                the document metadata in the "vertex" field and two additional fields
+                the document metadata in the "edge" field and two additional fields
                 ("new" and "old").
 
         Raises:
@@ -872,6 +872,97 @@ class Graph(Generic[T, U, V]):
             wait_for_sync=wait_for_sync,
             keep_null=keep_null,
             return_new=return_new,
+            return_old=return_old,
+            if_match=if_match,
+        )
+
+    async def replace_edge(
+        self,
+        edge: T,
+        wait_for_sync: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[Json]:
+        """Replace an edge in the graph.
+
+        Args:
+            edge (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field, along with "_from" and
+                "_to" fields.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` or "return_old" are specified, the result contains
+                the document metadata in the "edge" field and two additional fields
+                ("new" and "old").
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentReplaceError: If replace fails.
+
+        References:
+            - `replace-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#replace-an-edge>`__
+        """  # noqa: E501
+        col = Collection.get_col_name(cast(Json | str, edge))
+        return await self.edge_collection(col).replace(
+            edge,
+            wait_for_sync=wait_for_sync,
+            keep_null=keep_null,
+            return_new=return_new,
+            return_old=return_old,
+            if_match=if_match,
+        )
+
+    async def delete_edge(
+        self,
+        edge: T,
+        ignore_missing: bool = False,
+        wait_for_sync: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Delete an edge from the graph.
+
+        Args:
+            edge (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field, along with "_from" and
+                "_to" fields.
+            ignore_missing (bool): Do not raise an exception on missing document.
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: `True` if vertex was deleted successfully, `False` if vertex
+                was not found and **ignore_missing** was set to `True` (does not apply
+                in transactions). Old document is returned if **return_old** is set
+                to `True`.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentDeleteError: If deletion fails.
+
+        References:
+            - `remove-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#remove-an-edge>`__
+        """  # noqa: E501
+        col = Collection.get_col_name(cast(Json | str, edge))
+        return await self.edge_collection(col).delete(
+            edge,
+            ignore_missing=ignore_missing,
+            wait_for_sync=wait_for_sync,
             return_old=return_old,
             if_match=if_match,
         )

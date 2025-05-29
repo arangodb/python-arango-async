@@ -2317,7 +2317,7 @@ class EdgeCollection(Collection[T, U, V]):
         return_old: Optional[bool] = None,
         if_match: Optional[str] = None,
     ) -> Result[Json]:
-        """Update a vertex in the graph.
+        """Update an edge in the graph.
 
         Args:
             edge (dict): Partial or full document with the updated values.
@@ -2336,7 +2336,7 @@ class EdgeCollection(Collection[T, U, V]):
         Returns:
             dict: Document metadata (e.g. document id, key, revision).
                 If `return_new` or "return_old" are specified, the result contains
-                the document metadata in the "vertex" field and two additional fields
+                the document metadata in the "edge" field and two additional fields
                 ("new" and "old").
 
         Raises:
@@ -2383,5 +2383,156 @@ class EdgeCollection(Collection[T, U, V]):
                     "does not exist. Finally check that _from or _to vertex do exist."
                 )
             raise DocumentUpdateError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def replace(
+        self,
+        edge: T,
+        wait_for_sync: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[Json]:
+        """Replace an edge in the graph.
+
+        Args:
+            edge (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field, along with "_from" and
+                "_to" fields.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` or "return_old" are specified, the result contains
+                the document metadata in the "edge" field and two additional fields
+                ("new" and "old").
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentReplaceError: If replace fails.
+
+        References:
+            - `replace-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#replace-an-edge>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if keep_null is not None:
+            params["keepNull"] = keep_null
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/gharial/{self._graph}/edge/"
+            f"{self._prep_from_doc(cast(Json, edge))}",
+            params=params,
+            headers=headers,
+            data=self._doc_serializer.dumps(edge),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                msg = (
+                    "The graph cannot be found or the edge collection is not "
+                    "part of the graph. It is also possible that the vertex "
+                    "collection referenced in the _from or _to attribute is not part "
+                    "of the graph or the vertex collection is part of the graph, but "
+                    "does not exist. Finally check that _from or _to vertex do exist."
+                )
+            raise DocumentReplaceError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete(
+        self,
+        edge: T,
+        ignore_missing: bool = False,
+        wait_for_sync: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Delete an edge from the graph.
+
+        Args:
+            edge (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field, along with "_from" and
+                "_to" fields.
+            ignore_missing (bool): Do not raise an exception on missing document.
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: `True` if vertex was deleted successfully, `False` if vertex
+                was not found and **ignore_missing** was set to `True` (does not apply
+                in transactions). Old document is returned if **return_old** is set
+                to `True`.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentDeleteError: If deletion fails.
+
+        References:
+            - `remove-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#remove-an-edge>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_old is not None:
+            params["returnOld"] = return_old
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/gharial/{self._graph}/edge/"
+            f"{self._prep_from_doc(cast(Json, edge))}",
+            params=params,
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> bool | Json:
+            if resp.is_success:
+                data: Json = self.deserializer.loads(resp.raw_body)
+                if "old" in data:
+                    return cast(Json, data["old"])
+                return True
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                if resp.error_code == DOCUMENT_NOT_FOUND and ignore_missing:
+                    return False
+                msg = (
+                    "Either the graph cannot be found, the edge collection is not "
+                    "part of the graph, or the edge does not exist"
+                )
+            raise DocumentDeleteError(resp, request, msg)
 
         return await self._executor.execute(request, response_handler)
