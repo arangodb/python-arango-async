@@ -258,7 +258,8 @@ class Graph(Generic[T, U, V]):
             DocumentRevisionError: If the revision is incorrect.
             DocumentGetError: If retrieval fails.
         """  # noqa: E501
-        return await self.vertex_collection(Collection.get_col_name(vertex)).has(
+        col = Collection.get_col_name(vertex)
+        return await self.vertex_collection(col).has(
             vertex,
             allow_dirty_read=allow_dirty_read,
             if_match=if_match,
@@ -271,7 +272,7 @@ class Graph(Generic[T, U, V]):
         if_match: Optional[str] = None,
         if_none_match: Optional[str] = None,
     ) -> Result[Optional[Json]]:
-        """Return a document.
+        """Return a vertex document.
 
         Args:
             vertex (str | dict): Document ID, key or body.
@@ -292,7 +293,8 @@ class Graph(Generic[T, U, V]):
         References:
             - `get-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-a-vertex>`__
         """  # noqa: E501
-        return await self.vertex_collection(Collection.get_col_name(vertex)).get(
+        col = Collection.get_col_name(vertex)
+        return await self.vertex_collection(col).get(
             vertex,
             if_match=if_match,
             if_none_match=if_none_match,
@@ -318,6 +320,8 @@ class Graph(Generic[T, U, V]):
 
         Returns:
             dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` is specified, the result contains the document
+                metadata in the "vertex" field and the new document in the "new" field.
 
         Raises:
             DocumentInsertError: If insertion fails.
@@ -341,7 +345,7 @@ class Graph(Generic[T, U, V]):
         return_old: Optional[bool] = None,
         if_match: Optional[str] = None,
     ) -> Result[Json]:
-        """Insert a new document.
+        """Update a vertex in the graph.
 
         Args:
             vertex (dict): Partial or full document with the updated values.
@@ -357,7 +361,10 @@ class Graph(Generic[T, U, V]):
                 target revision id by using the "if-match" HTTP header.
 
         Returns:
-            bool | dict: Document metadata (e.g. document id, key, revision).
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` or "return_old" are specified, the result contains
+                the document metadata in the "vertex" field and two additional fields
+                ("new" and "old").
 
         Raises:
             DocumentUpdateError: If update fails.
@@ -384,7 +391,7 @@ class Graph(Generic[T, U, V]):
         return_old: Optional[bool] = None,
         if_match: Optional[str] = None,
     ) -> Result[Json]:
-        """Replace a document.
+        """Replace a vertex in the graph.
 
         Args:
             vertex (dict): New document. It must contain the "_key" or "_id" field.
@@ -399,7 +406,10 @@ class Graph(Generic[T, U, V]):
                 target revision id by using the "if-match" HTTP header.
 
         Returns:
-            bool | dict: Document metadata (e.g. document id, key, revision).
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` or "return_old" are specified, the result contains
+                the document metadata in the "vertex" field and two additional fields
+                ("new" and "old").
 
         Raises:
             DocumentRevisionError: If precondition was violated.
@@ -426,7 +436,7 @@ class Graph(Generic[T, U, V]):
         return_old: Optional[bool] = None,
         if_match: Optional[str] = None,
     ) -> Result[bool | Json]:
-        """Delete a document.
+        """Delete a vertex in the graph.
 
         Args:
             vertex (dict): Document ID, key or body. The body must contain the
@@ -440,9 +450,9 @@ class Graph(Generic[T, U, V]):
 
         Returns:
             bool | dict: `True` if vertex was deleted successfully, `False` if vertex
-            was not found and **ignore_missing** was set to `True` (does not apply in
-            transactions). Old document is returned if **return_old** is set to
-            `True`.
+                was not found and **ignore_missing** was set to `True` (does not apply
+                in transactions). Old document is returned if **return_old** is set
+                to `True`.
 
         Raises:
             DocumentRevisionError: If precondition was violated.
@@ -710,3 +720,111 @@ class Graph(Generic[T, U, V]):
                 raise EdgeDefinitionDeleteError(resp, request)
 
         await self._executor.execute(request, response_handler)
+
+    async def has_edge(
+        self,
+        edge: str | Json,
+        allow_dirty_read: bool = False,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
+    ) -> Result[bool]:
+        """Check if the edge exists in the graph.
+
+        Args:
+            edge (str | dict): Document ID, key or body.
+                Document body must contain the "_id" or "_key" field.
+            allow_dirty_read (bool):  Allow reads from followers in a cluster.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
+
+        Returns:
+            `True` if the document exists, `False` otherwise.
+
+        Raises:
+            DocumentRevisionError: If the revision is incorrect.
+            DocumentGetError: If retrieval fails.
+        """  # noqa: E501
+        col = Collection.get_col_name(edge)
+        return await self.edge_collection(col).has(
+            edge,
+            allow_dirty_read=allow_dirty_read,
+            if_match=if_match,
+            if_none_match=if_none_match,
+        )
+
+    async def edge(
+        self,
+        edge: str | Json,
+        rev: Optional[str] = None,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
+    ) -> Result[Optional[Json]]:
+        """Return an edge from the graph.
+
+        Args:
+            edge (str | dict): Document ID, key or body.
+                Document body must contain the "_id" or "_key" field.
+            rev (str | None): If this is set a document is only returned if it
+                has exactly this revision.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
+
+        Returns:
+            dict | None: Document or `None` if not found.
+
+        Raises:
+            DocumentRevisionError: If the revision is incorrect.
+            DocumentGetError: If retrieval fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `get-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-an-edge>`__
+        """  # noqa: E501
+        col = Collection.get_col_name(edge)
+        return await self.edge_collection(col).get(
+            edge,
+            rev=rev,
+            if_match=if_match,
+            if_none_match=if_none_match,
+        )
+
+    async def insert_edge(
+        self,
+        collection: str,
+        edge: T,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+    ) -> Result[Json]:
+        """Insert a new edge document.
+
+        Args:
+            collection (str): Name of the vertex collection to insert the document into.
+            edge (dict): Document to insert. It must contain "_from" and
+                "_to" fields. If it contains the "_key" or "_id"
+                field, the value is used as the key of the new document (otherwise
+                it is auto-generated). Any "_rev" field is ignored.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` is specified, the result contains the document
+                metadata in the "edge" field and the new document in the "new" field.
+
+        Raises:
+            DocumentInsertError: If insertion fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `create-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#create-an-edge>`__
+        """  # noqa: E501
+        return await self.edge_collection(collection).insert(
+            edge,
+            wait_for_sync=wait_for_sync,
+            return_new=return_new,
+        )

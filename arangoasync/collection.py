@@ -1465,7 +1465,7 @@ class StandardCollection(Collection[T, U, V]):
         version_attribute: Optional[str] = None,
         if_match: Optional[str] = None,
     ) -> Result[bool | Json]:
-        """Insert a new document.
+        """Update a document.
 
         Args:
             document (dict): Partial or full document with the updated values.
@@ -1791,7 +1791,7 @@ class VertexCollection(Collection[T, U, V]):
         if_match: Optional[str] = None,
         if_none_match: Optional[str] = None,
     ) -> Result[Optional[Json]]:
-        """Return a document.
+        """Return a vertex from the graph.
 
         Args:
             vertex (str | dict): Document ID, key or body.
@@ -1914,7 +1914,7 @@ class VertexCollection(Collection[T, U, V]):
         return_old: Optional[bool] = None,
         if_match: Optional[str] = None,
     ) -> Result[Json]:
-        """Insert a new document.
+        """Update a vertex in the graph.
 
         Args:
             vertex (dict): Partial or full document with the updated values.
@@ -1989,7 +1989,7 @@ class VertexCollection(Collection[T, U, V]):
         return_old: Optional[bool] = None,
         if_match: Optional[str] = None,
     ) -> Result[Json]:
-        """Replace a document.
+        """Replace a vertex in the graph.
 
         Args:
             vertex (dict): New document. It must contain the "_key" or "_id" field.
@@ -2063,7 +2063,7 @@ class VertexCollection(Collection[T, U, V]):
         return_old: Optional[bool] = None,
         if_match: Optional[str] = None,
     ) -> Result[bool | Json]:
-        """Delete a document.
+        """Delete a vertex from the graph.
 
         Args:
             vertex (dict): Document ID, key or body. The body must contain the
@@ -2077,9 +2077,9 @@ class VertexCollection(Collection[T, U, V]):
 
         Returns:
             bool | dict: `True` if vertex was deleted successfully, `False` if vertex
-            was not found and **ignore_missing** was set to `True` (does not apply in
-            transactions). Old document is returned if **return_old** is set to
-            `True`.
+                was not found and **ignore_missing** was set to `True` (does not apply
+                in transactions). Old document is returned if **return_old** is set
+                to `True`.
 
         Raises:
             DocumentRevisionError: If precondition was violated.
@@ -2153,6 +2153,27 @@ class EdgeCollection(Collection[T, U, V]):
     def __repr__(self) -> str:
         return f"<EdgeCollection {self.name}>"
 
+    @staticmethod
+    def _parse_result(data: Json) -> Json:
+        """Parse the result from the response.
+
+        Args:
+            data (dict): Response data.
+
+        Returns:
+            dict: Parsed result.
+        """
+        result: Json = {}
+        if "new" in data or "old" in data:
+            result["edge"] = data["edge"]
+            if "new" in data:
+                result["new"] = data["new"]
+            if "old" in data:
+                result["old"] = data["old"]
+        else:
+            result = data["edge"]
+        return result
+
     @property
     def graph(self) -> str:
         """Return the graph name.
@@ -2161,3 +2182,128 @@ class EdgeCollection(Collection[T, U, V]):
             str: Graph name.
         """
         return self._graph
+
+    async def get(
+        self,
+        edge: str | Json,
+        rev: Optional[str] = None,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
+    ) -> Result[Optional[Json]]:
+        """Return an edge from the graph.
+
+        Args:
+            edge (str | dict): Document ID, key or body.
+                Document body must contain the "_id" or "_key" field.
+            rev (str | None): If this is set a document is only returned if it
+                has exactly this revision.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
+
+        Returns:
+            dict | None: Document or `None` if not found.
+
+        Raises:
+            DocumentRevisionError: If the revision is incorrect.
+            DocumentGetError: If retrieval fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `get-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-an-edge>`__
+        """  # noqa: E501
+        handle = self._prep_from_doc(edge)
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+        if if_none_match is not None:
+            headers["If-None-Match"] = if_none_match
+
+        params: Params = {}
+        if rev is not None:
+            params["rev"] = rev
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/gharial/{self._graph}/edge/{handle}",
+            headers=headers,
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> Optional[Json]:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            elif resp.status_code == HTTP_NOT_FOUND:
+                if resp.error_code == DOCUMENT_NOT_FOUND:
+                    return None
+                else:
+                    raise DocumentGetError(resp, request)
+            elif resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            else:
+                raise DocumentGetError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def insert(
+        self,
+        edge: T,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+    ) -> Result[Json]:
+        """Insert a new edge document.
+
+        Args:
+            edge (dict): Document to insert. It must contain "_from" and
+                "_to" fields. If it contains the "_key" or "_id"
+                field, the value is used as the key of the new document (otherwise
+                it is auto-generated). Any "_rev" field is ignored.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` is specified, the result contains the document
+                metadata in the "edge" field and the new document in the "new" field.
+
+        Raises:
+            DocumentInsertError: If insertion fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `create-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#create-an-edge>`__
+        """  # noqa: E501
+        if isinstance(edge, dict):
+            edge = cast(T, self._ensure_key_from_id(edge))
+
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_new is not None:
+            params["returnNew"] = return_new
+
+        request = Request(
+            method=Method.POST,
+            endpoint=f"/_api/gharial/{self._graph}/edge/{self.name}",
+            params=params,
+            data=self._doc_serializer.dumps(edge),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_NOT_FOUND:
+                msg = (
+                    "The graph cannot be found or the edge collection is not "
+                    "part of the graph. It is also possible that the vertex "
+                    "collection referenced in the _from or _to attribute is not part "
+                    "of the graph or the vertex collection is part of the graph, but "
+                    "does not exist. Finally check that _from or _to vertex do exist."
+                )
+            raise DocumentInsertError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)

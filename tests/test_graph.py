@@ -198,17 +198,19 @@ async def test_edge_collections(db, bad_graph):
     # Create full graph
     name = generate_graph_name()
     graph = await db.create_graph(name)
-    vcol_name = generate_col_name()
-    await graph.create_vertex_collection(vcol_name)
-    vcol2_name = generate_col_name()
-    await graph.create_vertex_collection(vcol2_name)
-    edge_name = generate_col_name()
+    teachers_col_name = generate_col_name()
+    await db.create_collection(teachers_col_name)
+    await graph.create_vertex_collection(teachers_col_name)
+    students_col_name = generate_col_name()
+    await db.create_collection(students_col_name)
+    await graph.create_vertex_collection(students_col_name)
+    edge_col_name = generate_col_name()
     edge_col = await graph.create_edge_definition(
-        edge_name,
-        from_vertex_collections=[vcol_name],
-        to_vertex_collections=[vcol2_name],
+        edge_col_name,
+        from_vertex_collections=[teachers_col_name],
+        to_vertex_collections=[students_col_name],
     )
-    assert edge_col.name == edge_name
+    assert edge_col.name == edge_col_name
 
     # List edge definitions
     edge_definitions = await graph.edge_definitions()
@@ -216,30 +218,76 @@ async def test_edge_collections(db, bad_graph):
     assert "edge_collection" in edge_definitions[0]
     assert "from_vertex_collections" in edge_definitions[0]
     assert "to_vertex_collections" in edge_definitions[0]
-    assert await graph.has_edge_definition(edge_name) is True
+    assert await graph.has_edge_definition(edge_col_name) is True
     assert await graph.has_edge_definition("bad_edge") is False
 
     edge_cols = await graph.edge_collections()
     assert len(edge_cols) == 1
-    assert edge_name in edge_cols
+    assert edge_col_name in edge_cols
+
+    # Design the graph
+    teachers = [
+        {"_key": "101", "name": "Mr. Smith"},
+        {"_key": "102", "name": "Ms. Johnson"},
+        {"_key": "103", "name": "Dr. Brown"},
+    ]
+    students = [
+        {"_key": "123", "name": "Alice"},
+        {"_key": "456", "name": "Bob"},
+        {"_key": "789", "name": "Charlie"},
+    ]
+    edges = [
+        {
+            "_from": f"{teachers_col_name}/101",
+            "_to": f"{students_col_name}/123",
+            "subject": "Math",
+        },
+        {
+            "_from": f"{teachers_col_name}/102",
+            "_to": f"{students_col_name}/456",
+            "subject": "Science",
+        },
+        {
+            "_from": f"{teachers_col_name}/103",
+            "_to": f"{students_col_name}/789",
+            "subject": "History",
+        },
+    ]
+
+    # Create an edge
+    await graph.insert_vertex(teachers_col_name, teachers[0])
+    await graph.insert_vertex(students_col_name, students[0])
+    edge_meta = await graph.insert_edge(
+        edge_col_name,
+        edges[0],
+        return_new=True,
+    )
+    assert "new" in edge_meta
+
+    # Check for edge existence
+    edge_id = edge_meta["new"]["_id"]
+    assert await graph.has_edge(edge_id) is True
+    assert await graph.has_edge(f"{edge_col_name}/bad_id") is False
+    edge = await graph.edge(edge_id)
+    assert edge is not None
 
     # Replace the edge definition
-    new_from_collections = [vcol2_name]
-    new_to_collections = [vcol_name]
+    new_from_collections = [students_col_name]
+    new_to_collections = [teachers_col_name]
     replaced_edge_col = await graph.replace_edge_definition(
-        edge_name,
+        edge_col_name,
         from_vertex_collections=new_from_collections,
         to_vertex_collections=new_to_collections,
     )
-    assert replaced_edge_col.name == edge_name
+    assert replaced_edge_col.name == edge_col_name
 
     # Verify the updated edge definition
     edge_definitions = await graph.edge_definitions()
     assert len(edge_definitions) == 1
-    assert edge_definitions[0]["edge_collection"] == edge_name
+    assert edge_definitions[0]["edge_collection"] == edge_col_name
     assert edge_definitions[0]["from_vertex_collections"] == new_from_collections
     assert edge_definitions[0]["to_vertex_collections"] == new_to_collections
 
     # Delete the edge definition
-    await graph.delete_edge_definition(edge_name)
-    assert await graph.has_edge_definition(edge_name) is False
+    await graph.delete_edge_definition(edge_col_name)
+    assert await graph.has_edge_definition(edge_col_name) is False
