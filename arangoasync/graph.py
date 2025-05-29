@@ -828,3 +828,50 @@ class Graph(Generic[T, U, V]):
             wait_for_sync=wait_for_sync,
             return_new=return_new,
         )
+
+    async def update_edge(
+        self,
+        edge: T,
+        wait_for_sync: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[Json]:
+        """Update a vertex in the graph.
+
+        Args:
+            edge (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field, along with "_from" and
+                "_to" fields.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally update a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` or "return_old" are specified, the result contains
+                the document metadata in the "vertex" field and two additional fields
+                ("new" and "old").
+
+        Raises:
+            DocumentUpdateError: If update fails.
+
+        References:
+            - `update-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#update-an-edge>`__
+        """  # noqa: E501
+        col = Collection.get_col_name(cast(Json | str, edge))
+        return await self.edge_collection(col).update(
+            edge,
+            wait_for_sync=wait_for_sync,
+            keep_null=keep_null,
+            return_new=return_new,
+            return_old=return_old,
+            if_match=if_match,
+        )

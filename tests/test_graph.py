@@ -271,6 +271,14 @@ async def test_edge_collections(db, bad_graph):
     edge = await graph.edge(edge_id)
     assert edge is not None
 
+    # Update an edge
+    edge["subject"] = "Advanced Math"
+    updated_edge_meta = await graph.update_edge(edge, return_new=True, return_old=True)
+    assert "new" in updated_edge_meta
+    assert "old" in updated_edge_meta
+    edge = await graph.edge(edge_id)
+    assert edge["subject"] == "Advanced Math"
+
     # Replace the edge definition
     new_from_collections = [students_col_name]
     new_to_collections = [teachers_col_name]

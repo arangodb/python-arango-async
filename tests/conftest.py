@@ -245,7 +245,7 @@ def db_version():
     return global_data.db_version
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(autouse=True)
 async def teardown():
     yield
     async with ArangoClient(hosts=global_data.url) as client:
