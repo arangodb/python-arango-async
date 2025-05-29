@@ -3,7 +3,7 @@ __all__ = ["Graph"]
 
 from typing import Generic, List, Optional, Sequence, TypeVar, cast
 
-from arangoasync.collection import EdgeCollection, VertexCollection
+from arangoasync.collection import Collection, EdgeCollection, VertexCollection
 from arangoasync.exceptions import (
     EdgeCollectionListError,
     EdgeDefinitionCreateError,
@@ -232,6 +232,73 @@ class Graph(Generic[T, U, V]):
                 raise VertexCollectionDeleteError(resp, request)
 
         await self._executor.execute(request, response_handler)
+
+    async def vertex(
+        self,
+        vertex: str | Json,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
+    ) -> Result[Optional[Json]]:
+        """Return a document.
+
+        Args:
+            vertex (str | dict): Document ID, key or body.
+                Document body must contain the "_id" or "_key" field.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
+
+        Returns:
+            Document or `None` if not found.
+
+        Raises:
+            DocumentRevisionError: If the revision is incorrect.
+            DocumentGetError: If retrieval fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `get-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-a-vertex>`__
+        """  # noqa: E501
+        return await self.vertex_collection(Collection.get_col_name(vertex)).get(
+            vertex,
+            if_match=if_match,
+            if_none_match=if_none_match,
+        )
+
+    async def insert_vertex(
+        self,
+        collection: str,
+        vertex: T,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+    ) -> Result[Json]:
+        """Insert a new vertex document.
+
+        Args:
+            collection (str): Name of the vertex collection to insert the document into.
+            vertex (dict): Document to insert. If it contains the "_key" or "_id"
+                field, the value is used as the key of the new document (otherwise
+                it is auto-generated). Any "_rev" field is ignored.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+
+        Raises:
+            DocumentInsertError: If insertion fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `create-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#create-a-vertex>`__
+        """  # noqa: E501
+        return await self.vertex_collection(collection).insert(
+            vertex,
+            wait_for_sync=wait_for_sync,
+            return_new=return_new,
+        )
 
     def edge_collection(self, name: str) -> EdgeCollection[T, U, V]:
         """Returns the edge collection API wrapper.

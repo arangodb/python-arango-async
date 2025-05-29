@@ -103,7 +103,7 @@ async def test_graph_properties(db, bad_graph, cluster, enterprise):
     assert properties.edge_definitions[0]["to"][0] == vcol2_name
 
 
-async def test_vertex_collections(db, bad_graph):
+async def test_vertex_collections(db, docs, bad_graph):
     # Test errors
     with pytest.raises(VertexCollectionCreateError):
         await bad_graph.create_vertex_collection("bad_col")
@@ -131,6 +131,18 @@ async def test_vertex_collections(db, bad_graph):
     # Delete collections
     await graph.delete_vertex_collection(names[0])
     assert await graph.has_vertex_collection(names[0]) is False
+
+    # Insert in both collections
+    v1_meta = await graph.insert_vertex(names[1], docs[0])
+    v2_meta = await graph.insert_vertex(names[2], docs[1])
+
+    # Get the vertex
+    v1 = await graph.vertex(v1_meta)
+    assert v1 is not None
+    v2 = await graph.vertex(v2_meta["_id"])
+    assert v2 is not None
+    v3 = await graph.vertex(f"{names[2]}/bad_id")
+    assert v3 is None
 
 
 async def test_edge_collections(db, bad_graph):

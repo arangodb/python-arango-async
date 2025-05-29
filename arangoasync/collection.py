@@ -6,7 +6,7 @@ __all__ = [
 ]
 
 
-from typing import Any, Generic, List, Optional, Sequence, Tuple, TypeVar, cast
+from typing import Any, Generic, List, Optional, Sequence, TypeVar, cast
 
 from arangoasync.cursor import Cursor
 from arangoasync.errno import (
@@ -75,6 +75,26 @@ class Collection(Generic[T, U, V]):
         self._doc_deserializer = doc_deserializer
         self._id_prefix = f"{self._name}/"
 
+    @staticmethod
+    def get_col_name(doc: str | Json) -> str:
+        """Extract the collection name from the document.
+
+        Args:
+            doc (str | dict): Document ID or body with "_id" field.
+
+        Returns:
+            str: Collection name.
+
+        Raises:
+            DocumentParseError: If document ID is missing.
+        """
+        try:
+            doc_id: str = doc["_id"] if isinstance(doc, dict) else doc
+        except KeyError:
+            raise DocumentParseError('field "_id" required')
+        else:
+            return doc_id.split("/", 1)[0]
+
     def _validate_id(self, doc_id: str) -> str:
         """Check the collection name in the document ID.
 
@@ -120,6 +140,9 @@ class Collection(Generic[T, U, V]):
 
         Returns:
             dict: Document body with "_key" field if it has "_id" field.
+
+        Raises:
+            DocumentParseError: If document is malformed.
         """
         if "_id" in body and "_key" not in body:
             doc_id = self._validate_id(body["_id"])
@@ -127,18 +150,11 @@ class Collection(Generic[T, U, V]):
             body["_key"] = doc_id[len(self._id_prefix) :]
         return body
 
-    def _prep_from_doc(
-        self,
-        document: str | Json,
-        rev: Optional[str] = None,
-        check_rev: bool = False,
-    ) -> Tuple[str, Json]:
-        """Prepare document ID, body and request headers before a query.
+    def _prep_from_doc(self, document: str | Json) -> str:
+        """Prepare document ID before a query.
 
         Args:
             document (str | dict): Document ID, key or body.
-            rev (str | None): Document revision.
-            check_rev (bool): Whether to check the revision.
 
         Returns:
             Document ID and request headers.
@@ -149,7 +165,6 @@ class Collection(Generic[T, U, V]):
         """
         if isinstance(document, dict):
             doc_id = self._extract_id(document)
-            rev = rev or document.get("_rev")
         elif isinstance(document, str):
             if "/" in document:
                 doc_id = self._validate_id(document)
@@ -158,10 +173,7 @@ class Collection(Generic[T, U, V]):
         else:
             raise TypeError("Document must be str or a dict")
 
-        if not check_rev or rev is None:
-            return doc_id, {}
-        else:
-            return doc_id, {"If-Match": rev}
+        return doc_id
 
     def _build_filter_conditions(self, filters: Optional[Json]) -> str:
         """Build filter conditions for an AQL query.
@@ -597,7 +609,7 @@ class StandardCollection(Collection[T, U, V]):
         References:
             - `get-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document>`__
         """  # noqa: E501
-        handle, _ = self._prep_from_doc(document)
+        handle = self._prep_from_doc(document)
 
         headers: RequestHeaders = {}
         if allow_dirty_read:
@@ -656,7 +668,7 @@ class StandardCollection(Collection[T, U, V]):
         References:
             - `get-a-document-header <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document-header>`__
         """  # noqa: E501
-        handle, _ = self._prep_from_doc(document)
+        handle = self._prep_from_doc(document)
 
         headers: RequestHeaders = {}
         if allow_dirty_read:
@@ -742,7 +754,6 @@ class StandardCollection(Collection[T, U, V]):
             - `create-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#create-a-document>`__
         """  # noqa: E501
         if isinstance(document, dict):
-            # We assume that the document deserializer works with dictionaries.
             document = cast(T, self._ensure_key_from_id(document))
 
         params: Params = {}
@@ -1751,6 +1762,119 @@ class VertexCollection(Collection[T, U, V]):
             str: Graph name.
         """
         return self._graph
+
+    async def get(
+        self,
+        vertex: str | Json,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
+    ) -> Result[Optional[Json]]:
+        """Return a document.
+
+        Args:
+            vertex (str | dict): Document ID, key or body.
+                Document body must contain the "_id" or "_key" field.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
+
+        Returns:
+            Document or `None` if not found.
+
+        Raises:
+            DocumentRevisionError: If the revision is incorrect.
+            DocumentGetError: If retrieval fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `get-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-a-vertex>`__
+        """  # noqa: E501
+        handle = self._prep_from_doc(vertex)
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+        if if_none_match is not None:
+            headers["If-None-Match"] = if_none_match
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/gharial/{self._graph}/vertex/{handle}",
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> Optional[Json]:
+            if resp.is_success:
+                data: Json = self.deserializer.loads(resp.raw_body)
+                return cast(Json, data["vertex"])
+            elif resp.status_code == HTTP_NOT_FOUND:
+                if resp.error_code == DOCUMENT_NOT_FOUND:
+                    return None
+                else:
+                    raise DocumentGetError(resp, request)
+            elif resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            else:
+                raise DocumentGetError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def insert(
+        self,
+        vertex: T,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+    ) -> Result[Json]:
+        """Insert a new vertex document.
+
+        Args:
+            vertex (dict): Document to insert. If it contains the "_key" or "_id"
+                field, the value is used as the key of the new document (otherwise
+                it is auto-generated). Any "_rev" field is ignored.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+
+        Raises:
+            DocumentInsertError: If insertion fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `create-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#create-a-vertex>`__
+        """  # noqa: E501
+        if isinstance(vertex, dict):
+            vertex = cast(T, self._ensure_key_from_id(vertex))
+
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_new is not None:
+            params["returnNew"] = return_new
+
+        request = Request(
+            method=Method.POST,
+            endpoint=f"/_api/gharial/{self._graph}/vertex/{self.name}",
+            params=params,
+            data=self._doc_serializer.dumps(vertex),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                data: Json = self._executor.deserialize(resp.raw_body)
+                return cast(Json, data["vertex"])
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_NOT_FOUND:
+                msg = (
+                    "The graph cannot be found or the collection is not "
+                    "part of the graph."
+                )
+            raise DocumentInsertError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
 
 
 class EdgeCollection(Collection[T, U, V]):
