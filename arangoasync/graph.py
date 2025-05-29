@@ -300,6 +300,134 @@ class Graph(Generic[T, U, V]):
             return_new=return_new,
         )
 
+    async def update_vertex(
+        self,
+        vertex: T,
+        wait_for_sync: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[Json]:
+        """Insert a new document.
+
+        Args:
+            vertex (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally update a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision).
+
+        Raises:
+            DocumentUpdateError: If update fails.
+
+        References:
+            - `update-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#update-a-vertex>`__
+        """  # noqa: E501
+        col = Collection.get_col_name(cast(Json | str, vertex))
+        return await self.vertex_collection(col).update(
+            vertex,
+            wait_for_sync=wait_for_sync,
+            keep_null=keep_null,
+            return_new=return_new,
+            return_old=return_old,
+            if_match=if_match,
+        )
+
+    async def replace_vertex(
+        self,
+        vertex: T,
+        wait_for_sync: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[Json]:
+        """Replace a document.
+
+        Args:
+            vertex (dict): New document. It must contain the "_key" or "_id" field.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision).
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentReplaceError: If replace fails.
+
+        References:
+            - `replace-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#replace-a-vertex>`__
+        """  # noqa: E501
+        col = Collection.get_col_name(cast(Json | str, vertex))
+        return await self.vertex_collection(col).replace(
+            vertex,
+            wait_for_sync=wait_for_sync,
+            keep_null=keep_null,
+            return_new=return_new,
+            return_old=return_old,
+            if_match=if_match,
+        )
+
+    async def delete_vertex(
+        self,
+        vertex: T,
+        ignore_missing: bool = False,
+        wait_for_sync: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Delete a document.
+
+        Args:
+            vertex (dict): Document ID, key or body. The body must contain the
+                "_key" or "_id" field.
+            ignore_missing (bool): Do not raise an exception on missing document.
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: `True` if vertex was deleted successfully, `False` if vertex
+            was not found and **ignore_missing** was set to `True` (does not apply in
+            transactions). Old document is returned if **return_old** is set to
+            `True`.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentDeleteError: If deletion fails.
+
+        References:
+            - `remove-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#remove-a-vertex>`__
+        """  # noqa: E501
+        col = Collection.get_col_name(cast(Json | str, vertex))
+        return await self.vertex_collection(col).delete(
+            vertex,
+            ignore_missing=ignore_missing,
+            wait_for_sync=wait_for_sync,
+            return_old=return_old,
+            if_match=if_match,
+        )
+
     def edge_collection(self, name: str) -> EdgeCollection[T, U, V]:
         """Returns the edge collection API wrapper.
 

@@ -1,6 +1,7 @@
 import pytest
 
 from arangoasync.exceptions import (
+    DocumentDeleteError,
     EdgeCollectionListError,
     EdgeDefinitionDeleteError,
     EdgeDefinitionListError,
@@ -134,15 +135,44 @@ async def test_vertex_collections(db, docs, bad_graph):
 
     # Insert in both collections
     v1_meta = await graph.insert_vertex(names[1], docs[0])
-    v2_meta = await graph.insert_vertex(names[2], docs[1])
+    v2_meta = await graph.insert_vertex(names[2], docs[1], return_new=True)
+    assert "new" in v2_meta
+    v2_meta = v2_meta["vertex"]
 
     # Get the vertex
     v1 = await graph.vertex(v1_meta)
     assert v1 is not None
+    assert v1["text"] == docs[0]["text"]
     v2 = await graph.vertex(v2_meta["_id"])
     assert v2 is not None
     v3 = await graph.vertex(f"{names[2]}/bad_id")
     assert v3 is None
+
+    # Update one vertex
+    v1["text"] = "updated_text"
+    v1_meta = await graph.update_vertex(v1, return_new=True)
+    assert "new" in v1_meta
+    v1 = await graph.vertex(v1_meta["vertex"])
+    assert v1["text"] == "updated_text"
+
+    # Replace the other vertex
+    v1["text"] = "replaced_text"
+    v1["additional"] = "data"
+    v1.pop("loc")
+    v1_meta = await graph.replace_vertex(v1, return_old=True, return_new=True)
+    assert "old" in v1_meta
+    assert "new" in v1_meta
+    v1 = await graph.vertex(v1_meta["vertex"])
+    assert v1["text"] == "replaced_text"
+    assert "additional" in v1
+    assert "loc" not in v1
+
+    # Delete a vertex
+    v1 = await graph.delete_vertex(v1["_id"], return_old=True)
+    assert "_id" in v1
+    assert await graph.delete_vertex(v1["_id"], ignore_missing=True) is False
+    with pytest.raises(DocumentDeleteError):
+        assert await graph.delete_vertex(v1["_id"])
 
 
 async def test_edge_collections(db, bad_graph):

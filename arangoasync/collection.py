@@ -89,7 +89,7 @@ class Collection(Generic[T, U, V]):
             DocumentParseError: If document ID is missing.
         """
         try:
-            doc_id: str = doc["_id"] if isinstance(doc, dict) else doc
+            doc_id: str = doc if isinstance(doc, str) else doc["_id"]
         except KeyError:
             raise DocumentParseError('field "_id" required')
         else:
@@ -1754,6 +1754,27 @@ class VertexCollection(Collection[T, U, V]):
     def __repr__(self) -> str:
         return f"<VertexCollection {self.name}>"
 
+    @staticmethod
+    def _parse_result(data: Json) -> Json:
+        """Parse the result from the response.
+
+        Args:
+            data (dict): Response data.
+
+        Returns:
+            dict: Parsed result.
+        """
+        result: Json = {}
+        if "new" in data or "old" in data:
+            result["vertex"] = data["vertex"]
+            if "new" in data:
+                result["new"] = data["new"]
+            if "old" in data:
+                result["old"] = data["old"]
+        else:
+            result = data["vertex"]
+        return result
+
     @property
     def graph(self) -> str:
         """Return the graph name.
@@ -1766,6 +1787,7 @@ class VertexCollection(Collection[T, U, V]):
     async def get(
         self,
         vertex: str | Json,
+        rev: Optional[str] = None,
         if_match: Optional[str] = None,
         if_none_match: Optional[str] = None,
     ) -> Result[Optional[Json]]:
@@ -1774,13 +1796,15 @@ class VertexCollection(Collection[T, U, V]):
         Args:
             vertex (str | dict): Document ID, key or body.
                 Document body must contain the "_id" or "_key" field.
+            rev (str | None): If this is set a document is only returned if it
+                has exactly this revision.
             if_match (str | None): The document is returned, if it has the same
                 revision as the given ETag.
             if_none_match (str | None): The document is returned, if it has a
                 different revision than the given ETag.
 
         Returns:
-            Document or `None` if not found.
+            dict | None: Document or `None` if not found.
 
         Raises:
             DocumentRevisionError: If the revision is incorrect.
@@ -1798,16 +1822,20 @@ class VertexCollection(Collection[T, U, V]):
         if if_none_match is not None:
             headers["If-None-Match"] = if_none_match
 
+        params: Params = {}
+        if rev is not None:
+            params["rev"] = rev
+
         request = Request(
             method=Method.GET,
             endpoint=f"/_api/gharial/{self._graph}/vertex/{handle}",
             headers=headers,
+            params=params,
         )
 
         def response_handler(resp: Response) -> Optional[Json]:
             if resp.is_success:
-                data: Json = self.deserializer.loads(resp.raw_body)
-                return cast(Json, data["vertex"])
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
             elif resp.status_code == HTTP_NOT_FOUND:
                 if resp.error_code == DOCUMENT_NOT_FOUND:
                     return None
@@ -1838,6 +1866,8 @@ class VertexCollection(Collection[T, U, V]):
 
         Returns:
             dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` is specified, the result contains the document
+                metadata in the "vertex" field and the new document in the "new" field.
 
         Raises:
             DocumentInsertError: If insertion fails.
@@ -1864,8 +1894,7 @@ class VertexCollection(Collection[T, U, V]):
 
         def response_handler(resp: Response) -> Json:
             if resp.is_success:
-                data: Json = self._executor.deserialize(resp.raw_body)
-                return cast(Json, data["vertex"])
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
             msg: Optional[str] = None
             if resp.status_code == HTTP_NOT_FOUND:
                 msg = (
@@ -1873,6 +1902,228 @@ class VertexCollection(Collection[T, U, V]):
                     "part of the graph."
                 )
             raise DocumentInsertError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def update(
+        self,
+        vertex: T,
+        wait_for_sync: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[Json]:
+        """Insert a new document.
+
+        Args:
+            vertex (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally update a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` or "return_old" are specified, the result contains
+                the document metadata in the "vertex" field and two additional fields
+                ("new" and "old").
+
+        Raises:
+            DocumentUpdateError: If update fails.
+
+        References:
+            - `update-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#update-a-vertex>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if keep_null is not None:
+            params["keepNull"] = keep_null
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.PATCH,
+            endpoint=f"/_api/gharial/{self._graph}/vertex/"
+            f"{self._prep_from_doc(cast(Json, vertex))}",
+            params=params,
+            headers=headers,
+            data=self._doc_serializer.dumps(vertex),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                msg = (
+                    "Vertex or graph not found, or the collection is not part of "
+                    "this graph. Error may also occur if the transaction ID is "
+                    "unknown."
+                )
+            raise DocumentUpdateError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def replace(
+        self,
+        vertex: T,
+        wait_for_sync: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[Json]:
+        """Replace a document.
+
+        Args:
+            vertex (dict): New document. It must contain the "_key" or "_id" field.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` or "return_old" are specified, the result contains
+                the document metadata in the "vertex" field and two additional fields
+                ("new" and "old").
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentReplaceError: If replace fails.
+
+        References:
+            - `replace-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#replace-a-vertex>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if keep_null is not None:
+            params["keepNull"] = keep_null
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/gharial/{self._graph}/vertex/"
+            f"{self._prep_from_doc(cast(Json, vertex))}",
+            params=params,
+            headers=headers,
+            data=self._doc_serializer.dumps(vertex),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                msg = (
+                    "Vertex or graph not found, or the collection is not part of "
+                    "this graph. Error may also occur if the transaction ID is "
+                    "unknown."
+                )
+            raise DocumentReplaceError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete(
+        self,
+        vertex: T,
+        ignore_missing: bool = False,
+        wait_for_sync: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Delete a document.
+
+        Args:
+            vertex (dict): Document ID, key or body. The body must contain the
+                "_key" or "_id" field.
+            ignore_missing (bool): Do not raise an exception on missing document.
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: `True` if vertex was deleted successfully, `False` if vertex
+            was not found and **ignore_missing** was set to `True` (does not apply in
+            transactions). Old document is returned if **return_old** is set to
+            `True`.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentDeleteError: If deletion fails.
+
+        References:
+            - `remove-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#remove-a-vertex>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_old is not None:
+            params["returnOld"] = return_old
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/gharial/{self._graph}/vertex/"
+            f"{self._prep_from_doc(cast(Json, vertex))}",
+            params=params,
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> bool | Json:
+            if resp.is_success:
+                data: Json = self.deserializer.loads(resp.raw_body)
+                if "old" in data:
+                    return cast(Json, data["old"])
+                return True
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                if resp.error_code == DOCUMENT_NOT_FOUND and ignore_missing:
+                    return False
+                msg = (
+                    "Vertex or graph not found, or the collection is not part of "
+                    "this graph. Error may also occur if the transaction ID is "
+                    "unknown."
+                )
+            raise DocumentDeleteError(resp, request, msg)
 
         return await self._executor.execute(request, response_handler)
 
