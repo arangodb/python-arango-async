@@ -80,6 +80,10 @@ that you are modeling your students data using Pydantic_. You want to be able to
 of a certain type, and also be able to read them back. More so, you would like to get multiple documents
 back using one of the formats provided by pandas_.
 
+.. note::
+    The driver assumes that the types support dictionary-like indexing, i.e. `doc["_id"]`
+    returns the id of the document.
+
 **Example:**
 
 .. code-block:: python
