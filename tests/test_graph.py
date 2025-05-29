@@ -54,6 +54,7 @@ async def test_graph_basic(db, bad_db):
         await bad_db.delete_graph(graph1_name)
 
 
+@pytest.mark.asyncio
 async def test_graph_properties(db, bad_graph, cluster, enterprise):
     # Create a graph
     name = generate_graph_name()
@@ -104,6 +105,7 @@ async def test_graph_properties(db, bad_graph, cluster, enterprise):
     assert properties.edge_definitions[0]["to"][0] == vcol2_name
 
 
+@pytest.mark.asyncio
 async def test_vertex_collections(db, docs, bad_graph):
     # Test errors
     with pytest.raises(VertexCollectionCreateError):
@@ -179,6 +181,7 @@ async def test_vertex_collections(db, docs, bad_graph):
     assert await graph.has_vertex(v2["_id"]) is True
 
 
+@pytest.mark.asyncio
 async def test_edge_collections(db, bad_graph):
     # Test errors
     with pytest.raises(EdgeDefinitionListError):
