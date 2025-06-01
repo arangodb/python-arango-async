@@ -2576,7 +2576,9 @@ class EdgeCollection(Collection[T, U, V]):
 
         headers: RequestHeaders = {}
         if allow_dirty_read is not None:
-            headers["x-arango-allow-dirty-read"] = "true" if allow_dirty_read else False
+            headers["x-arango-allow-dirty-read"] = (
+                "true" if allow_dirty_read else "false"
+            )
 
         request = Request(
             method=Method.GET,
