@@ -354,7 +354,7 @@ async def test_edge_links(db):
     students_to_students = generate_col_name()
     await graph.create_edge_definition(
         students_to_students,
-        from_vertex_collections=[teachers_col_name],
+        from_vertex_collections=[teachers_col_name, students_col_name],
         to_vertex_collections=[students_col_name],
     )
 

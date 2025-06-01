@@ -65,6 +65,15 @@ class Graph(Generic[T, U, V]):
         return self._name
 
     @property
+    def db_name(self) -> str:
+        """Return the name of the current database.
+
+        Returns:
+            str: Database name.
+        """
+        return self._executor.db_name
+
+    @property
     def serializer(self) -> Serializer[Json]:
         """Return the serializer."""
         return self._executor.serializer
@@ -686,16 +695,16 @@ class Graph(Generic[T, U, V]):
     async def delete_edge_definition(
         self,
         name: str,
-        purge: bool = False,
+        drop_collections: Optional[bool] = None,
         wait_for_sync: Optional[bool] = None,
     ) -> None:
         """Delete an edge definition from the graph.
 
         Args:
             name (str): Edge collection name.
-            purge (bool): If set to `True`, the edge definition is not just removed
-                from the graph but the edge collection is also deleted completely
-                from the database.
+            drop_collections (bool | None): If set to `True`, the edge definition is not
+                just removed from the graph but the edge collection is also deleted
+                completely from the database.
             wait_for_sync (bool | None): If set to `True`, the operation waits for
                 changes to be synced to disk before returning.
 
@@ -705,7 +714,9 @@ class Graph(Generic[T, U, V]):
         References:
             - `remove-an-edge-definition <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#remove-an-edge-definition>`__
         """  # noqa: E501
-        params: Params = {"dropCollections": purge}
+        params: Params = {}
+        if drop_collections is not None:
+            params["dropCollections"] = drop_collections
         if wait_for_sync is not None:
             params["waitForSync"] = wait_for_sync
 

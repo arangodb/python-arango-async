@@ -35,6 +35,7 @@ Contents
     collection
     indexes
     document
+    graph
     aql
 
 **Specialized Features**

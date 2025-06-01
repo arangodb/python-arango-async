@@ -42,6 +42,26 @@ collection:
         "friends": ["robin", "gordon"]
     }
 
+.. _edge-documents:
+
+**Edge documents (edges)** are similar to standard documents but with two
+additional required fields ``_from`` and ``_to``. Values of these fields must
+be the handles of "from" and "to" vertex documents linked by the edge document
+in question (see :doc:`graph` for details). Edge documents are contained in
+:ref:`edge collections <edge-collections>`. Here is an example of a valid edge
+document in "friends" edge collection:
+
+.. code-block:: python
+
+    {
+        "_id": "friends/001",
+        "_key": "001",
+        "_rev": "_Wm3d4le--_",
+        "_fro"': "students/john",
+        "_to": "students/jane",
+        "closeness": 9.5
+    }
+
 Standard documents are managed via collection API wrapper:
 
 .. code-block:: python

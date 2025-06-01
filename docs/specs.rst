@@ -19,6 +19,9 @@ python-arango-async.
 .. automodule:: arangoasync.aql
     :members:
 
+.. automodule:: arangoasync.graph
+    :members:
+
 .. automodule:: arangoasync.job
     :members:
 
