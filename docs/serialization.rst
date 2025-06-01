@@ -183,5 +183,7 @@ You would then use the custom serializer/deserializer when working with collecti
             students = await col.get_many(keys)
             assert type(students) == pd.DataFrame
 
+See a full example in this `gist <https://gist.github.com/apetenchea/bd6e737463a60bfad8c792e0f23bfe4a>`__.
+
 .. _Pydantic: https://docs.pydantic.dev/latest/
 .. _pandas: https://pandas.pydata.org/
