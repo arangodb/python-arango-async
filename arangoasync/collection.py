@@ -6,7 +6,7 @@ __all__ = [
 ]
 
 
-from typing import Any, Generic, List, Optional, Sequence, TypeVar, cast
+from typing import Any, Generic, List, Literal, Optional, Sequence, TypeVar, cast
 
 from arangoasync.cursor import Cursor
 from arangoasync.errno import (
@@ -26,6 +26,7 @@ from arangoasync.exceptions import (
     DocumentReplaceError,
     DocumentRevisionError,
     DocumentUpdateError,
+    EdgeListError,
     IndexCreateError,
     IndexDeleteError,
     IndexGetError,
@@ -111,11 +112,13 @@ class Collection(Generic[T, U, V]):
             raise DocumentParseError(f'Bad collection name in document ID "{doc_id}"')
         return doc_id
 
-    def _extract_id(self, body: Json) -> str:
+    def _extract_id(self, body: Json, validate: bool = True) -> str:
         """Extract the document ID from document body.
 
         Args:
             body (dict): Document body.
+            validate (bool): Whether to validate the document ID,
+                checking if it belongs to the current collection.
 
         Returns:
             str: Document ID.
@@ -125,7 +128,10 @@ class Collection(Generic[T, U, V]):
         """
         try:
             if "_id" in body:
-                return self._validate_id(body["_id"])
+                if validate:
+                    return self._validate_id(body["_id"])
+                else:
+                    return cast(str, body["_id"])
             else:
                 key: str = body["_key"]
                 return self._id_prefix + key
@@ -150,28 +156,30 @@ class Collection(Generic[T, U, V]):
             body["_key"] = doc_id[len(self._id_prefix) :]
         return body
 
-    def _prep_from_doc(self, document: str | Json) -> str:
+    def _get_doc_id(self, document: str | Json, validate: bool = True) -> str:
         """Prepare document ID before a query.
 
         Args:
             document (str | dict): Document ID, key or body.
+            validate (bool): Whether to validate the document ID,
+                checking if it belongs to the current collection.
 
         Returns:
             Document ID and request headers.
 
         Raises:
             DocumentParseError: On missing ID and key.
-            TypeError: On bad document type.
         """
-        if isinstance(document, dict):
-            doc_id = self._extract_id(document)
-        elif isinstance(document, str):
+        if isinstance(document, str):
             if "/" in document:
-                doc_id = self._validate_id(document)
+                if validate:
+                    doc_id = self._validate_id(document)
+                else:
+                    doc_id = document
             else:
                 doc_id = self._id_prefix + document
         else:
-            raise TypeError("Document must be str or a dict")
+            doc_id = self._extract_id(document, validate)
 
         return doc_id
 
@@ -585,7 +593,7 @@ class Collection(Generic[T, U, V]):
         References:
             - `get-a-document-header <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document-header>`__
         """  # noqa: E501
-        handle = self._prep_from_doc(document)
+        handle = self._get_doc_id(document)
 
         headers: RequestHeaders = {}
         if allow_dirty_read:
@@ -1314,7 +1322,7 @@ class StandardCollection(Collection[T, U, V]):
         References:
             - `get-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document>`__
         """  # noqa: E501
-        handle = self._prep_from_doc(document)
+        handle = self._get_doc_id(document)
 
         headers: RequestHeaders = {}
         if allow_dirty_read:
@@ -1814,7 +1822,7 @@ class VertexCollection(Collection[T, U, V]):
         References:
             - `get-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-a-vertex>`__
         """  # noqa: E501
-        handle = self._prep_from_doc(vertex)
+        handle = self._get_doc_id(vertex)
 
         headers: RequestHeaders = {}
         if if_match is not None:
@@ -1958,7 +1966,7 @@ class VertexCollection(Collection[T, U, V]):
         request = Request(
             method=Method.PATCH,
             endpoint=f"/_api/gharial/{self._graph}/vertex/"
-            f"{self._prep_from_doc(cast(Json, vertex))}",
+            f"{self._get_doc_id(cast(Json, vertex))}",
             params=params,
             headers=headers,
             data=self._doc_serializer.dumps(vertex),
@@ -2033,7 +2041,7 @@ class VertexCollection(Collection[T, U, V]):
         request = Request(
             method=Method.PUT,
             endpoint=f"/_api/gharial/{self._graph}/vertex/"
-            f"{self._prep_from_doc(cast(Json, vertex))}",
+            f"{self._get_doc_id(cast(Json, vertex))}",
             params=params,
             headers=headers,
             data=self._doc_serializer.dumps(vertex),
@@ -2101,7 +2109,7 @@ class VertexCollection(Collection[T, U, V]):
         request = Request(
             method=Method.DELETE,
             endpoint=f"/_api/gharial/{self._graph}/vertex/"
-            f"{self._prep_from_doc(cast(Json, vertex))}",
+            f"{self._get_doc_id(cast(Json, vertex))}",
             params=params,
             headers=headers,
         )
@@ -2213,7 +2221,7 @@ class EdgeCollection(Collection[T, U, V]):
         References:
             - `get-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-an-edge>`__
         """  # noqa: E501
-        handle = self._prep_from_doc(edge)
+        handle = self._get_doc_id(edge)
 
         headers: RequestHeaders = {}
         if if_match is not None:
@@ -2362,7 +2370,7 @@ class EdgeCollection(Collection[T, U, V]):
         request = Request(
             method=Method.PATCH,
             endpoint=f"/_api/gharial/{self._graph}/edge/"
-            f"{self._prep_from_doc(cast(Json, edge))}",
+            f"{self._get_doc_id(cast(Json, edge))}",
             params=params,
             headers=headers,
             data=self._doc_serializer.dumps(edge),
@@ -2441,7 +2449,7 @@ class EdgeCollection(Collection[T, U, V]):
         request = Request(
             method=Method.PUT,
             endpoint=f"/_api/gharial/{self._graph}/edge/"
-            f"{self._prep_from_doc(cast(Json, edge))}",
+            f"{self._get_doc_id(cast(Json, edge))}",
             params=params,
             headers=headers,
             data=self._doc_serializer.dumps(edge),
@@ -2512,7 +2520,7 @@ class EdgeCollection(Collection[T, U, V]):
         request = Request(
             method=Method.DELETE,
             endpoint=f"/_api/gharial/{self._graph}/edge/"
-            f"{self._prep_from_doc(cast(Json, edge))}",
+            f"{self._get_doc_id(cast(Json, edge))}",
             params=params,
             headers=headers,
         )
@@ -2536,3 +2544,93 @@ class EdgeCollection(Collection[T, U, V]):
             raise DocumentDeleteError(resp, request, msg)
 
         return await self._executor.execute(request, response_handler)
+
+    async def edges(
+        self,
+        vertex: str | Json,
+        direction: Optional[Literal["in", "out"]] = None,
+        allow_dirty_read: Optional[bool] = None,
+    ) -> Result[Json]:
+        """Return the edges starting or ending at the specified vertex.
+
+        Args:
+            vertex (str | dict): Document ID, key or body.
+            direction (str | None): Direction of the edges to return. Selects `in`
+                or `out` direction for edges. If not set, any edges are returned.
+            allow_dirty_read (bool | None): Allow reads from followers in a cluster.
+
+        Returns:
+            dict: List of edges and statistics.
+
+        Raises:
+            EdgeListError: If retrieval fails.
+
+        References:
+            - `get-inbound-and-outbound-edges <https://docs.arangodb.com/stable/develop/http-api/graphs/edges/#get-inbound-and-outbound-edges>`__
+        """  # noqa: E501
+        params: Params = {
+            "vertex": self._get_doc_id(vertex, validate=False),
+        }
+        if direction is not None:
+            params["direction"] = direction
+
+        headers: RequestHeaders = {}
+        if allow_dirty_read is not None:
+            headers["x-arango-allow-dirty-read"] = "true" if allow_dirty_read else False
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/edges/{self._name}",
+            params=params,
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise EdgeListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            for key in ("error", "code"):
+                body.pop(key)
+            return body
+
+        return await self._executor.execute(request, response_handler)
+
+    async def link(
+        self,
+        from_vertex: str | Json,
+        to_vertex: str | Json,
+        data: Optional[Json] = None,
+        wait_for_sync: Optional[bool] = None,
+        return_new: bool = False,
+    ) -> Result[Json]:
+        """Insert a new edge document linking the given vertices.
+
+        Args:
+            from_vertex (str | dict): "_from" vertex document ID or body with "_id"
+                field.
+            to_vertex (str | dict): "_to" vertex document ID or body with "_id" field.
+            data (dict | None): Any extra data for the new edge document. If it has
+                "_key" or "_id" field, its value is used as key of the new edge document
+                (otherwise it is auto-generated).
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            return_new: Optional[bool]: Additionally return the complete new document
+                under the attribute `new` in the result.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` is specified, the result contains the document
+                metadata in the "edge" field and the new document in the "new" field.
+
+        Raises:
+            DocumentInsertError: If insertion fails.
+            DocumentParseError: If the document is malformed.
+        """
+        edge: Json = {
+            "_from": self._get_doc_id(from_vertex, validate=False),
+            "_to": self._get_doc_id(to_vertex, validate=False),
+        }
+        if data is not None:
+            edge.update(self._ensure_key_from_id(data))
+        return await self.insert(
+            cast(T, edge), wait_for_sync=wait_for_sync, return_new=return_new
+        )

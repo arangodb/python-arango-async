@@ -6,6 +6,7 @@ from arangoasync.exceptions import (
     EdgeDefinitionDeleteError,
     EdgeDefinitionListError,
     EdgeDefinitionReplaceError,
+    EdgeListError,
     GraphCreateError,
     GraphDeleteError,
     GraphListError,
@@ -196,6 +197,8 @@ async def test_edge_collections(db, bad_graph):
         await bad_graph.replace_edge_definition("foo", ["bar1"], ["bar2"])
     with pytest.raises(EdgeDefinitionDeleteError):
         await bad_graph.delete_edge_definition("foo")
+    with pytest.raises(EdgeListError):
+        await bad_graph.edges("col", "foo")
 
     # Create full graph
     name = generate_graph_name()
@@ -323,3 +326,79 @@ async def test_edge_collections(db, bad_graph):
     # Delete the edge definition
     await graph.delete_edge_definition(edge_col_name)
     assert await graph.has_edge_definition(edge_col_name) is False
+
+
+@pytest.mark.asyncio
+async def test_edge_links(db):
+    # Create full graph
+    name = generate_graph_name()
+    graph = await db.create_graph(name)
+
+    # Teachers collection
+    teachers_col_name = generate_col_name()
+    await db.create_collection(teachers_col_name)
+    await graph.create_vertex_collection(teachers_col_name)
+
+    # Students collection
+    students_col_name = generate_col_name()
+    await db.create_collection(students_col_name)
+    await graph.create_vertex_collection(students_col_name)
+
+    # Edges
+    teachers_to_students = generate_col_name()
+    await graph.create_edge_definition(
+        teachers_to_students,
+        from_vertex_collections=[teachers_col_name],
+        to_vertex_collections=[students_col_name],
+    )
+    students_to_students = generate_col_name()
+    await graph.create_edge_definition(
+        students_to_students,
+        from_vertex_collections=[teachers_col_name],
+        to_vertex_collections=[students_col_name],
+    )
+
+    # Populate the graph
+    teachers = [
+        {"_key": "101", "name": "Mr. Smith"},
+        {"_key": "102", "name": "Ms. Johnson"},
+        {"_key": "103", "name": "Dr. Brown"},
+    ]
+    students = [
+        {"_key": "123", "name": "Alice"},
+        {"_key": "456", "name": "Bob"},
+        {"_key": "789", "name": "Charlie"},
+    ]
+
+    docs = []
+    t = await graph.insert_vertex(teachers_col_name, teachers[0])
+    s = await graph.insert_vertex(students_col_name, students[0])
+    await graph.link(teachers_to_students, t, s, {"subject": "Math"})
+    docs.append(s)
+
+    t = await graph.insert_vertex(teachers_col_name, teachers[1])
+    s = await graph.insert_vertex(students_col_name, students[1])
+    await graph.link(teachers_to_students, t["_id"], s["_id"], {"subject": "Science"})
+    docs.append(s)
+
+    t = await graph.insert_vertex(teachers_col_name, teachers[2])
+    s = await graph.insert_vertex(students_col_name, students[2])
+    await graph.link(teachers_to_students, t, s, {"subject": "History"})
+    docs.append(s)
+
+    await graph.link(students_to_students, docs[0], docs[1], {"friendship": "close"})
+    await graph.link(students_to_students, docs[1], docs[0], {"friendship": "close"})
+
+    edges = await graph.edges(students_to_students, docs[0])
+    assert len(edges["edges"]) == 2
+    assert "stats" in edges
+
+    await graph.link(students_to_students, docs[2], docs[0], {"friendship": "close"})
+    edges = await graph.edges(students_to_students, docs[0], direction="in")
+    assert len(edges["edges"]) == 2
+
+    edges = await graph.edges(students_to_students, docs[0], direction="out")
+    assert len(edges["edges"]) == 1
+
+    edges = await graph.edges(students_to_students, docs[0])
+    assert len(edges["edges"]) == 3

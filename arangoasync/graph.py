@@ -1,7 +1,7 @@
 __all__ = ["Graph"]
 
 
-from typing import Generic, List, Optional, Sequence, TypeVar, cast
+from typing import Generic, List, Literal, Optional, Sequence, TypeVar, cast
 
 from arangoasync.collection import Collection, EdgeCollection, VertexCollection
 from arangoasync.exceptions import (
@@ -965,4 +965,75 @@ class Graph(Generic[T, U, V]):
             wait_for_sync=wait_for_sync,
             return_old=return_old,
             if_match=if_match,
+        )
+
+    async def edges(
+        self,
+        collection: str,
+        vertex: str | Json,
+        direction: Optional[Literal["in", "out"]] = None,
+        allow_dirty_read: Optional[bool] = None,
+    ) -> Result[Json]:
+        """Return the edges starting or ending at the specified vertex.
+
+        Args:
+            collection (str): Name of the edge collection to return edges from.
+            vertex (str | dict): Document ID, key or body.
+            direction (str | None): Direction of the edges to return. Selects `in`
+                or `out` direction for edges. If not set, any edges are returned.
+            allow_dirty_read (bool | None): Allow reads from followers in a cluster.
+
+        Returns:
+            dict: List of edges and statistics.
+
+        Raises:
+            EdgeListError: If retrieval fails.
+
+        References:
+            - `get-inbound-and-outbound-edges <https://docs.arangodb.com/stable/develop/http-api/graphs/edges/#get-inbound-and-outbound-edges>`__
+        """  # noqa: E501
+        return await self.edge_collection(collection).edges(
+            vertex,
+            direction=direction,
+            allow_dirty_read=allow_dirty_read,
+        )
+
+    async def link(
+        self,
+        collection: str,
+        from_vertex: str | Json,
+        to_vertex: str | Json,
+        data: Optional[Json] = None,
+        wait_for_sync: Optional[bool] = None,
+        return_new: bool = False,
+    ) -> Result[Json]:
+        """Insert a new edge document linking the given vertices.
+
+        Args:
+            collection (str): Name of the collection to insert the edge into.
+            from_vertex (str | dict): "_from" vertex document ID or body with "_id"
+                field.
+            to_vertex (str | dict): "_to" vertex document ID or body with "_id" field.
+            data (dict | None): Any extra data for the new edge document. If it has
+                "_key" or "_id" field, its value is used as key of the new edge document
+                (otherwise it is auto-generated).
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            return_new: Optional[bool]: Additionally return the complete new document
+                under the attribute `new` in the result.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` is specified, the result contains the document
+                metadata in the "edge" field and the new document in the "new" field.
+
+        Raises:
+            DocumentInsertError: If insertion fails.
+            DocumentParseError: If the document is malformed.
+        """
+        return await self.edge_collection(collection).link(
+            from_vertex,
+            to_vertex,
+            data=data,
+            wait_for_sync=wait_for_sync,
+            return_new=return_new,
         )
