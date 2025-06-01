@@ -80,6 +80,10 @@ that you are modeling your students data using Pydantic_. You want to be able to
 of a certain type, and also be able to read them back. More so, you would like to get multiple documents
 back using one of the formats provided by pandas_.
 
+.. note::
+    The driver assumes that the types support dictionary-like indexing, i.e. `doc["_id"]`
+    returns the id of the document.
+
 **Example:**
 
 .. code-block:: python
@@ -178,6 +182,8 @@ You would then use the custom serializer/deserializer when working with collecti
             keys = [doc["_key"] for doc in docs]
             students = await col.get_many(keys)
             assert type(students) == pd.DataFrame
+
+See a full example in this `gist <https://gist.github.com/apetenchea/bd6e737463a60bfad8c792e0f23bfe4a>`__.
 
 .. _Pydantic: https://docs.pydantic.dev/latest/
 .. _pandas: https://pandas.pydata.org/

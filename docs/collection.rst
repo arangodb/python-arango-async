@@ -6,8 +6,10 @@ by its name which must consist only of hyphen, underscore and alphanumeric
 characters. There are three types of collections in python-arango:
 
 * **Standard Collection:** contains regular documents.
-* **Vertex Collection:** contains vertex documents for graphs (not supported yet).
-* **Edge Collection:** contains edge documents for graphs (not supported yet).
+* **Vertex Collection:** contains vertex documents for graphs. See
+  :ref:`here <vertex-collections>` for more details.
+* **Edge Collection:** contains edge documents for graphs. See
+  :ref:`here <edge-collections>` for more details.
 
 
 Here is an example showing how you can manage standard collections:

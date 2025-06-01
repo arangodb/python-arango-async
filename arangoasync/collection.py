@@ -1,7 +1,12 @@
-__all__ = ["Collection", "StandardCollection"]
+__all__ = [
+    "Collection",
+    "EdgeCollection",
+    "StandardCollection",
+    "VertexCollection",
+]
 
 
-from typing import Any, Generic, List, Optional, Sequence, Tuple, TypeVar, cast
+from typing import Any, Generic, List, Literal, Optional, Sequence, TypeVar, cast
 
 from arangoasync.cursor import Cursor
 from arangoasync.errno import (
@@ -21,6 +26,7 @@ from arangoasync.exceptions import (
     DocumentReplaceError,
     DocumentRevisionError,
     DocumentUpdateError,
+    EdgeListError,
     IndexCreateError,
     IndexDeleteError,
     IndexGetError,
@@ -70,6 +76,26 @@ class Collection(Generic[T, U, V]):
         self._doc_deserializer = doc_deserializer
         self._id_prefix = f"{self._name}/"
 
+    @staticmethod
+    def get_col_name(doc: str | Json) -> str:
+        """Extract the collection name from the document.
+
+        Args:
+            doc (str | dict): Document ID or body with "_id" field.
+
+        Returns:
+            str: Collection name.
+
+        Raises:
+            DocumentParseError: If document ID is missing.
+        """
+        try:
+            doc_id: str = doc if isinstance(doc, str) else doc["_id"]
+        except KeyError:
+            raise DocumentParseError('field "_id" required')
+        else:
+            return doc_id.split("/", 1)[0]
+
     def _validate_id(self, doc_id: str) -> str:
         """Check the collection name in the document ID.
 
@@ -86,11 +112,13 @@ class Collection(Generic[T, U, V]):
             raise DocumentParseError(f'Bad collection name in document ID "{doc_id}"')
         return doc_id
 
-    def _extract_id(self, body: Json) -> str:
+    def _extract_id(self, body: Json, validate: bool = True) -> str:
         """Extract the document ID from document body.
 
         Args:
             body (dict): Document body.
+            validate (bool): Whether to validate the document ID,
+                checking if it belongs to the current collection.
 
         Returns:
             str: Document ID.
@@ -100,7 +128,10 @@ class Collection(Generic[T, U, V]):
         """
         try:
             if "_id" in body:
-                return self._validate_id(body["_id"])
+                if validate:
+                    return self._validate_id(body["_id"])
+                else:
+                    return cast(str, body["_id"])
             else:
                 key: str = body["_key"]
                 return self._id_prefix + key
@@ -115,6 +146,9 @@ class Collection(Generic[T, U, V]):
 
         Returns:
             dict: Document body with "_key" field if it has "_id" field.
+
+        Raises:
+            DocumentParseError: If document is malformed.
         """
         if "_id" in body and "_key" not in body:
             doc_id = self._validate_id(body["_id"])
@@ -122,41 +156,32 @@ class Collection(Generic[T, U, V]):
             body["_key"] = doc_id[len(self._id_prefix) :]
         return body
 
-    def _prep_from_doc(
-        self,
-        document: str | Json,
-        rev: Optional[str] = None,
-        check_rev: bool = False,
-    ) -> Tuple[str, Json]:
-        """Prepare document ID, body and request headers before a query.
+    def _get_doc_id(self, document: str | Json, validate: bool = True) -> str:
+        """Prepare document ID before a query.
 
         Args:
             document (str | dict): Document ID, key or body.
-            rev (str | None): Document revision.
-            check_rev (bool): Whether to check the revision.
+            validate (bool): Whether to validate the document ID,
+                checking if it belongs to the current collection.
 
         Returns:
             Document ID and request headers.
 
         Raises:
             DocumentParseError: On missing ID and key.
-            TypeError: On bad document type.
         """
-        if isinstance(document, dict):
-            doc_id = self._extract_id(document)
-            rev = rev or document.get("_rev")
-        elif isinstance(document, str):
+        if isinstance(document, str):
             if "/" in document:
-                doc_id = self._validate_id(document)
+                if validate:
+                    doc_id = self._validate_id(document)
+                else:
+                    doc_id = document
             else:
                 doc_id = self._id_prefix + document
         else:
-            raise TypeError("Document must be str or a dict")
+            doc_id = self._extract_id(document, validate)
 
-        if not check_rev or rev is None:
-            return doc_id, {}
-        else:
-            return doc_id, {"If-Match": rev}
+        return doc_id
 
     def _build_filter_conditions(self, filters: Optional[Json]) -> str:
         """Build filter conditions for an AQL query.
@@ -456,29 +481,6 @@ class Collection(Generic[T, U, V]):
 
         return await self._executor.execute(request, response_handler)
 
-
-class StandardCollection(Collection[T, U, V]):
-    """Standard collection API wrapper.
-
-    Args:
-        executor (ApiExecutor): API executor.
-        name (str): Collection name
-        doc_serializer (Serializer): Document serializer.
-        doc_deserializer (Deserializer): Document deserializer.
-    """
-
-    def __init__(
-        self,
-        executor: ApiExecutor,
-        name: str,
-        doc_serializer: Serializer[T],
-        doc_deserializer: Deserializer[U, V],
-    ) -> None:
-        super().__init__(executor, name, doc_serializer, doc_deserializer)
-
-    def __repr__(self) -> str:
-        return f"<StandardCollection {self.name}>"
-
     async def properties(self) -> Result[CollectionProperties]:
         """Return the full properties of the current collection.
 
@@ -563,66 +565,6 @@ class StandardCollection(Collection[T, U, V]):
 
         return await self._executor.execute(request, response_handler)
 
-    async def get(
-        self,
-        document: str | Json,
-        allow_dirty_read: bool = False,
-        if_match: Optional[str] = None,
-        if_none_match: Optional[str] = None,
-    ) -> Result[Optional[U]]:
-        """Return a document.
-
-        Args:
-            document (str | dict): Document ID, key or body.
-                Document body must contain the "_id" or "_key" field.
-            allow_dirty_read (bool):  Allow reads from followers in a cluster.
-            if_match (str | None): The document is returned, if it has the same
-                revision as the given ETag.
-            if_none_match (str | None): The document is returned, if it has a
-                different revision than the given ETag.
-
-        Returns:
-            Document or `None` if not found.
-
-        Raises:
-            DocumentRevisionError: If the revision is incorrect.
-            DocumentGetError: If retrieval fails.
-            DocumentParseError: If the document is malformed.
-
-        References:
-            - `get-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document>`__
-        """  # noqa: E501
-        handle, _ = self._prep_from_doc(document)
-
-        headers: RequestHeaders = {}
-        if allow_dirty_read:
-            headers["x-arango-allow-dirty-read"] = "true"
-        if if_match is not None:
-            headers["If-Match"] = if_match
-        if if_none_match is not None:
-            headers["If-None-Match"] = if_none_match
-
-        request = Request(
-            method=Method.GET,
-            endpoint=f"/_api/document/{handle}",
-            headers=headers,
-        )
-
-        def response_handler(resp: Response) -> Optional[U]:
-            if resp.is_success:
-                return self._doc_deserializer.loads(resp.raw_body)
-            elif resp.status_code == HTTP_NOT_FOUND:
-                if resp.error_code == DOCUMENT_NOT_FOUND:
-                    return None
-                else:
-                    raise DocumentGetError(resp, request)
-            elif resp.status_code == HTTP_PRECONDITION_FAILED:
-                raise DocumentRevisionError(resp, request)
-            else:
-                raise DocumentGetError(resp, request)
-
-        return await self._executor.execute(request, response_handler)
-
     async def has(
         self,
         document: str | Json,
@@ -651,7 +593,7 @@ class StandardCollection(Collection[T, U, V]):
         References:
             - `get-a-document-header <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document-header>`__
         """  # noqa: E501
-        handle, _ = self._prep_from_doc(document)
+        handle = self._get_doc_id(document)
 
         headers: RequestHeaders = {}
         if allow_dirty_read:
@@ -676,390 +618,6 @@ class StandardCollection(Collection[T, U, V]):
                 raise DocumentRevisionError(resp, request)
             else:
                 raise DocumentGetError(resp, request)
-
-        return await self._executor.execute(request, response_handler)
-
-    async def insert(
-        self,
-        document: T,
-        wait_for_sync: Optional[bool] = None,
-        return_new: Optional[bool] = None,
-        return_old: Optional[bool] = None,
-        silent: Optional[bool] = None,
-        overwrite: Optional[bool] = None,
-        overwrite_mode: Optional[str] = None,
-        keep_null: Optional[bool] = None,
-        merge_objects: Optional[bool] = None,
-        refill_index_caches: Optional[bool] = None,
-        version_attribute: Optional[str] = None,
-    ) -> Result[bool | Json]:
-        """Insert a new document.
-
-        Args:
-            document (dict): Document to insert. If it contains the "_key" or "_id"
-                field, the value is used as the key of the new document (otherwise
-                it is auto-generated). Any "_rev" field is ignored.
-            wait_for_sync (bool | None): Wait until document has been synced to disk.
-            return_new (bool | None): Additionally return the complete new document
-                under the attribute `new` in the result.
-            return_old (bool | None): Additionally return the complete old document
-                under the attribute `old` in the result. Only available if the
-                `overwrite` option is used.
-            silent (bool | None): If set to `True`, no document metadata is returned.
-                This can be used to save resources.
-            overwrite (bool | None): If set to `True`, operation does not fail on
-                duplicate key and existing document is overwritten (replace-insert).
-            overwrite_mode (str | None): Overwrite mode. Supersedes **overwrite**
-                option. May be one of "ignore", "replace", "update" or "conflict".
-            keep_null (bool | None): If set to `True`, fields with value None are
-                retained in the document. Otherwise, they are removed completely.
-                Applies only when **overwrite_mode** is set to "update"
-                (update-insert).
-            merge_objects (bool | None): If set to `True`, sub-dictionaries are merged
-                instead of the new one overwriting the old one. Applies only when
-                **overwrite_mode** is set to "update" (update-insert).
-            refill_index_caches (bool | None): Whether to add new entries to
-                in-memory index caches if document insertions affect the edge index
-                or cache-enabled persistent indexes.
-            version_attribute (str | None): Support for simple external versioning to
-                document operations. Only applicable if **overwrite** is set to `True`
-                or **overwrite_mode** is set to "update" or "replace".
-
-        Returns:
-            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
-                if **silent** is set to `True`.
-
-        Raises:
-            DocumentInsertError: If insertion fails.
-            DocumentParseError: If the document is malformed.
-
-        References:
-            - `create-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#create-a-document>`__
-        """  # noqa: E501
-        if isinstance(document, dict):
-            # We assume that the document deserializer works with dictionaries.
-            document = cast(T, self._ensure_key_from_id(document))
-
-        params: Params = {}
-        if wait_for_sync is not None:
-            params["waitForSync"] = wait_for_sync
-        if return_new is not None:
-            params["returnNew"] = return_new
-        if return_old is not None:
-            params["returnOld"] = return_old
-        if silent is not None:
-            params["silent"] = silent
-        if overwrite is not None:
-            params["overwrite"] = overwrite
-        if overwrite_mode is not None:
-            params["overwriteMode"] = overwrite_mode
-        if keep_null is not None:
-            params["keepNull"] = keep_null
-        if merge_objects is not None:
-            params["mergeObjects"] = merge_objects
-        if refill_index_caches is not None:
-            params["refillIndexCaches"] = refill_index_caches
-        if version_attribute is not None:
-            params["versionAttribute"] = version_attribute
-
-        request = Request(
-            method=Method.POST,
-            endpoint=f"/_api/document/{self._name}",
-            params=params,
-            data=self._doc_serializer.dumps(document),
-        )
-
-        def response_handler(resp: Response) -> bool | Json:
-            if resp.is_success:
-                if silent is True:
-                    return True
-                return self._executor.deserialize(resp.raw_body)
-            msg: Optional[str] = None
-            if resp.status_code == HTTP_BAD_PARAMETER:
-                msg = (
-                    "Body does not contain a valid JSON representation of "
-                    "one document."
-                )
-            elif resp.status_code == HTTP_NOT_FOUND:
-                msg = "Collection not found."
-            raise DocumentInsertError(resp, request, msg)
-
-        return await self._executor.execute(request, response_handler)
-
-    async def update(
-        self,
-        document: T,
-        ignore_revs: Optional[bool] = None,
-        wait_for_sync: Optional[bool] = None,
-        return_new: Optional[bool] = None,
-        return_old: Optional[bool] = None,
-        silent: Optional[bool] = None,
-        keep_null: Optional[bool] = None,
-        merge_objects: Optional[bool] = None,
-        refill_index_caches: Optional[bool] = None,
-        version_attribute: Optional[str] = None,
-        if_match: Optional[str] = None,
-    ) -> Result[bool | Json]:
-        """Insert a new document.
-
-        Args:
-            document (dict): Partial or full document with the updated values.
-                It must contain the "_key" or "_id" field.
-            ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
-                document is ignored. If this is set to `False`, then the `_rev`
-                attribute given in the body document is taken as a precondition.
-                The document is only updated if the current revision is the one
-                specified.
-            wait_for_sync (bool | None): Wait until document has been synced to disk.
-            return_new (bool | None): Additionally return the complete new document
-                under the attribute `new` in the result.
-            return_old (bool | None): Additionally return the complete old document
-                under the attribute `old` in the result.
-            silent (bool | None): If set to `True`, no document metadata is returned.
-                This can be used to save resources.
-            keep_null (bool | None): If the intention is to delete existing attributes
-                with the patch command, set this parameter to `False`.
-            merge_objects (bool | None): Controls whether objects (not arrays) are
-                merged if present in both the existing and the patch document.
-                If set to `False`, the value in the patch document overwrites the
-                existing document’s value. If set to `True`, objects are merged.
-            refill_index_caches (bool | None): Whether to add new entries to
-                in-memory index caches if document updates affect the edge index
-                or cache-enabled persistent indexes.
-            version_attribute (str | None): Support for simple external versioning to
-                document operations.
-            if_match (str | None): You can conditionally update a document based on a
-                target revision id by using the "if-match" HTTP header.
-
-        Returns:
-            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
-                if **silent** is set to `True`.
-
-        Raises:
-            DocumentRevisionError: If precondition was violated.
-            DocumentUpdateError: If update fails.
-
-        References:
-            - `update-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#update-a-document>`__
-        """  # noqa: E501
-        params: Params = {}
-        if ignore_revs is not None:
-            params["ignoreRevs"] = ignore_revs
-        if wait_for_sync is not None:
-            params["waitForSync"] = wait_for_sync
-        if return_new is not None:
-            params["returnNew"] = return_new
-        if return_old is not None:
-            params["returnOld"] = return_old
-        if silent is not None:
-            params["silent"] = silent
-        if keep_null is not None:
-            params["keepNull"] = keep_null
-        if merge_objects is not None:
-            params["mergeObjects"] = merge_objects
-        if refill_index_caches is not None:
-            params["refillIndexCaches"] = refill_index_caches
-        if version_attribute is not None:
-            params["versionAttribute"] = version_attribute
-
-        headers: RequestHeaders = {}
-        if if_match is not None:
-            headers["If-Match"] = if_match
-
-        request = Request(
-            method=Method.PATCH,
-            endpoint=f"/_api/document/{self._extract_id(cast(Json, document))}",
-            params=params,
-            headers=headers,
-            data=self._doc_serializer.dumps(document),
-        )
-
-        def response_handler(resp: Response) -> bool | Json:
-            if resp.is_success:
-                if silent is True:
-                    return True
-                return self._executor.deserialize(resp.raw_body)
-            msg: Optional[str] = None
-            if resp.status_code == HTTP_PRECONDITION_FAILED:
-                raise DocumentRevisionError(resp, request)
-            elif resp.status_code == HTTP_NOT_FOUND:
-                msg = "Document, collection or transaction not found."
-            raise DocumentUpdateError(resp, request, msg)
-
-        return await self._executor.execute(request, response_handler)
-
-    async def replace(
-        self,
-        document: T,
-        ignore_revs: Optional[bool] = None,
-        wait_for_sync: Optional[bool] = None,
-        return_new: Optional[bool] = None,
-        return_old: Optional[bool] = None,
-        silent: Optional[bool] = None,
-        refill_index_caches: Optional[bool] = None,
-        version_attribute: Optional[str] = None,
-        if_match: Optional[str] = None,
-    ) -> Result[bool | Json]:
-        """Replace a document.
-
-        Args:
-            document (dict): New document. It must contain the "_key" or "_id" field.
-                Edge document must also have "_from" and "_to" fields.
-            ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
-                document is ignored. If this is set to `False`, then the `_rev`
-                attribute given in the body document is taken as a precondition.
-                The document is only replaced if the current revision is the one
-                specified.
-            wait_for_sync (bool | None): Wait until document has been synced to disk.
-            return_new (bool | None): Additionally return the complete new document
-                under the attribute `new` in the result.
-            return_old (bool | None): Additionally return the complete old document
-                under the attribute `old` in the result.
-            silent (bool | None): If set to `True`, no document metadata is returned.
-                This can be used to save resources.
-            refill_index_caches (bool | None): Whether to add new entries to
-                in-memory index caches if document updates affect the edge index
-                or cache-enabled persistent indexes.
-            version_attribute (str | None): Support for simple external versioning to
-                document operations.
-            if_match (str | None): You can conditionally replace a document based on a
-                target revision id by using the "if-match" HTTP header.
-
-        Returns:
-            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
-                if **silent** is set to `True`.
-
-        Raises:
-            DocumentRevisionError: If precondition was violated.
-            DocumentReplaceError: If replace fails.
-
-        References:
-            - `replace-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#replace-a-document>`__
-        """  # noqa: E501
-        params: Params = {}
-        if ignore_revs is not None:
-            params["ignoreRevs"] = ignore_revs
-        if wait_for_sync is not None:
-            params["waitForSync"] = wait_for_sync
-        if return_new is not None:
-            params["returnNew"] = return_new
-        if return_old is not None:
-            params["returnOld"] = return_old
-        if silent is not None:
-            params["silent"] = silent
-        if refill_index_caches is not None:
-            params["refillIndexCaches"] = refill_index_caches
-        if version_attribute is not None:
-            params["versionAttribute"] = version_attribute
-
-        headers: RequestHeaders = {}
-        if if_match is not None:
-            headers["If-Match"] = if_match
-
-        request = Request(
-            method=Method.PUT,
-            endpoint=f"/_api/document/{self._extract_id(cast(Json, document))}",
-            params=params,
-            headers=headers,
-            data=self._doc_serializer.dumps(document),
-        )
-
-        def response_handler(resp: Response) -> bool | Json:
-            if resp.is_success:
-                if silent is True:
-                    return True
-                return self._executor.deserialize(resp.raw_body)
-            msg: Optional[str] = None
-            if resp.status_code == HTTP_PRECONDITION_FAILED:
-                raise DocumentRevisionError(resp, request)
-            elif resp.status_code == HTTP_NOT_FOUND:
-                msg = "Document, collection or transaction not found."
-            raise DocumentReplaceError(resp, request, msg)
-
-        return await self._executor.execute(request, response_handler)
-
-    async def delete(
-        self,
-        document: T,
-        ignore_revs: Optional[bool] = None,
-        ignore_missing: bool = False,
-        wait_for_sync: Optional[bool] = None,
-        return_old: Optional[bool] = None,
-        silent: Optional[bool] = None,
-        refill_index_caches: Optional[bool] = None,
-        if_match: Optional[str] = None,
-    ) -> Result[bool | Json]:
-        """Delete a document.
-
-        Args:
-            document (dict): Document ID, key or body. The body must contain the
-                "_key" or "_id" field.
-            ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
-                document is ignored. If this is set to `False`, then the `_rev`
-                attribute given in the body document is taken as a precondition.
-                The document is only replaced if the current revision is the one
-                specified.
-            ignore_missing (bool): Do not raise an exception on missing document.
-                This parameter has no effect in transactions where an exception is
-                always raised on failures.
-            wait_for_sync (bool | None): Wait until operation has been synced to disk.
-            return_old (bool | None): Additionally return the complete old document
-                under the attribute `old` in the result.
-            silent (bool | None): If set to `True`, no document metadata is returned.
-                This can be used to save resources.
-            refill_index_caches (bool | None): Whether to add new entries to
-                in-memory index caches if document updates affect the edge index
-                or cache-enabled persistent indexes.
-            if_match (bool | None): You can conditionally remove a document based
-                on a target revision id by using the "if-match" HTTP header.
-
-        Returns:
-            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
-                if **silent** is set to `True` and the document was found.
-
-        Raises:
-            DocumentRevisionError: If precondition was violated.
-            DocumentDeleteError: If deletion fails.
-
-        References:
-            - `remove-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#remove-a-document>`__
-        """  # noqa: E501
-        params: Params = {}
-        if ignore_revs is not None:
-            params["ignoreRevs"] = ignore_revs
-        if wait_for_sync is not None:
-            params["waitForSync"] = wait_for_sync
-        if return_old is not None:
-            params["returnOld"] = return_old
-        if silent is not None:
-            params["silent"] = silent
-        if refill_index_caches is not None:
-            params["refillIndexCaches"] = refill_index_caches
-
-        headers: RequestHeaders = {}
-        if if_match is not None:
-            headers["If-Match"] = if_match
-
-        request = Request(
-            method=Method.DELETE,
-            endpoint=f"/_api/document/{self._extract_id(cast(Json, document))}",
-            params=params,
-            headers=headers,
-        )
-
-        def response_handler(resp: Response) -> bool | Json:
-            if resp.is_success:
-                if silent is True:
-                    return True
-                return self._executor.deserialize(resp.raw_body)
-            msg: Optional[str] = None
-            if resp.status_code == HTTP_PRECONDITION_FAILED:
-                raise DocumentRevisionError(resp, request)
-            elif resp.status_code == HTTP_NOT_FOUND:
-                if resp.error_code == DOCUMENT_NOT_FOUND and ignore_missing:
-                    return False
-                msg = "Document, collection or transaction not found."
-            raise DocumentDeleteError(resp, request, msg)
 
         return await self._executor.execute(request, response_handler)
 
@@ -1711,3 +1269,1370 @@ class StandardCollection(Collection[T, U, V]):
             return self.deserializer.loads_many(resp.raw_body)
 
         return await self._executor.execute(request, response_handler)
+
+
+class StandardCollection(Collection[T, U, V]):
+    """Standard collection API wrapper.
+
+    Args:
+        executor (ApiExecutor): API executor.
+        name (str): Collection name
+        doc_serializer (Serializer): Document serializer.
+        doc_deserializer (Deserializer): Document deserializer.
+    """
+
+    def __init__(
+        self,
+        executor: ApiExecutor,
+        name: str,
+        doc_serializer: Serializer[T],
+        doc_deserializer: Deserializer[U, V],
+    ) -> None:
+        super().__init__(executor, name, doc_serializer, doc_deserializer)
+
+    def __repr__(self) -> str:
+        return f"<StandardCollection {self.name}>"
+
+    async def get(
+        self,
+        document: str | Json,
+        allow_dirty_read: bool = False,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
+    ) -> Result[Optional[U]]:
+        """Return a document.
+
+        Args:
+            document (str | dict): Document ID, key or body.
+                Document body must contain the "_id" or "_key" field.
+            allow_dirty_read (bool):  Allow reads from followers in a cluster.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
+
+        Returns:
+            Document or `None` if not found.
+
+        Raises:
+            DocumentRevisionError: If the revision is incorrect.
+            DocumentGetError: If retrieval fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `get-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document>`__
+        """  # noqa: E501
+        handle = self._get_doc_id(document)
+
+        headers: RequestHeaders = {}
+        if allow_dirty_read:
+            headers["x-arango-allow-dirty-read"] = "true"
+        if if_match is not None:
+            headers["If-Match"] = if_match
+        if if_none_match is not None:
+            headers["If-None-Match"] = if_none_match
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/document/{handle}",
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> Optional[U]:
+            if resp.is_success:
+                return self._doc_deserializer.loads(resp.raw_body)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                if resp.error_code == DOCUMENT_NOT_FOUND:
+                    return None
+                else:
+                    raise DocumentGetError(resp, request)
+            elif resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            else:
+                raise DocumentGetError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def insert(
+        self,
+        document: T,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        overwrite: Optional[bool] = None,
+        overwrite_mode: Optional[str] = None,
+        keep_null: Optional[bool] = None,
+        merge_objects: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+        version_attribute: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Insert a new document.
+
+        Args:
+            document (dict): Document to insert. If it contains the "_key" or "_id"
+                field, the value is used as the key of the new document (otherwise
+                it is auto-generated). Any "_rev" field is ignored.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result. Only available if the
+                `overwrite` option is used.
+            silent (bool | None): If set to `True`, no document metadata is returned.
+                This can be used to save resources.
+            overwrite (bool | None): If set to `True`, operation does not fail on
+                duplicate key and existing document is overwritten (replace-insert).
+            overwrite_mode (str | None): Overwrite mode. Supersedes **overwrite**
+                option. May be one of "ignore", "replace", "update" or "conflict".
+            keep_null (bool | None): If set to `True`, fields with value None are
+                retained in the document. Otherwise, they are removed completely.
+                Applies only when **overwrite_mode** is set to "update"
+                (update-insert).
+            merge_objects (bool | None): If set to `True`, sub-dictionaries are merged
+                instead of the new one overwriting the old one. Applies only when
+                **overwrite_mode** is set to "update" (update-insert).
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document insertions affect the edge index
+                or cache-enabled persistent indexes.
+            version_attribute (str | None): Support for simple external versioning to
+                document operations. Only applicable if **overwrite** is set to `True`
+                or **overwrite_mode** is set to "update" or "replace".
+
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
+                if **silent** is set to `True`.
+
+        Raises:
+            DocumentInsertError: If insertion fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `create-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#create-a-document>`__
+        """  # noqa: E501
+        if isinstance(document, dict):
+            document = cast(T, self._ensure_key_from_id(document))
+
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+        if silent is not None:
+            params["silent"] = silent
+        if overwrite is not None:
+            params["overwrite"] = overwrite
+        if overwrite_mode is not None:
+            params["overwriteMode"] = overwrite_mode
+        if keep_null is not None:
+            params["keepNull"] = keep_null
+        if merge_objects is not None:
+            params["mergeObjects"] = merge_objects
+        if refill_index_caches is not None:
+            params["refillIndexCaches"] = refill_index_caches
+        if version_attribute is not None:
+            params["versionAttribute"] = version_attribute
+
+        request = Request(
+            method=Method.POST,
+            endpoint=f"/_api/document/{self._name}",
+            params=params,
+            data=self._doc_serializer.dumps(document),
+        )
+
+        def response_handler(resp: Response) -> bool | Json:
+            if resp.is_success:
+                if silent is True:
+                    return True
+                return self._executor.deserialize(resp.raw_body)
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_BAD_PARAMETER:
+                msg = (
+                    "Body does not contain a valid JSON representation of "
+                    "one document."
+                )
+            elif resp.status_code == HTTP_NOT_FOUND:
+                msg = "Collection not found."
+            raise DocumentInsertError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def update(
+        self,
+        document: T,
+        ignore_revs: Optional[bool] = None,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        merge_objects: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+        version_attribute: Optional[str] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Update a document.
+
+        Args:
+            document (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field.
+            ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
+                document is ignored. If this is set to `False`, then the `_rev`
+                attribute given in the body document is taken as a precondition.
+                The document is only updated if the current revision is the one
+                specified.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            silent (bool | None): If set to `True`, no document metadata is returned.
+                This can be used to save resources.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            merge_objects (bool | None): Controls whether objects (not arrays) are
+                merged if present in both the existing and the patch document.
+                If set to `False`, the value in the patch document overwrites the
+                existing document’s value. If set to `True`, objects are merged.
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document updates affect the edge index
+                or cache-enabled persistent indexes.
+            version_attribute (str | None): Support for simple external versioning to
+                document operations.
+            if_match (str | None): You can conditionally update a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
+                if **silent** is set to `True`.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentUpdateError: If update fails.
+
+        References:
+            - `update-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#update-a-document>`__
+        """  # noqa: E501
+        params: Params = {}
+        if ignore_revs is not None:
+            params["ignoreRevs"] = ignore_revs
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+        if silent is not None:
+            params["silent"] = silent
+        if keep_null is not None:
+            params["keepNull"] = keep_null
+        if merge_objects is not None:
+            params["mergeObjects"] = merge_objects
+        if refill_index_caches is not None:
+            params["refillIndexCaches"] = refill_index_caches
+        if version_attribute is not None:
+            params["versionAttribute"] = version_attribute
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.PATCH,
+            endpoint=f"/_api/document/{self._extract_id(cast(Json, document))}",
+            params=params,
+            headers=headers,
+            data=self._doc_serializer.dumps(document),
+        )
+
+        def response_handler(resp: Response) -> bool | Json:
+            if resp.is_success:
+                if silent is True:
+                    return True
+                return self._executor.deserialize(resp.raw_body)
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                msg = "Document, collection or transaction not found."
+            raise DocumentUpdateError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def replace(
+        self,
+        document: T,
+        ignore_revs: Optional[bool] = None,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+        version_attribute: Optional[str] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Replace a document.
+
+        Args:
+            document (dict): New document. It must contain the "_key" or "_id" field.
+                Edge document must also have "_from" and "_to" fields.
+            ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
+                document is ignored. If this is set to `False`, then the `_rev`
+                attribute given in the body document is taken as a precondition.
+                The document is only replaced if the current revision is the one
+                specified.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            silent (bool | None): If set to `True`, no document metadata is returned.
+                This can be used to save resources.
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document updates affect the edge index
+                or cache-enabled persistent indexes.
+            version_attribute (str | None): Support for simple external versioning to
+                document operations.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
+                if **silent** is set to `True`.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentReplaceError: If replace fails.
+
+        References:
+            - `replace-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#replace-a-document>`__
+        """  # noqa: E501
+        params: Params = {}
+        if ignore_revs is not None:
+            params["ignoreRevs"] = ignore_revs
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+        if silent is not None:
+            params["silent"] = silent
+        if refill_index_caches is not None:
+            params["refillIndexCaches"] = refill_index_caches
+        if version_attribute is not None:
+            params["versionAttribute"] = version_attribute
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/document/{self._extract_id(cast(Json, document))}",
+            params=params,
+            headers=headers,
+            data=self._doc_serializer.dumps(document),
+        )
+
+        def response_handler(resp: Response) -> bool | Json:
+            if resp.is_success:
+                if silent is True:
+                    return True
+                return self._executor.deserialize(resp.raw_body)
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                msg = "Document, collection or transaction not found."
+            raise DocumentReplaceError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete(
+        self,
+        document: T,
+        ignore_revs: Optional[bool] = None,
+        ignore_missing: bool = False,
+        wait_for_sync: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Delete a document.
+
+        Args:
+            document (dict): Document ID, key or body. The body must contain the
+                "_key" or "_id" field.
+            ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
+                document is ignored. If this is set to `False`, then the `_rev`
+                attribute given in the body document is taken as a precondition.
+                The document is only replaced if the current revision is the one
+                specified.
+            ignore_missing (bool): Do not raise an exception on missing document.
+                This parameter has no effect in transactions where an exception is
+                always raised on failures.
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            silent (bool | None): If set to `True`, no document metadata is returned.
+                This can be used to save resources.
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document updates affect the edge index
+                or cache-enabled persistent indexes.
+            if_match (bool | None): You can conditionally remove a document based
+                on a target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
+                if **silent** is set to `True` and the document was found.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentDeleteError: If deletion fails.
+
+        References:
+            - `remove-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#remove-a-document>`__
+        """  # noqa: E501
+        params: Params = {}
+        if ignore_revs is not None:
+            params["ignoreRevs"] = ignore_revs
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_old is not None:
+            params["returnOld"] = return_old
+        if silent is not None:
+            params["silent"] = silent
+        if refill_index_caches is not None:
+            params["refillIndexCaches"] = refill_index_caches
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/document/{self._extract_id(cast(Json, document))}",
+            params=params,
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> bool | Json:
+            if resp.is_success:
+                if silent is True:
+                    return True
+                return self._executor.deserialize(resp.raw_body)
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                if resp.error_code == DOCUMENT_NOT_FOUND and ignore_missing:
+                    return False
+                msg = "Document, collection or transaction not found."
+            raise DocumentDeleteError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+
+class VertexCollection(Collection[T, U, V]):
+    """Vertex collection API wrapper.
+
+    Args:
+        executor (ApiExecutor): API executor.
+        name (str): Collection name
+        graph (str): Graph name.
+        doc_serializer (Serializer): Document serializer.
+        doc_deserializer (Deserializer): Document deserializer.
+    """
+
+    def __init__(
+        self,
+        executor: ApiExecutor,
+        graph: str,
+        name: str,
+        doc_serializer: Serializer[T],
+        doc_deserializer: Deserializer[U, V],
+    ) -> None:
+        super().__init__(executor, name, doc_serializer, doc_deserializer)
+        self._graph = graph
+
+    def __repr__(self) -> str:
+        return f"<VertexCollection {self.name}>"
+
+    @staticmethod
+    def _parse_result(data: Json) -> Json:
+        """Parse the result from the response.
+
+        Args:
+            data (dict): Response data.
+
+        Returns:
+            dict: Parsed result.
+        """
+        result: Json = {}
+        if "new" in data or "old" in data:
+            result["vertex"] = data["vertex"]
+            if "new" in data:
+                result["new"] = data["new"]
+            if "old" in data:
+                result["old"] = data["old"]
+        else:
+            result = data["vertex"]
+        return result
+
+    @property
+    def graph(self) -> str:
+        """Return the graph name.
+
+        Returns:
+            str: Graph name.
+        """
+        return self._graph
+
+    async def get(
+        self,
+        vertex: str | Json,
+        rev: Optional[str] = None,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
+    ) -> Result[Optional[Json]]:
+        """Return a vertex from the graph.
+
+        Args:
+            vertex (str | dict): Document ID, key or body.
+                Document body must contain the "_id" or "_key" field.
+            rev (str | None): If this is set a document is only returned if it
+                has exactly this revision.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
+
+        Returns:
+            dict | None: Document or `None` if not found.
+
+        Raises:
+            DocumentRevisionError: If the revision is incorrect.
+            DocumentGetError: If retrieval fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `get-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-a-vertex>`__
+        """  # noqa: E501
+        handle = self._get_doc_id(vertex)
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+        if if_none_match is not None:
+            headers["If-None-Match"] = if_none_match
+
+        params: Params = {}
+        if rev is not None:
+            params["rev"] = rev
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/gharial/{self._graph}/vertex/{handle}",
+            headers=headers,
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> Optional[Json]:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            elif resp.status_code == HTTP_NOT_FOUND:
+                if resp.error_code == DOCUMENT_NOT_FOUND:
+                    return None
+                else:
+                    raise DocumentGetError(resp, request)
+            elif resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            else:
+                raise DocumentGetError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def insert(
+        self,
+        vertex: T,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+    ) -> Result[Json]:
+        """Insert a new vertex document.
+
+        Args:
+            vertex (dict): Document to insert. If it contains the "_key" or "_id"
+                field, the value is used as the key of the new document (otherwise
+                it is auto-generated). Any "_rev" field is ignored.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` is specified, the result contains the document
+                metadata in the "vertex" field and the new document in the "new" field.
+
+        Raises:
+            DocumentInsertError: If insertion fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `create-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#create-a-vertex>`__
+        """  # noqa: E501
+        if isinstance(vertex, dict):
+            vertex = cast(T, self._ensure_key_from_id(vertex))
+
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_new is not None:
+            params["returnNew"] = return_new
+
+        request = Request(
+            method=Method.POST,
+            endpoint=f"/_api/gharial/{self._graph}/vertex/{self.name}",
+            params=params,
+            data=self._doc_serializer.dumps(vertex),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_NOT_FOUND:
+                msg = (
+                    "The graph cannot be found or the collection is not "
+                    "part of the graph."
+                )
+            raise DocumentInsertError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def update(
+        self,
+        vertex: T,
+        wait_for_sync: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[Json]:
+        """Update a vertex in the graph.
+
+        Args:
+            vertex (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally update a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` or "return_old" are specified, the result contains
+                the document metadata in the "vertex" field and two additional fields
+                ("new" and "old").
+
+        Raises:
+            DocumentUpdateError: If update fails.
+
+        References:
+            - `update-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#update-a-vertex>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if keep_null is not None:
+            params["keepNull"] = keep_null
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.PATCH,
+            endpoint=f"/_api/gharial/{self._graph}/vertex/"
+            f"{self._get_doc_id(cast(Json, vertex))}",
+            params=params,
+            headers=headers,
+            data=self._doc_serializer.dumps(vertex),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                msg = (
+                    "Vertex or graph not found, or the collection is not part of "
+                    "this graph. Error may also occur if the transaction ID is "
+                    "unknown."
+                )
+            raise DocumentUpdateError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def replace(
+        self,
+        vertex: T,
+        wait_for_sync: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[Json]:
+        """Replace a vertex in the graph.
+
+        Args:
+            vertex (dict): New document. It must contain the "_key" or "_id" field.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` or "return_old" are specified, the result contains
+                the document metadata in the "vertex" field and two additional fields
+                ("new" and "old").
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentReplaceError: If replace fails.
+
+        References:
+            - `replace-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#replace-a-vertex>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if keep_null is not None:
+            params["keepNull"] = keep_null
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/gharial/{self._graph}/vertex/"
+            f"{self._get_doc_id(cast(Json, vertex))}",
+            params=params,
+            headers=headers,
+            data=self._doc_serializer.dumps(vertex),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                msg = (
+                    "Vertex or graph not found, or the collection is not part of "
+                    "this graph. Error may also occur if the transaction ID is "
+                    "unknown."
+                )
+            raise DocumentReplaceError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete(
+        self,
+        vertex: T,
+        ignore_missing: bool = False,
+        wait_for_sync: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Delete a vertex from the graph.
+
+        Args:
+            vertex (dict): Document ID, key or body. The body must contain the
+                "_key" or "_id" field.
+            ignore_missing (bool): Do not raise an exception on missing document.
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: `True` if vertex was deleted successfully, `False` if vertex
+                was not found and **ignore_missing** was set to `True` (does not apply
+                in transactions). Old document is returned if **return_old** is set
+                to `True`.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentDeleteError: If deletion fails.
+
+        References:
+            - `remove-a-vertex <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#remove-a-vertex>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_old is not None:
+            params["returnOld"] = return_old
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/gharial/{self._graph}/vertex/"
+            f"{self._get_doc_id(cast(Json, vertex))}",
+            params=params,
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> bool | Json:
+            if resp.is_success:
+                data: Json = self.deserializer.loads(resp.raw_body)
+                if "old" in data:
+                    return cast(Json, data["old"])
+                return True
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                if resp.error_code == DOCUMENT_NOT_FOUND and ignore_missing:
+                    return False
+                msg = (
+                    "Vertex or graph not found, or the collection is not part of "
+                    "this graph. Error may also occur if the transaction ID is "
+                    "unknown."
+                )
+            raise DocumentDeleteError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+
+class EdgeCollection(Collection[T, U, V]):
+    """Edge collection API wrapper.
+
+    Args:
+        executor (ApiExecutor): API executor.
+        name (str): Collection name
+        graph (str): Graph name.
+        doc_serializer (Serializer): Document serializer.
+        doc_deserializer (Deserializer): Document deserializer.
+    """
+
+    def __init__(
+        self,
+        executor: ApiExecutor,
+        graph: str,
+        name: str,
+        doc_serializer: Serializer[T],
+        doc_deserializer: Deserializer[U, V],
+    ) -> None:
+        super().__init__(executor, name, doc_serializer, doc_deserializer)
+        self._graph = graph
+
+    def __repr__(self) -> str:
+        return f"<EdgeCollection {self.name}>"
+
+    @staticmethod
+    def _parse_result(data: Json) -> Json:
+        """Parse the result from the response.
+
+        Args:
+            data (dict): Response data.
+
+        Returns:
+            dict: Parsed result.
+        """
+        result: Json = {}
+        if "new" in data or "old" in data:
+            result["edge"] = data["edge"]
+            if "new" in data:
+                result["new"] = data["new"]
+            if "old" in data:
+                result["old"] = data["old"]
+        else:
+            result = data["edge"]
+        return result
+
+    @property
+    def graph(self) -> str:
+        """Return the graph name.
+
+        Returns:
+            str: Graph name.
+        """
+        return self._graph
+
+    async def get(
+        self,
+        edge: str | Json,
+        rev: Optional[str] = None,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
+    ) -> Result[Optional[Json]]:
+        """Return an edge from the graph.
+
+        Args:
+            edge (str | dict): Document ID, key or body.
+                Document body must contain the "_id" or "_key" field.
+            rev (str | None): If this is set a document is only returned if it
+                has exactly this revision.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
+
+        Returns:
+            dict | None: Document or `None` if not found.
+
+        Raises:
+            DocumentRevisionError: If the revision is incorrect.
+            DocumentGetError: If retrieval fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `get-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-an-edge>`__
+        """  # noqa: E501
+        handle = self._get_doc_id(edge)
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+        if if_none_match is not None:
+            headers["If-None-Match"] = if_none_match
+
+        params: Params = {}
+        if rev is not None:
+            params["rev"] = rev
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/gharial/{self._graph}/edge/{handle}",
+            headers=headers,
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> Optional[Json]:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            elif resp.status_code == HTTP_NOT_FOUND:
+                if resp.error_code == DOCUMENT_NOT_FOUND:
+                    return None
+                else:
+                    raise DocumentGetError(resp, request)
+            elif resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            else:
+                raise DocumentGetError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def insert(
+        self,
+        edge: T,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+    ) -> Result[Json]:
+        """Insert a new edge document.
+
+        Args:
+            edge (dict): Document to insert. It must contain "_from" and
+                "_to" fields. If it contains the "_key" or "_id"
+                field, the value is used as the key of the new document (otherwise
+                it is auto-generated). Any "_rev" field is ignored.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` is specified, the result contains the document
+                metadata in the "edge" field and the new document in the "new" field.
+
+        Raises:
+            DocumentInsertError: If insertion fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `create-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#create-an-edge>`__
+        """  # noqa: E501
+        if isinstance(edge, dict):
+            edge = cast(T, self._ensure_key_from_id(edge))
+
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_new is not None:
+            params["returnNew"] = return_new
+
+        request = Request(
+            method=Method.POST,
+            endpoint=f"/_api/gharial/{self._graph}/edge/{self.name}",
+            params=params,
+            data=self._doc_serializer.dumps(edge),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_NOT_FOUND:
+                msg = (
+                    "The graph cannot be found or the edge collection is not "
+                    "part of the graph. It is also possible that the vertex "
+                    "collection referenced in the _from or _to attribute is not part "
+                    "of the graph or the vertex collection is part of the graph, but "
+                    "does not exist. Finally check that _from or _to vertex do exist."
+                )
+            raise DocumentInsertError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def update(
+        self,
+        edge: T,
+        wait_for_sync: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[Json]:
+        """Update an edge in the graph.
+
+        Args:
+            edge (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field, along with "_from" and
+                "_to" fields.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally update a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` or "return_old" are specified, the result contains
+                the document metadata in the "edge" field and two additional fields
+                ("new" and "old").
+
+        Raises:
+            DocumentUpdateError: If update fails.
+
+        References:
+            - `update-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#update-an-edge>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if keep_null is not None:
+            params["keepNull"] = keep_null
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.PATCH,
+            endpoint=f"/_api/gharial/{self._graph}/edge/"
+            f"{self._get_doc_id(cast(Json, edge))}",
+            params=params,
+            headers=headers,
+            data=self._doc_serializer.dumps(edge),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                msg = (
+                    "The graph cannot be found or the edge collection is not "
+                    "part of the graph. It is also possible that the vertex "
+                    "collection referenced in the _from or _to attribute is not part "
+                    "of the graph or the vertex collection is part of the graph, but "
+                    "does not exist. Finally check that _from or _to vertex do exist."
+                )
+            raise DocumentUpdateError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def replace(
+        self,
+        edge: T,
+        wait_for_sync: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[Json]:
+        """Replace an edge in the graph.
+
+        Args:
+            edge (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field, along with "_from" and
+                "_to" fields.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` or "return_old" are specified, the result contains
+                the document metadata in the "edge" field and two additional fields
+                ("new" and "old").
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentReplaceError: If replace fails.
+
+        References:
+            - `replace-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#replace-an-edge>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if keep_null is not None:
+            params["keepNull"] = keep_null
+        if return_new is not None:
+            params["returnNew"] = return_new
+        if return_old is not None:
+            params["returnOld"] = return_old
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/gharial/{self._graph}/edge/"
+            f"{self._get_doc_id(cast(Json, edge))}",
+            params=params,
+            headers=headers,
+            data=self._doc_serializer.dumps(edge),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                return self._parse_result(self.deserializer.loads(resp.raw_body))
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                msg = (
+                    "The graph cannot be found or the edge collection is not "
+                    "part of the graph. It is also possible that the vertex "
+                    "collection referenced in the _from or _to attribute is not part "
+                    "of the graph or the vertex collection is part of the graph, but "
+                    "does not exist. Finally check that _from or _to vertex do exist."
+                )
+            raise DocumentReplaceError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete(
+        self,
+        edge: T,
+        ignore_missing: bool = False,
+        wait_for_sync: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Delete an edge from the graph.
+
+        Args:
+            edge (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field, along with "_from" and
+                "_to" fields.
+            ignore_missing (bool): Do not raise an exception on missing document.
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: `True` if vertex was deleted successfully, `False` if vertex
+                was not found and **ignore_missing** was set to `True` (does not apply
+                in transactions). Old document is returned if **return_old** is set
+                to `True`.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentDeleteError: If deletion fails.
+
+        References:
+            - `remove-an-edge <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#remove-an-edge>`__
+        """  # noqa: E501
+        params: Params = {}
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if return_old is not None:
+            params["returnOld"] = return_old
+
+        headers: RequestHeaders = {}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/gharial/{self._graph}/edge/"
+            f"{self._get_doc_id(cast(Json, edge))}",
+            params=params,
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> bool | Json:
+            if resp.is_success:
+                data: Json = self.deserializer.loads(resp.raw_body)
+                if "old" in data:
+                    return cast(Json, data["old"])
+                return True
+            msg: Optional[str] = None
+            if resp.status_code == HTTP_PRECONDITION_FAILED:
+                raise DocumentRevisionError(resp, request)
+            elif resp.status_code == HTTP_NOT_FOUND:
+                if resp.error_code == DOCUMENT_NOT_FOUND and ignore_missing:
+                    return False
+                msg = (
+                    "Either the graph cannot be found, the edge collection is not "
+                    "part of the graph, or the edge does not exist"
+                )
+            raise DocumentDeleteError(resp, request, msg)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def edges(
+        self,
+        vertex: str | Json,
+        direction: Optional[Literal["in", "out"]] = None,
+        allow_dirty_read: Optional[bool] = None,
+    ) -> Result[Json]:
+        """Return the edges starting or ending at the specified vertex.
+
+        Args:
+            vertex (str | dict): Document ID, key or body.
+            direction (str | None): Direction of the edges to return. Selects `in`
+                or `out` direction for edges. If not set, any edges are returned.
+            allow_dirty_read (bool | None): Allow reads from followers in a cluster.
+
+        Returns:
+            dict: List of edges and statistics.
+
+        Raises:
+            EdgeListError: If retrieval fails.
+
+        References:
+            - `get-inbound-and-outbound-edges <https://docs.arangodb.com/stable/develop/http-api/graphs/edges/#get-inbound-and-outbound-edges>`__
+        """  # noqa: E501
+        params: Params = {
+            "vertex": self._get_doc_id(vertex, validate=False),
+        }
+        if direction is not None:
+            params["direction"] = direction
+
+        headers: RequestHeaders = {}
+        if allow_dirty_read is not None:
+            headers["x-arango-allow-dirty-read"] = (
+                "true" if allow_dirty_read else "false"
+            )
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/edges/{self._name}",
+            params=params,
+            headers=headers,
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise EdgeListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            for key in ("error", "code"):
+                body.pop(key)
+            return body
+
+        return await self._executor.execute(request, response_handler)
+
+    async def link(
+        self,
+        from_vertex: str | Json,
+        to_vertex: str | Json,
+        data: Optional[Json] = None,
+        wait_for_sync: Optional[bool] = None,
+        return_new: bool = False,
+    ) -> Result[Json]:
+        """Insert a new edge document linking the given vertices.
+
+        Args:
+            from_vertex (str | dict): "_from" vertex document ID or body with "_id"
+                field.
+            to_vertex (str | dict): "_to" vertex document ID or body with "_id" field.
+            data (dict | None): Any extra data for the new edge document. If it has
+                "_key" or "_id" field, its value is used as key of the new edge document
+                (otherwise it is auto-generated).
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            return_new: Optional[bool]: Additionally return the complete new document
+                under the attribute `new` in the result.
+
+        Returns:
+            dict: Document metadata (e.g. document id, key, revision).
+                If `return_new` is specified, the result contains the document
+                metadata in the "edge" field and the new document in the "new" field.
+
+        Raises:
+            DocumentInsertError: If insertion fails.
+            DocumentParseError: If the document is malformed.
+        """
+        edge: Json = {
+            "_from": self._get_doc_id(from_vertex, validate=False),
+            "_to": self._get_doc_id(to_vertex, validate=False),
+        }
+        if data is not None:
+            edge.update(self._ensure_key_from_id(data))
+        return await self.insert(
+            cast(T, edge), wait_for_sync=wait_for_sync, return_new=return_new
+        )
