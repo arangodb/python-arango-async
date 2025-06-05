@@ -1,4 +1,4 @@
-![Logo](docs/static/logo.png)
+![Logo](https://raw.githubusercontent.com/arangodb/python-arango-async/refs/heads/main/docs/static/logo.png)
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/arangodb/python-arango-async/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/arangodb/python-arango-async/tree/main)
 [![CodeQL](https://github.com/arangodb/python-arango-async/actions/workflows/codeql.yaml/badge.svg)](https://github.com/arangodb/python-arango-async/actions/workflows/codeql.yaml)
