@@ -14,6 +14,7 @@ from arangoasync.collection import Collection, StandardCollection
 from arangoasync.connection import Connection
 from arangoasync.errno import HTTP_FORBIDDEN, HTTP_NOT_FOUND
 from arangoasync.exceptions import (
+    AnalyzerListError,
     AsyncJobClearError,
     AsyncJobListError,
     CollectionCreateError,
@@ -1458,6 +1459,28 @@ class Database:
             if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
                 return False
             raise ViewDeleteError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def analyzers(self) -> Result[Jsons]:
+        """List all analyzers in the database.
+
+        Returns:
+            list: List of analyzers with their properties.
+
+        Raises:
+            AnalyzerListError: If the operation fails.
+
+        References:
+            - `list-all-analyzers <https://docs.arangodb.com/stable/develop/http-api/analyzers/#list-all-analyzers>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/analyzer")
+
+        def response_handler(resp: Response) -> Jsons:
+            if resp.is_success:
+                result: Jsons = self.deserializer.loads(resp.raw_body)["result"]
+                return result
+            raise AnalyzerListError(resp, request)
 
         return await self._executor.execute(request, response_handler)
 

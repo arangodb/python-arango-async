@@ -135,6 +135,10 @@ class AQLQueryValidateError(ArangoServerError):
     """Failed to parse and validate query."""
 
 
+class AnalyzerListError(ArangoServerError):
+    """Failed to retrieve analyzers."""
+
+
 class AsyncExecuteError(ArangoServerError):
     """Failed to execute async API request."""
 
