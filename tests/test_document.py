@@ -594,23 +594,23 @@ async def test_document_db_operations(db, bad_db, doc_col, docs):
 
     # Update the document
     doc["val"] = 100
-    updated_doc = await db.update_document(doc_col.name, doc, return_new=True)
+    updated_doc = await db.update_document(doc, return_new=True)
     assert updated_doc["_id"] == doc["_id"]
     assert updated_doc["new"]["val"] == 100
     with pytest.raises(DocumentUpdateError):
-        await bad_db.update_document(doc_col.name, doc)
+        await bad_db.update_document(doc)
 
     # Replace the document
     doc["val"] = 200
-    replaced_doc = await db.replace_document(doc_col.name, doc, return_new=True)
+    replaced_doc = await db.replace_document(doc, return_new=True)
     assert replaced_doc["_id"] == doc["_id"]
     assert replaced_doc["new"]["val"] == 200
     with pytest.raises(DocumentReplaceError):
-        await bad_db.replace_document(doc_col.name, doc)
+        await bad_db.replace_document(doc)
 
     # Delete the document
-    deleted_doc = await db.delete_document(doc_col.name, doc["_id"], return_old=True)
+    deleted_doc = await db.delete_document(doc["_id"], return_old=True)
     assert deleted_doc["_id"] == doc["_id"]
     assert deleted_doc["old"]["val"] == 200
     with pytest.raises(DocumentDeleteError):
-        await bad_db.delete_document(doc_col.name, doc)
+        await bad_db.delete_document(doc)

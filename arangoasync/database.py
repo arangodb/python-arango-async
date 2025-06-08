@@ -835,7 +835,6 @@ class Database:
 
     async def update_document(
         self,
-        collection: str,
         document: Json,
         ignore_revs: Optional[bool] = None,
         wait_for_sync: Optional[bool] = None,
@@ -851,7 +850,6 @@ class Database:
         """Update a document.
 
         Args:
-            collection (str): Collection name.
             document (dict): Partial or full document with the updated values.
                 It must contain the "_key" or "_id" field.
             ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
@@ -891,7 +889,9 @@ class Database:
         References:
             - `update-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#update-a-document>`__
         """  # noqa: E501
-        col: StandardCollection[Json, Json, Jsons] = self.collection(collection)
+        col: StandardCollection[Json, Json, Jsons] = self.collection(
+            Collection.get_col_name(document)
+        )
         return await col.update(
             document,
             ignore_revs=ignore_revs,
@@ -908,7 +908,6 @@ class Database:
 
     async def replace_document(
         self,
-        collection: str,
         document: Json,
         ignore_revs: Optional[bool] = None,
         wait_for_sync: Optional[bool] = None,
@@ -922,7 +921,6 @@ class Database:
         """Replace a document.
 
         Args:
-            collection (str): Collection name.
             document (dict): New document. It must contain the "_key" or "_id" field.
                 Edge document must also have "_from" and "_to" fields.
             ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
@@ -956,7 +954,9 @@ class Database:
         References:
             - `replace-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#replace-a-document>`__
         """  # noqa: E501
-        col: StandardCollection[Json, Json, Jsons] = self.collection(collection)
+        col: StandardCollection[Json, Json, Jsons] = self.collection(
+            Collection.get_col_name(document)
+        )
         return await col.replace(
             document,
             ignore_revs=ignore_revs,
@@ -971,7 +971,6 @@ class Database:
 
     async def delete_document(
         self,
-        collection: str,
         document: str | Json,
         ignore_revs: Optional[bool] = None,
         ignore_missing: bool = False,
@@ -984,7 +983,6 @@ class Database:
         """Delete a document.
 
         Args:
-            collection (str): Collection name.
             document (str | dict): Document ID, key or body. The body must contain the
                 "_key" or "_id" field.
             ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
@@ -1017,7 +1015,9 @@ class Database:
         References:
             - `remove-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#remove-a-document>`__
         """  # noqa: E501
-        col: StandardCollection[Json, Json, Jsons] = self.collection(collection)
+        col: StandardCollection[Json, Json, Jsons] = self.collection(
+            Collection.get_col_name(document)
+        )
         return await col.delete(
             document,
             ignore_revs=ignore_revs,
