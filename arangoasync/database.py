@@ -46,6 +46,13 @@ from arangoasync.exceptions import (
     UserListError,
     UserReplaceError,
     UserUpdateError,
+    ViewCreateError,
+    ViewDeleteError,
+    ViewGetError,
+    ViewListError,
+    ViewRenameError,
+    ViewReplaceError,
+    ViewUpdateError,
 )
 from arangoasync.executor import (
     ApiExecutor,
@@ -1220,6 +1227,237 @@ class Database:
                     return False
                 raise GraphDeleteError(resp, request)
             return True
+
+        return await self._executor.execute(request, response_handler)
+
+    async def view(self, name: str) -> Result[Json]:
+        """Return the properties of a view.
+
+        Args:
+            name (str): View name.
+
+        Returns:
+            dict: View properties.
+
+        Raises:
+            ViewGetError: If the operation fails.
+
+        References:
+            - `read-properties-of-a-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#read-properties-of-a-view>`__
+            - `get-the-properties-of-a-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#get-the-properties-of-a-view>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint=f"/_api/view/{name}/properties")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ViewGetError(resp, request)
+            return self.deserializer.loads(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def view_info(self, name: str) -> Result[Json]:
+        """Return basic information about a specific view.
+
+        Args:
+            name (str): View name.
+
+        Returns:
+            dict: View information.
+
+        Raises:
+            ViewGetError: If the operation fails.
+
+        References:
+            - `get-information-about-a-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#get-information-about-a-view>`_
+            - `get-information-about-a-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#get-information-about-a-view>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint=f"/_api/view/{name}")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ViewGetError(resp, request)
+            return self.deserializer.loads(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def views(self) -> Result[Jsons]:
+        """List all views in the database along with their summary information.
+
+        Returns:
+            list: List of views with their properties.
+
+        Raises:
+            ViewListError: If the operation fails.
+
+        References:
+            - `list-all-views <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#list-all-views>`__
+            - `list-all-views <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#list-all-views>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/view")
+
+        def response_handler(resp: Response) -> Jsons:
+            if not resp.is_success:
+                raise ViewListError(resp, request)
+            body = self.deserializer.loads(resp.raw_body)
+            return cast(Jsons, body["result"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def create_view(
+        self,
+        name: str,
+        view_type: str,
+        properties: Optional[Json] = None,
+    ) -> Result[Json]:
+        """Create a view.
+
+        Args:
+            name (str): View name.
+            view_type (str): Type of the view (e.g., "arangosearch", "view").
+            properties (dict | None): Properties of the view.
+
+        Returns:
+            dict: View properties.
+
+        Raises:
+            ViewCreateError: If the operation fails.
+
+        References:
+            - `create-a-search-alias-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#create-a-search-alias-view>`__
+            - `create-an-arangosearch-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#create-an-arangosearch-view>`__
+        """  # noqa: E501
+        data: Json = {"name": name, "type": view_type}
+        if properties is not None:
+            data.update(properties)
+
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/view",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ViewCreateError(resp, request)
+            return self.deserializer.loads(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def replace_view(self, name: str, properties: Json) -> Result[Json]:
+        """Replace the properties of an existing view.
+
+        Args:
+            name (str): View name.
+            properties (dict): New properties for the view.
+
+        Returns:
+            dict: Updated view properties.
+
+        Raises:
+            ViewReplaceError: If the operation fails.
+
+        References:
+            - `replace-the-properties-of-a-search-alias-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#replace-the-properties-of-a-search-alias-view>`__
+            - `replace-the-properties-of-an-arangosearch-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#replace-the-properties-of-an-arangosearch-view>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/view/{name}/properties",
+            data=self.serializer.dumps(properties),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                return self.deserializer.loads(resp.raw_body)
+            raise ViewReplaceError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def update_view(self, name: str, properties: Json) -> Result[Json]:
+        """Update the properties of an existing view.
+
+        Args:
+            name (str): View name.
+            properties (dict): New properties for the view.
+
+        Returns:
+            dict: Updated view properties.
+
+        Raises:
+            ViewUpdateError: If the operation fails.
+
+        References:
+            - `update-the-properties-of-a-search-alias-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#update-the-properties-of-a-search-alias-view>`__
+            - `update-the-properties-of-an-arangosearch-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#update-the-properties-of-an-arangosearch-view>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PATCH,
+            endpoint=f"/_api/view/{name}/properties",
+            data=self.serializer.dumps(properties),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if resp.is_success:
+                return self.deserializer.loads(resp.raw_body)
+            raise ViewUpdateError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def rename_view(self, name: str, new_name: str) -> None:
+        """Rename an existing view (not supported in cluster deployments).
+
+        Args:
+            name (str): Current view name.
+            new_name (str): New view name.
+
+        Raises:
+            ViewRenameError: If the operation fails.
+
+        References:
+            - `rename-a-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#rename-a-view>`__
+            - `rename-a-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#rename-a-view>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/view/{name}/rename",
+            data=self.serializer.dumps({"name": new_name}),
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise ViewRenameError(resp, request)
+
+        await self._executor.execute(request, response_handler)
+
+    async def delete_view(
+        self, name: str, ignore_missing: bool = False
+    ) -> Result[bool]:
+        """Delete a view.
+
+        Args:
+            name (str): View name.
+            ignore_missing (bool): If `True`, do not raise an exception if the
+                view does not exist.
+
+        Returns:
+            bool: `True` if the view was deleted successfully, `False` if the
+                view was not found and **ignore_missing** was set to `True`.
+
+        Raises:
+            ViewDeleteError: If the operation fails.
+
+        References:
+            - `drop-a-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#drop-a-view>`__
+            - `drop-a-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#drop-a-view>`__
+        """  # noqa: E501
+        request = Request(method=Method.DELETE, endpoint=f"/_api/view/{name}")
+
+        def response_handler(resp: Response) -> bool:
+            if resp.is_success:
+                return True
+            if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
+                return False
+            raise ViewDeleteError(resp, request)
 
         return await self._executor.execute(request, response_handler)
 

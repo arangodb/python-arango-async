@@ -429,3 +429,31 @@ class VertexCollectionDeleteError(ArangoServerError):
 
 class VertexCollectionListError(ArangoServerError):
     """Failed to retrieve vertex collections."""
+
+
+class ViewCreateError(ArangoServerError):
+    """Failed to create view."""
+
+
+class ViewDeleteError(ArangoServerError):
+    """Failed to delete view."""
+
+
+class ViewGetError(ArangoServerError):
+    """Failed to retrieve view details."""
+
+
+class ViewListError(ArangoServerError):
+    """Failed to retrieve views."""
+
+
+class ViewRenameError(ArangoServerError):
+    """Failed to rename view."""
+
+
+class ViewReplaceError(ArangoServerError):
+    """Failed to replace view."""
+
+
+class ViewUpdateError(ArangoServerError):
+    """Failed to update view."""

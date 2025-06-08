@@ -44,3 +44,12 @@ def generate_string():
         str: Random unique string.
     """
     return uuid4().hex
+
+
+def generate_view_name():
+    """Generate and return a random view name.
+
+    Returns:
+        str: Random view name.
+    """
+    return f"test_view_{uuid4().hex}"
