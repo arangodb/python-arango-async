@@ -10,7 +10,7 @@ from typing import Any, List, Optional, Sequence, TypeVar, cast
 from warnings import warn
 
 from arangoasync.aql import AQL
-from arangoasync.collection import StandardCollection
+from arangoasync.collection import Collection, StandardCollection
 from arangoasync.connection import Connection
 from arangoasync.errno import HTTP_FORBIDDEN, HTTP_NOT_FOUND
 from arangoasync.exceptions import (
@@ -683,6 +683,351 @@ class Database:
             raise CollectionDeleteError(resp, request)
 
         return await self._executor.execute(request, response_handler)
+
+    async def has_document(
+        self,
+        document: str | Json,
+        allow_dirty_read: bool = False,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
+    ) -> Result[bool]:
+        """Check if a document exists.
+
+        Args:
+            document (str | dict): Document ID, key or body.
+                Document body must contain the "_id" field.
+            allow_dirty_read (bool):  Allow reads from followers in a cluster.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
+
+        Returns:
+            `True` if the document exists, `False` otherwise.
+
+        Raises:
+            DocumentRevisionError: If the revision is incorrect.
+            DocumentGetError: If retrieval fails.
+
+        References:
+            - `get-a-document-header <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document-header>`__
+        """  # noqa: E501
+        col = Collection.get_col_name(document)
+        return await self.collection(col).has(
+            document,
+            allow_dirty_read=allow_dirty_read,
+            if_match=if_match,
+            if_none_match=if_none_match,
+        )
+
+    async def document(
+        self,
+        document: str | Json,
+        allow_dirty_read: bool = False,
+        if_match: Optional[str] = None,
+        if_none_match: Optional[str] = None,
+    ) -> Result[Optional[Json]]:
+        """Return a document.
+
+        Args:
+            document (str | dict): Document ID, key or body.
+                Document body must contain the "_id" field.
+            allow_dirty_read (bool):  Allow reads from followers in a cluster.
+            if_match (str | None): The document is returned, if it has the same
+                revision as the given ETag.
+            if_none_match (str | None): The document is returned, if it has a
+                different revision than the given ETag.
+
+        Returns:
+            Document or `None` if not found.
+
+        Raises:
+            DocumentRevisionError: If the revision is incorrect.
+            DocumentGetError: If retrieval fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `get-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document>`__
+        """  # noqa: E501
+        col: StandardCollection[Json, Json, Jsons] = self.collection(
+            Collection.get_col_name(document)
+        )
+        return await col.get(
+            document,
+            allow_dirty_read=allow_dirty_read,
+            if_match=if_match,
+            if_none_match=if_none_match,
+        )
+
+    async def insert_document(
+        self,
+        collection: str,
+        document: Json,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        overwrite: Optional[bool] = None,
+        overwrite_mode: Optional[str] = None,
+        keep_null: Optional[bool] = None,
+        merge_objects: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+        version_attribute: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Insert a new document.
+
+        Args:
+            collection (str): Collection name.
+            document (dict): Document to insert. If it contains the "_key" or "_id"
+                field, the value is used as the key of the new document (otherwise
+                it is auto-generated). Any "_rev" field is ignored.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result. Only available if the
+                `overwrite` option is used.
+            silent (bool | None): If set to `True`, no document metadata is returned.
+                This can be used to save resources.
+            overwrite (bool | None): If set to `True`, operation does not fail on
+                duplicate key and existing document is overwritten (replace-insert).
+            overwrite_mode (str | None): Overwrite mode. Supersedes **overwrite**
+                option. May be one of "ignore", "replace", "update" or "conflict".
+            keep_null (bool | None): If set to `True`, fields with value None are
+                retained in the document. Otherwise, they are removed completely.
+                Applies only when **overwrite_mode** is set to "update"
+                (update-insert).
+            merge_objects (bool | None): If set to `True`, sub-dictionaries are merged
+                instead of the new one overwriting the old one. Applies only when
+                **overwrite_mode** is set to "update" (update-insert).
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document insertions affect the edge index
+                or cache-enabled persistent indexes.
+            version_attribute (str | None): Support for simple external versioning to
+                document operations. Only applicable if **overwrite** is set to `True`
+                or **overwrite_mode** is set to "update" or "replace".
+
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
+                if **silent** is set to `True`.
+
+        Raises:
+            DocumentInsertError: If insertion fails.
+            DocumentParseError: If the document is malformed.
+
+        References:
+            - `create-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#create-a-document>`__
+        """  # noqa: E501
+        col: StandardCollection[Json, Json, Jsons] = self.collection(collection)
+        return await col.insert(
+            document,
+            wait_for_sync=wait_for_sync,
+            return_new=return_new,
+            return_old=return_old,
+            silent=silent,
+            overwrite=overwrite,
+            overwrite_mode=overwrite_mode,
+            keep_null=keep_null,
+            merge_objects=merge_objects,
+            refill_index_caches=refill_index_caches,
+            version_attribute=version_attribute,
+        )
+
+    async def update_document(
+        self,
+        collection: str,
+        document: Json,
+        ignore_revs: Optional[bool] = None,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        keep_null: Optional[bool] = None,
+        merge_objects: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+        version_attribute: Optional[str] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Update a document.
+
+        Args:
+            collection (str): Collection name.
+            document (dict): Partial or full document with the updated values.
+                It must contain the "_key" or "_id" field.
+            ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
+                document is ignored. If this is set to `False`, then the `_rev`
+                attribute given in the body document is taken as a precondition.
+                The document is only updated if the current revision is the one
+                specified.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            silent (bool | None): If set to `True`, no document metadata is returned.
+                This can be used to save resources.
+            keep_null (bool | None): If the intention is to delete existing attributes
+                with the patch command, set this parameter to `False`.
+            merge_objects (bool | None): Controls whether objects (not arrays) are
+                merged if present in both the existing and the patch document.
+                If set to `False`, the value in the patch document overwrites the
+                existing document’s value. If set to `True`, objects are merged.
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document updates affect the edge index
+                or cache-enabled persistent indexes.
+            version_attribute (str | None): Support for simple external versioning to
+                document operations.
+            if_match (str | None): You can conditionally update a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
+                if **silent** is set to `True`.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentUpdateError: If update fails.
+
+        References:
+            - `update-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#update-a-document>`__
+        """  # noqa: E501
+        col: StandardCollection[Json, Json, Jsons] = self.collection(collection)
+        return await col.update(
+            document,
+            ignore_revs=ignore_revs,
+            wait_for_sync=wait_for_sync,
+            return_new=return_new,
+            return_old=return_old,
+            silent=silent,
+            keep_null=keep_null,
+            merge_objects=merge_objects,
+            refill_index_caches=refill_index_caches,
+            version_attribute=version_attribute,
+            if_match=if_match,
+        )
+
+    async def replace_document(
+        self,
+        collection: str,
+        document: Json,
+        ignore_revs: Optional[bool] = None,
+        wait_for_sync: Optional[bool] = None,
+        return_new: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+        version_attribute: Optional[str] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Replace a document.
+
+        Args:
+            collection (str): Collection name.
+            document (dict): New document. It must contain the "_key" or "_id" field.
+                Edge document must also have "_from" and "_to" fields.
+            ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
+                document is ignored. If this is set to `False`, then the `_rev`
+                attribute given in the body document is taken as a precondition.
+                The document is only replaced if the current revision is the one
+                specified.
+            wait_for_sync (bool | None): Wait until document has been synced to disk.
+            return_new (bool | None): Additionally return the complete new document
+                under the attribute `new` in the result.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            silent (bool | None): If set to `True`, no document metadata is returned.
+                This can be used to save resources.
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document updates affect the edge index
+                or cache-enabled persistent indexes.
+            version_attribute (str | None): Support for simple external versioning to
+                document operations.
+            if_match (str | None): You can conditionally replace a document based on a
+                target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
+                if **silent** is set to `True`.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentReplaceError: If replace fails.
+
+        References:
+            - `replace-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#replace-a-document>`__
+        """  # noqa: E501
+        col: StandardCollection[Json, Json, Jsons] = self.collection(collection)
+        return await col.replace(
+            document,
+            ignore_revs=ignore_revs,
+            wait_for_sync=wait_for_sync,
+            return_new=return_new,
+            return_old=return_old,
+            silent=silent,
+            refill_index_caches=refill_index_caches,
+            version_attribute=version_attribute,
+            if_match=if_match,
+        )
+
+    async def delete_document(
+        self,
+        collection: str,
+        document: str | Json,
+        ignore_revs: Optional[bool] = None,
+        ignore_missing: bool = False,
+        wait_for_sync: Optional[bool] = None,
+        return_old: Optional[bool] = None,
+        silent: Optional[bool] = None,
+        refill_index_caches: Optional[bool] = None,
+        if_match: Optional[str] = None,
+    ) -> Result[bool | Json]:
+        """Delete a document.
+
+        Args:
+            collection (str): Collection name.
+            document (str | dict): Document ID, key or body. The body must contain the
+                "_key" or "_id" field.
+            ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
+                document is ignored. If this is set to `False`, then the `_rev`
+                attribute given in the body document is taken as a precondition.
+                The document is only replaced if the current revision is the one
+                specified.
+            ignore_missing (bool): Do not raise an exception on missing document.
+                This parameter has no effect in transactions where an exception is
+                always raised on failures.
+            wait_for_sync (bool | None): Wait until operation has been synced to disk.
+            return_old (bool | None): Additionally return the complete old document
+                under the attribute `old` in the result.
+            silent (bool | None): If set to `True`, no document metadata is returned.
+                This can be used to save resources.
+            refill_index_caches (bool | None): Whether to add new entries to
+                in-memory index caches if document updates affect the edge index
+                or cache-enabled persistent indexes.
+            if_match (bool | None): You can conditionally remove a document based
+                on a target revision id by using the "if-match" HTTP header.
+
+        Returns:
+            bool | dict: Document metadata (e.g. document id, key, revision) or `True`
+                if **silent** is set to `True` and the document was found.
+
+        Raises:
+            DocumentRevisionError: If precondition was violated.
+            DocumentDeleteError: If deletion fails.
+
+        References:
+            - `remove-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#remove-a-document>`__
+        """  # noqa: E501
+        col: StandardCollection[Json, Json, Jsons] = self.collection(collection)
+        return await col.delete(
+            document,
+            ignore_revs=ignore_revs,
+            ignore_missing=ignore_missing,
+            wait_for_sync=wait_for_sync,
+            return_old=return_old,
+            silent=silent,
+            refill_index_caches=refill_index_caches,
+            if_match=if_match,
+        )
 
     def graph(
         self,

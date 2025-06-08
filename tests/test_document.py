@@ -566,3 +566,51 @@ async def test_document_delete_match(doc_col, bad_col, docs):
     await doc_col.insert_many(docs)
     count = await doc_col.delete_match({"text": "no_matching"})
     assert count == 0
+
+
+@pytest.mark.asyncio
+async def test_document_db_operations(db, bad_db, doc_col, docs):
+    # Insert a document through the collection API
+    doc = await doc_col.insert(docs[0])
+
+    # Check if the document exists in the database
+    assert await db.has_document(doc) is True
+    assert await db.has_document({"_id": "missing_col/missing_doc"}) is False
+    assert await db.has_document("missing_doc") is False
+    with pytest.raises(DocumentGetError):
+        await bad_db.has_document(doc)
+
+    # Get the document
+    doc2 = await db.document(doc["_id"])
+    assert doc2["_id"] == doc["_id"]
+    with pytest.raises(DocumentGetError):
+        await bad_db.document(doc["_id"])
+
+    # Insert a new document
+    doc = await db.insert_document(doc_col.name, docs[1])
+    assert doc["_id"] == f"{doc_col.name}/{doc['_key']}"
+    with pytest.raises(DocumentInsertError):
+        await bad_db.insert_document(doc_col.name, docs[2])
+
+    # Update the document
+    doc["val"] = 100
+    updated_doc = await db.update_document(doc_col.name, doc, return_new=True)
+    assert updated_doc["_id"] == doc["_id"]
+    assert updated_doc["new"]["val"] == 100
+    with pytest.raises(DocumentUpdateError):
+        await bad_db.update_document(doc_col.name, doc)
+
+    # Replace the document
+    doc["val"] = 200
+    replaced_doc = await db.replace_document(doc_col.name, doc, return_new=True)
+    assert replaced_doc["_id"] == doc["_id"]
+    assert replaced_doc["new"]["val"] == 200
+    with pytest.raises(DocumentReplaceError):
+        await bad_db.replace_document(doc_col.name, doc)
+
+    # Delete the document
+    deleted_doc = await db.delete_document(doc_col.name, doc["_id"], return_old=True)
+    assert deleted_doc["_id"] == doc["_id"]
+    assert deleted_doc["old"]["val"] == 200
+    with pytest.raises(DocumentDeleteError):
+        await bad_db.delete_document(doc_col.name, doc)

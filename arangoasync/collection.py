@@ -1653,7 +1653,7 @@ class StandardCollection(Collection[T, U, V]):
 
     async def delete(
         self,
-        document: T,
+        document: str | T,
         ignore_revs: Optional[bool] = None,
         ignore_missing: bool = False,
         wait_for_sync: Optional[bool] = None,
@@ -1665,7 +1665,7 @@ class StandardCollection(Collection[T, U, V]):
         """Delete a document.
 
         Args:
-            document (dict): Document ID, key or body. The body must contain the
+            document (str | dict): Document ID, key or body. The body must contain the
                 "_key" or "_id" field.
             ignore_revs (bool | None): If set to `True`, the `_rev` attribute in the
                 document is ignored. If this is set to `False`, then the `_rev`
@@ -1697,6 +1697,8 @@ class StandardCollection(Collection[T, U, V]):
         References:
             - `remove-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#remove-a-document>`__
         """  # noqa: E501
+        handle = self._get_doc_id(cast(str | Json, document))
+
         params: Params = {}
         if ignore_revs is not None:
             params["ignoreRevs"] = ignore_revs
@@ -1715,7 +1717,7 @@ class StandardCollection(Collection[T, U, V]):
 
         request = Request(
             method=Method.DELETE,
-            endpoint=f"/_api/document/{self._extract_id(cast(Json, document))}",
+            endpoint=f"/_api/document/{handle}",
             params=params,
             headers=headers,
         )
