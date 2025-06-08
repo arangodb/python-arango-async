@@ -150,4 +150,54 @@ Standard documents are managed via collection API wrapper:
         # Delete one or more matching documents.
         await students.delete_match({"first": "Emma"})
 
+You can manage documents via database API wrappers also, but only simple
+operations (i.e. get, insert, update, replace, delete) are supported and you
+must provide document IDs instead of keys:
+
+.. code-block:: python
+
+    from arangoasync import ArangoClient
+    from arangoasync.auth import Auth
+
+    # Initialize the client for ArangoDB.
+    async with ArangoClient(hosts="http://localhost:8529") as client:
+        auth = Auth(username="root", password="passwd")
+
+        # Connect to "test" database as root user.
+        db = await client.db("test", auth=auth)
+
+        # Create a new collection named "students" if it does not exist.
+        if not await db.has_collection("students"):
+            await db.create_collection("students")
+
+        # Create some test documents to play around with.
+        # The documents must have the "_id" field instead.
+        lola = {"_id": "students/lola", "GPA": 3.5}
+        abby = {"_id": "students/abby", "GPA": 3.2}
+        john = {"_id": "students/john", "GPA": 3.6}
+        emma = {"_id": "students/emma", "GPA": 4.0}
+
+        # Insert a new document.
+        metadata = await db.insert_document("students", lola)
+        assert metadata["_id"] == "students/lola"
+        assert metadata["_key"] == "lola"
+
+        # Check if a document exists.
+        assert await db.has_document(lola) is True
+
+        # Get a document (by ID or body with "_id" field).
+        await db.document("students/lola")
+        await db.document(abby)
+
+        # Update a document.
+        lola["GPA"] = 3.6
+        await db.update_document(lola)
+
+        # Replace a document.
+        lola["GPA"] = 3.4
+        await db.replace_document(lola)
+
+        # Delete a document (by ID or body with "_id" field).
+        await db.delete_document("students/lola")
+
 See :class:`arangoasync.database.StandardDatabase` and :class:`arangoasync.collection.StandardCollection` for API specification.
