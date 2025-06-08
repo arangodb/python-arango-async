@@ -44,6 +44,7 @@ Contents
     :maxdepth: 1
 
     transaction
+    view
 
 **API Executions**
 
