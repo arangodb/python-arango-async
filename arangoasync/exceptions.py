@@ -135,6 +135,22 @@ class AQLQueryValidateError(ArangoServerError):
     """Failed to parse and validate query."""
 
 
+class AnalyzerCreateError(ArangoServerError):
+    """Failed to create analyzer."""
+
+
+class AnalyzerGetError(ArangoServerError):
+    """Failed to retrieve analyzer details."""
+
+
+class AnalyzerDeleteError(ArangoServerError):
+    """Failed to delete analyzer."""
+
+
+class AnalyzerListError(ArangoServerError):
+    """Failed to retrieve analyzers."""
+
+
 class AsyncExecuteError(ArangoServerError):
     """Failed to execute async API request."""
 

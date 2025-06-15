@@ -5,7 +5,7 @@ __all__ = [
 from typing import Optional
 
 from arangoasync.request import Method
-from arangoasync.typings import ResponseHeaders
+from arangoasync.typings import Json, ResponseHeaders
 
 
 class Response:
@@ -63,3 +63,17 @@ class Response:
         self.error_code: Optional[int] = None
         self.error_message: Optional[str] = None
         self.is_success: Optional[bool] = None
+
+    @staticmethod
+    def format_body(body: Json) -> Json:
+        """Format the generic response body, stripping the error code and message.
+
+        Args:
+            body (Json): The response body.
+
+        Returns:
+            dict: The formatted response body.
+        """
+        body.pop("error", None)
+        body.pop("code", None)
+        return body
