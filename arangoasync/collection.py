@@ -2592,10 +2592,7 @@ class EdgeCollection(Collection[T, U, V]):
         def response_handler(resp: Response) -> Json:
             if not resp.is_success:
                 raise EdgeListError(resp, request)
-            body = self.deserializer.loads(resp.raw_body)
-            for key in ("error", "code"):
-                body.pop(key)
-            return body
+            return Response.format_body(self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
 

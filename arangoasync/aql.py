@@ -597,7 +597,7 @@ class AQL:
         def response_handler(resp: Response) -> Json:
             if not resp.is_success:
                 raise AQLQueryExplainError(resp, request)
-            return self.deserializer.loads(resp.raw_body)
+            return Response.format_body(self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
 
@@ -625,7 +625,7 @@ class AQL:
         def response_handler(resp: Response) -> Json:
             if not resp.is_success:
                 raise AQLQueryValidateError(resp, request)
-            return self.deserializer.loads(resp.raw_body)
+            return Response.format_body(self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
 
@@ -719,7 +719,7 @@ class AQL:
         def response_handler(resp: Response) -> Json:
             if not resp.is_success:
                 raise AQLFunctionCreateError(resp, request)
-            return self.deserializer.loads(resp.raw_body)
+            return Response.format_body(self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
 
@@ -760,6 +760,6 @@ class AQL:
             if not resp.is_success:
                 if not (resp.status_code == HTTP_NOT_FOUND and ignore_missing):
                     raise AQLFunctionDeleteError(resp, request)
-            return self.deserializer.loads(resp.raw_body)
+            return Response.format_body(self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)

@@ -1255,7 +1255,7 @@ class Database:
         def response_handler(resp: Response) -> Json:
             if not resp.is_success:
                 raise ViewGetError(resp, request)
-            return self.deserializer.loads(resp.raw_body)
+            return Response.format_body(self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
 
@@ -1280,7 +1280,7 @@ class Database:
         def response_handler(resp: Response) -> Json:
             if not resp.is_success:
                 raise ViewGetError(resp, request)
-            return self.deserializer.loads(resp.raw_body)
+            return Response.format_body(self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
 
@@ -2006,7 +2006,7 @@ class Database:
             if not resp.is_success:
                 raise JWTSecretListError(resp, request)
             result: Json = self.deserializer.loads(resp.raw_body)
-            return result
+            return Response.format_body(result)
 
         return await self._executor.execute(request, response_handler)
 
@@ -2028,7 +2028,7 @@ class Database:
             if not resp.is_success:
                 raise JWTSecretReloadError(resp, request)
             result: Json = self.deserializer.loads(resp.raw_body)
-            return result
+            return Response.format_body(result)
 
         return await self._executor.execute(request, response_handler)
 
