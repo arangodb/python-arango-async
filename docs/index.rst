@@ -45,6 +45,7 @@ Contents
 
     transaction
     view
+    analyzer
 
 **API Executions**
 
