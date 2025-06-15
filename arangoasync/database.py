@@ -14,6 +14,9 @@ from arangoasync.collection import Collection, StandardCollection
 from arangoasync.connection import Connection
 from arangoasync.errno import HTTP_FORBIDDEN, HTTP_NOT_FOUND
 from arangoasync.exceptions import (
+    AnalyzerCreateError,
+    AnalyzerDeleteError,
+    AnalyzerGetError,
     AnalyzerListError,
     AsyncJobClearError,
     AsyncJobListError,
@@ -1481,6 +1484,111 @@ class Database:
                 result: Jsons = self.deserializer.loads(resp.raw_body)["result"]
                 return result
             raise AnalyzerListError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def analyzer(self, name: str) -> Result[Json]:
+        """Return analyzer details.
+
+        Args:
+            name (str): Analyzer name.
+
+        Returns:
+            dict: Analyzer properties.
+
+        References:
+            - `get-an-analyzer-definition <https://docs.arangodb.com/stable/develop/http-api/analyzers/#get-an-analyzer-definition>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint=f"/_api/analyzer/{name}")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise AnalyzerGetError(resp, request)
+            return Response.format_body(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def create_analyzer(
+        self,
+        name: str,
+        analyzer_type: str,
+        properties: Optional[Json] = None,
+        features: Optional[Sequence[str]] = None,
+    ) -> Result[Json]:
+        """Create an analyzer.
+
+        Args:
+            name (str): Analyzer name.
+            analyzer_type (str): Type of the analyzer (e.g., "text", "identity").
+            properties (dict | None): Properties of the analyzer.
+            features (list | None): The set of features to set on the Analyzer
+                generated fields. The default value is an empty array. Possible values:
+                "frequency", "norm", "position", "offset".
+
+        Returns:
+            dict: Analyzer properties.
+
+        Raises:
+            AnalyzerCreateError: If the operation fails.
+
+        References:
+            - `create-an-analyzer <https://docs.arangodb.com/stable/develop/http-api/analyzers/#create-an-analyzer>`__
+        """  # noqa: E501
+        data: Json = {"name": name, "type": analyzer_type}
+        if properties is not None:
+            data["properties"] = properties
+        if features is not None:
+            data["features"] = features
+
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/analyzer",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise AnalyzerCreateError(resp, request)
+            return self.deserializer.loads(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete_analyzer(
+        self, name: str, force: Optional[bool] = None, ignore_missing: bool = False
+    ) -> Result[bool]:
+        """Delete an analyzer.
+
+        Args:
+            name (str): Analyzer name.
+            force (bool | None): Remove the analyzer configuration even if in use.
+            ignore_missing (bool): Do not raise an exception on missing analyzer.
+
+        Returns:
+            bool: `True` if the analyzer was deleted successfully, `False` if the
+                analyzer was not found and **ignore_missing** was set to `True`.
+
+        Raises:
+            AnalyzerDeleteError: If the operation fails.
+
+        References:
+            - `remove-an-analyzer <https://docs.arangodb.com/stable/develop/http-api/analyzers/#remove-an-analyzer>`__
+        """  # noqa: E501
+        params: Params = {}
+        if force is not None:
+            params["force"] = force
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint=f"/_api/analyzer/{name}",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> bool:
+            if resp.is_success:
+                return True
+            if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
+                return False
+            raise AnalyzerDeleteError(resp, request)
 
         return await self._executor.execute(request, response_handler)
 

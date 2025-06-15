@@ -53,3 +53,12 @@ def generate_view_name():
         str: Random view name.
     """
     return f"test_view_{uuid4().hex}"
+
+
+def generate_analyzer_name():
+    """Generate and return a random analyzer name.
+
+    Returns:
+        str: Random analyzer name.
+    """
+    return f"test_analyzer_{uuid4().hex}"
