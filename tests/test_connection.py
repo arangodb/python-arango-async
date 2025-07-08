@@ -223,6 +223,12 @@ async def test_JwtConnection_ping_success(
     status_code = await connection1.ping()
     assert status_code == 200
 
+    # Refresh the token
+    await connection3.refresh_token()
+    status_code = await connection1.ping()
+    assert status_code == 200
+    assert connection3.token != connection1.token
+
 
 @pytest.mark.asyncio
 async def test_JwtSuperuserConnection_ping_success(
