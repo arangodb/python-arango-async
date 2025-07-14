@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+from packaging import version
 
 from arangoasync.collection import StandardCollection
 from arangoasync.exceptions import (
@@ -22,7 +23,7 @@ from tests.helpers import generate_col_name, generate_db_name, generate_username
 
 
 @pytest.mark.asyncio
-async def test_database_misc_methods(sys_db, db, bad_db, cluster):
+async def test_database_misc_methods(sys_db, db, bad_db, cluster, db_version):
     # Status
     status = await sys_db.status()
     assert status["server"] == "arango"
@@ -51,16 +52,17 @@ async def test_database_misc_methods(sys_db, db, bad_db, cluster):
         await bad_db.reload_jwt_secrets()
 
     # Version
-    version = await sys_db.version()
-    assert version["version"].startswith("3.")
+    v = await sys_db.version()
+    assert v["version"].startswith("3.")
     with pytest.raises(ServerVersionError):
         await bad_db.version()
 
     # key generators
-    key_generators = await db.key_generators()
-    assert isinstance(key_generators, list)
-    with pytest.raises(CollectionKeyGeneratorsError):
-        await bad_db.key_generators()
+    if db_version >= version.parse("3.12.0"):
+        key_generators = await db.key_generators()
+        assert isinstance(key_generators, list)
+        with pytest.raises(CollectionKeyGeneratorsError):
+            await bad_db.key_generators()
 
 
 @pytest.mark.asyncio
