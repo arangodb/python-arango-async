@@ -6,6 +6,7 @@ from arangoasync.errno import DATA_SOURCE_NOT_FOUND, INDEX_NOT_FOUND
 from arangoasync.exceptions import (
     CollectionPropertiesError,
     CollectionResponsibleShardError,
+    CollectionRevisionError,
     CollectionShardsError,
     CollectionStatisticsError,
     CollectionTruncateError,
@@ -52,6 +53,12 @@ async def test_collection_misc_methods(doc_col, bad_col, docs, cluster):
         assert isinstance(shards, dict)
         with pytest.raises(CollectionShardsError):
             await bad_col.shards()
+
+    # Revision
+    revision = await doc_col.revision()
+    assert isinstance(revision, str)
+    with pytest.raises(CollectionRevisionError):
+        await bad_col.revision()
 
 
 @pytest.mark.asyncio

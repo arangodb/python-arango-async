@@ -18,6 +18,7 @@ from arangoasync.errno import (
 from arangoasync.exceptions import (
     CollectionPropertiesError,
     CollectionResponsibleShardError,
+    CollectionRevisionError,
     CollectionShardsError,
     CollectionStatisticsError,
     CollectionTruncateError,
@@ -638,7 +639,7 @@ class Collection(Generic[T, U, V]):
                 servers for these shards.
 
         Returns:
-            dict: Collection shards and properties.
+            dict: Collection shards.
 
         Raises:
             CollectionShardsError: If retrieval fails.
@@ -659,7 +660,31 @@ class Collection(Generic[T, U, V]):
         def response_handler(resp: Response) -> Json:
             if not resp.is_success:
                 raise CollectionShardsError(resp, request)
-            return Response.format_body(self.deserializer.loads(resp.raw_body))
+            return cast(Json, self.deserializer.loads(resp.raw_body)["shards"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def revision(self) -> Result[str]:
+        """Return collection revision.
+
+        Returns:
+            str: Collection revision.
+
+        Raises:
+            CollectionRevisionError: If retrieval fails.
+
+        References:
+            - `get-the-collection-revision-id <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-collection-revision-id>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/revision",
+        )
+
+        def response_handler(resp: Response) -> str:
+            if not resp.is_success:
+                raise CollectionRevisionError(resp, request)
+            return cast(str, self.deserializer.loads(resp.raw_body)["revision"])
 
         return await self._executor.execute(request, response_handler)
 
