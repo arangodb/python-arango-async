@@ -6,6 +6,7 @@ from arangoasync.collection import StandardCollection
 from arangoasync.exceptions import (
     CollectionCreateError,
     CollectionDeleteError,
+    CollectionKeyGeneratorsError,
     CollectionListError,
     DatabaseCreateError,
     DatabaseDeleteError,
@@ -54,6 +55,12 @@ async def test_database_misc_methods(sys_db, db, bad_db, cluster):
     assert version["version"].startswith("3.")
     with pytest.raises(ServerVersionError):
         await bad_db.version()
+
+    # key generators
+    key_generators = await db.key_generators()
+    assert isinstance(key_generators, list)
+    with pytest.raises(CollectionKeyGeneratorsError):
+        await bad_db.key_generators()
 
 
 @pytest.mark.asyncio

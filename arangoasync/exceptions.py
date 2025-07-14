@@ -191,6 +191,10 @@ class CollectionDeleteError(ArangoServerError):
     """Failed to delete collection."""
 
 
+class CollectionKeyGeneratorsError(ArangoServerError):
+    """Failed to retrieve key generators."""
+
+
 class CollectionListError(ArangoServerError):
     """Failed to retrieve collections."""
 
