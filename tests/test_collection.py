@@ -5,6 +5,7 @@ import pytest
 from arangoasync.errno import DATA_SOURCE_NOT_FOUND, INDEX_NOT_FOUND
 from arangoasync.exceptions import (
     CollectionPropertiesError,
+    CollectionStatisticsError,
     CollectionTruncateError,
     DocumentCountError,
     IndexCreateError,
@@ -30,6 +31,11 @@ async def test_collection_misc_methods(doc_col, bad_col):
     assert len(properties.format()) > 1
     with pytest.raises(CollectionPropertiesError):
         await bad_col.properties()
+    statistics = await doc_col.statistics()
+    assert statistics.name == doc_col.name
+    assert "figures" in statistics
+    with pytest.raises(CollectionStatisticsError):
+        await bad_col.statistics()
 
 
 @pytest.mark.asyncio

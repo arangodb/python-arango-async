@@ -17,6 +17,7 @@ from arangoasync.errno import (
 )
 from arangoasync.exceptions import (
     CollectionPropertiesError,
+    CollectionStatisticsError,
     CollectionTruncateError,
     DocumentCountError,
     DocumentDeleteError,
@@ -41,6 +42,7 @@ from arangoasync.result import Result
 from arangoasync.serialization import Deserializer, Serializer
 from arangoasync.typings import (
     CollectionProperties,
+    CollectionStatistics,
     IndexProperties,
     Json,
     Jsons,
@@ -552,7 +554,10 @@ class Collection(Generic[T, U, V]):
 
         Raises:
             DocumentCountError: If retrieval fails.
-        """
+
+        References:
+            - `get-the-document-count-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-document-count-of-a-collection>`__
+        """  # noqa: E501
         request = Request(
             method=Method.GET, endpoint=f"/_api/collection/{self.name}/count"
         )
@@ -562,6 +567,30 @@ class Collection(Generic[T, U, V]):
                 result: int = self.deserializer.loads(resp.raw_body)["count"]
                 return result
             raise DocumentCountError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def statistics(self) -> Result[CollectionStatistics]:
+        """Get additional statistical information about the collection.
+
+        Returns:
+            CollectionStatistics: Collection statistics.
+
+        Raises:
+            CollectionStatisticsError: If retrieval fails.
+
+        References:
+            - `get-the-collection-statistics <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-collection-statistics>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/figures",
+        )
+
+        def response_handler(resp: Response) -> CollectionStatistics:
+            if not resp.is_success:
+                raise CollectionStatisticsError(resp, request)
+            return CollectionStatistics(self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
 

@@ -791,8 +791,6 @@ class CollectionProperties(JsonWrapper):
             result["deleted"] = data["deleted"]
         if "syncByRevision" in data:
             result["sync_by_revision"] = data["syncByRevision"]
-        if "tempObjectId" in data:
-            result["temp_object_id"] = data["tempObjectId"]
         if "usesRevisionsAsDocumentIds" in data:
             result["rev_as_id"] = data["usesRevisionsAsDocumentIds"]
         if "isDisjoint" in data:
@@ -817,6 +815,146 @@ class CollectionProperties(JsonWrapper):
         if formatter is not None:
             return super().format(formatter)
         return self.compatibility_formatter(self._data)
+
+
+class CollectionStatistics(JsonWrapper):
+    """Statistical information about the collection.
+
+    Example:
+        .. code-block:: json
+
+            {
+              "figures" : {
+                "indexes" : {
+                  "count" : 1,
+                  "size" : 1234
+                },
+                "documentsSize" : 5601,
+                "cacheInUse" : false,
+                "cacheSize" : 0,
+                "cacheUsage" : 0,
+                "engine" : {
+                  "documents" : 1,
+                  "indexes" : [
+                    {
+                      "type" : "primary",
+                      "id" : 0,
+                      "count" : 1
+                    }
+                  ]
+                }
+              },
+              "writeConcern" : 1,
+              "waitForSync" : false,
+              "usesRevisionsAsDocumentIds" : true,
+              "syncByRevision" : true,
+              "statusString" : "loaded",
+              "id" : "69123",
+              "isSmartChild" : false,
+              "schema" : null,
+              "name" : "products",
+              "type" : 2,
+              "status" : 3,
+              "count" : 1,
+              "cacheEnabled" : false,
+              "isSystem" : false,
+              "internalValidatorType" : 0,
+              "globallyUniqueId" : "hB7C02EE43DCE/69123",
+              "keyOptions" : {
+                "allowUserKeys" : true,
+                "type" : "traditional",
+                "lastValue" : 69129
+              },
+              "computedValues" : null,
+              "objectId" : "69124"
+           }
+
+    References:
+        - `get-the-collection-statistics <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-collection-statistics>`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def figures(self) -> Json:
+        return cast(Json, self._data.get("figures"))
+
+    @property
+    def write_concern(self) -> Optional[int]:
+        return self._data.get("writeConcern")
+
+    @property
+    def wait_for_sync(self) -> Optional[bool]:
+        return self._data.get("waitForSync")
+
+    @property
+    def use_revisions_as_document_ids(self) -> Optional[bool]:
+        return self._data.get("usesRevisionsAsDocumentIds")
+
+    @property
+    def sync_by_revision(self) -> Optional[bool]:
+        return self._data.get("syncByRevision")
+
+    @property
+    def status_string(self) -> Optional[str]:
+        return self._data.get("statusString")
+
+    @property
+    def id(self) -> str:
+        return self._data["id"]  # type: ignore[no-any-return]
+
+    @property
+    def is_smart_child(self) -> bool:
+        return self._data["isSmartChild"]  # type: ignore[no-any-return]
+
+    @property
+    def schema(self) -> Optional[Json]:
+        return self._data.get("schema")
+
+    @property
+    def name(self) -> str:
+        return self._data["name"]  # type: ignore[no-any-return]
+
+    @property
+    def type(self) -> CollectionType:
+        return CollectionType.from_int(self._data["type"])
+
+    @property
+    def status(self) -> CollectionStatus:
+        return CollectionStatus.from_int(self._data["status"])
+
+    @property
+    def count(self) -> int:
+        return self._data["count"]  # type: ignore[no-any-return]
+
+    @property
+    def cache_enabled(self) -> Optional[bool]:
+        return self._data.get("cacheEnabled")
+
+    @property
+    def is_system(self) -> bool:
+        return self._data["isSystem"]  # type: ignore[no-any-return]
+
+    @property
+    def internal_validator_type(self) -> Optional[int]:
+        return self._data.get("internalValidatorType")
+
+    @property
+    def globally_unique_id(self) -> str:
+        return self._data["globallyUniqueId"]  # type: ignore[no-any-return]
+
+    @property
+    def key_options(self) -> KeyOptions:
+        return KeyOptions(self._data["keyOptions"])
+
+    @property
+    def computed_values(self) -> Optional[Json]:
+        return self._data.get("computedValues")
+
+    @property
+    def object_id(self) -> str:
+        return self._data["objectId"]  # type: ignore[no-any-return]
 
 
 class IndexProperties(JsonWrapper):

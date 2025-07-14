@@ -195,16 +195,20 @@ class CollectionPropertiesError(ArangoServerError):
     """Failed to retrieve collection properties."""
 
 
+class CollectionStatisticsError(ArangoServerError):
+    """Failed to retrieve collection statistics."""
+
+
+class CollectionTruncateError(ArangoServerError):
+    """Failed to truncate collection."""
+
+
 class ClientConnectionAbortedError(ArangoClientError):
     """The connection was aborted."""
 
 
 class ClientConnectionError(ArangoClientError):
     """The request was unable to reach the server."""
-
-
-class CollectionTruncateError(ArangoServerError):
-    """Failed to truncate collection."""
 
 
 class CursorCloseError(ArangoServerError):

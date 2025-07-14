@@ -2,6 +2,7 @@ import pytest
 
 from arangoasync.typings import (
     CollectionInfo,
+    CollectionStatistics,
     CollectionStatus,
     CollectionType,
     EdgeDefinitionOptions,
@@ -386,3 +387,62 @@ def test_EdgeDefinitionOptions():
     )
 
     assert options.satellites == ["col1", "col2"]
+
+
+def test_CollectionStatistics():
+    data = {
+        "figures": {
+            "indexes": {"count": 1, "size": 1234},
+            "documentsSize": 5601,
+            "cacheInUse": False,
+            "cacheSize": 0,
+            "cacheUsage": 0,
+        },
+        "writeConcern": 1,
+        "waitForSync": False,
+        "usesRevisionsAsDocumentIds": True,
+        "syncByRevision": True,
+        "statusString": "loaded",
+        "id": "69123",
+        "isSmartChild": False,
+        "schema": None,
+        "name": "products",
+        "type": 2,
+        "status": 3,
+        "count": 1,
+        "cacheEnabled": False,
+        "isSystem": False,
+        "internalValidatorType": 0,
+        "globallyUniqueId": "hB7C02EE43DCE/69123",
+        "keyOptions": {
+            "allowUserKeys": True,
+            "type": "traditional",
+            "lastValue": 69129,
+        },
+        "computedValues": None,
+        "objectId": "69124",
+    }
+
+    stats = CollectionStatistics(data)
+
+    assert stats.figures == data["figures"]
+    assert stats.write_concern == 1
+    assert stats.wait_for_sync is False
+    assert stats.use_revisions_as_document_ids is True
+    assert stats.sync_by_revision is True
+    assert stats.status_string == "loaded"
+    assert stats.id == "69123"
+    assert stats.is_smart_child is False
+    assert stats.schema is None
+    assert stats.name == "products"
+    assert stats.type == CollectionType.DOCUMENT
+    assert stats.status == CollectionStatus.LOADED
+    assert stats.count == 1
+    assert stats.cache_enabled is False
+    assert stats.is_system is False
+    assert stats.internal_validator_type == 0
+    assert stats.globally_unique_id == "hB7C02EE43DCE/69123"
+    assert isinstance(stats.key_options, KeyOptions)
+    assert stats.key_options["type"] == "traditional"
+    assert stats.computed_values is None
+    assert stats.object_id == "69124"
