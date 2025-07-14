@@ -16,7 +16,12 @@ from arangoasync.errno import (
     HTTP_PRECONDITION_FAILED,
 )
 from arangoasync.exceptions import (
+    CollectionChecksumError,
     CollectionPropertiesError,
+    CollectionResponsibleShardError,
+    CollectionRevisionError,
+    CollectionShardsError,
+    CollectionStatisticsError,
     CollectionTruncateError,
     DocumentCountError,
     DocumentDeleteError,
@@ -41,6 +46,7 @@ from arangoasync.result import Result
 from arangoasync.serialization import Deserializer, Serializer
 from arangoasync.typings import (
     CollectionProperties,
+    CollectionStatistics,
     IndexProperties,
     Json,
     Jsons,
@@ -552,7 +558,10 @@ class Collection(Generic[T, U, V]):
 
         Raises:
             DocumentCountError: If retrieval fails.
-        """
+
+        References:
+            - `get-the-document-count-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-document-count-of-a-collection>`__
+        """  # noqa: E501
         request = Request(
             method=Method.GET, endpoint=f"/_api/collection/{self.name}/count"
         )
@@ -562,6 +571,158 @@ class Collection(Generic[T, U, V]):
                 result: int = self.deserializer.loads(resp.raw_body)["count"]
                 return result
             raise DocumentCountError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def statistics(self) -> Result[CollectionStatistics]:
+        """Get additional statistical information about the collection.
+
+        Returns:
+            CollectionStatistics: Collection statistics.
+
+        Raises:
+            CollectionStatisticsError: If retrieval fails.
+
+        References:
+            - `get-the-collection-statistics <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-collection-statistics>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/figures",
+        )
+
+        def response_handler(resp: Response) -> CollectionStatistics:
+            if not resp.is_success:
+                raise CollectionStatisticsError(resp, request)
+            return CollectionStatistics(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def responsible_shard(self, document: Json) -> Result[str]:
+        """Return the ID of the shard responsible for given document.
+
+        If the document does not exist, return the shard that would be
+        responsible.
+
+        Args:
+            document (dict): Document body with "_key" field.
+
+        Returns:
+            str: Shard ID.
+
+        Raises:
+            CollectionResponsibleShardError: If retrieval fails.
+
+        References:
+            - `get-the-responsible-shard-for-a-document <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-responsible-shard-for-a-document>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self.name}/responsibleShard",
+            data=self.serializer.dumps(document),
+        )
+
+        def response_handler(resp: Response) -> str:
+            if resp.is_success:
+                body = self.deserializer.loads(resp.raw_body)
+                return cast(str, body["shardId"])
+            raise CollectionResponsibleShardError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def shards(self, details: Optional[bool] = None) -> Result[Json]:
+        """Return collection shards and properties.
+
+        Available only in a cluster setup.
+
+        Args:
+            details (bool | None): If set to `True`, include responsible
+                servers for these shards.
+
+        Returns:
+            dict: Collection shards.
+
+        Raises:
+            CollectionShardsError: If retrieval fails.
+
+        References:
+            - `get-the-shard-ids-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-shard-ids-of-a-collection>`__
+        """  # noqa: E501
+        params: Params = {}
+        if details is not None:
+            params["details"] = details
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/shards",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise CollectionShardsError(resp, request)
+            return cast(Json, self.deserializer.loads(resp.raw_body)["shards"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def revision(self) -> Result[str]:
+        """Return collection revision.
+
+        Returns:
+            str: Collection revision.
+
+        Raises:
+            CollectionRevisionError: If retrieval fails.
+
+        References:
+            - `get-the-collection-revision-id <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-collection-revision-id>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/revision",
+        )
+
+        def response_handler(resp: Response) -> str:
+            if not resp.is_success:
+                raise CollectionRevisionError(resp, request)
+            return cast(str, self.deserializer.loads(resp.raw_body)["revision"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def checksum(
+        self, with_rev: Optional[bool] = None, with_data: Optional[bool] = None
+    ) -> Result[str]:
+        """Calculate collection checksum.
+
+        Args:
+            with_rev (bool | None): Include document revisions in checksum calculation.
+            with_data (bool | None): Include document data in checksum calculation.
+
+        Returns:
+            str: Collection checksum.
+
+        Raises:
+            CollectionChecksumError: If retrieval fails.
+
+        References:
+            - `get-the-collection-checksum <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-collection-checksum>`__
+        """  # noqa: E501
+        params: Params = {}
+        if with_rev is not None:
+            params["withRevision"] = with_rev
+        if with_data is not None:
+            params["withData"] = with_data
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/checksum",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> str:
+            if not resp.is_success:
+                raise CollectionChecksumError(resp, request)
+            return cast(str, self.deserializer.loads(resp.raw_body)["checksum"])
 
         return await self._executor.execute(request, response_handler)
 

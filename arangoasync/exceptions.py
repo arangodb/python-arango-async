@@ -183,8 +183,16 @@ class CollectionCreateError(ArangoServerError):
     """Failed to create collection."""
 
 
+class CollectionChecksumError(ArangoServerError):
+    """Failed to retrieve collection checksum."""
+
+
 class CollectionDeleteError(ArangoServerError):
     """Failed to delete collection."""
+
+
+class CollectionKeyGeneratorsError(ArangoServerError):
+    """Failed to retrieve key generators."""
 
 
 class CollectionListError(ArangoServerError):
@@ -195,16 +203,32 @@ class CollectionPropertiesError(ArangoServerError):
     """Failed to retrieve collection properties."""
 
 
+class CollectionResponsibleShardError(ArangoServerError):
+    """Failed to retrieve responsible shard."""
+
+
+class CollectionRevisionError(ArangoServerError):
+    """Failed to retrieve collection revision."""
+
+
+class CollectionShardsError(ArangoServerError):
+    """Failed to retrieve collection shards."""
+
+
+class CollectionStatisticsError(ArangoServerError):
+    """Failed to retrieve collection statistics."""
+
+
+class CollectionTruncateError(ArangoServerError):
+    """Failed to truncate collection."""
+
+
 class ClientConnectionAbortedError(ArangoClientError):
     """The connection was aborted."""
 
 
 class ClientConnectionError(ArangoClientError):
     """The request was unable to reach the server."""
-
-
-class CollectionTruncateError(ArangoServerError):
-    """Failed to truncate collection."""
 
 
 class CursorCloseError(ArangoServerError):

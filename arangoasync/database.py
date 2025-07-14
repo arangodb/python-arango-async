@@ -22,6 +22,7 @@ from arangoasync.exceptions import (
     AsyncJobListError,
     CollectionCreateError,
     CollectionDeleteError,
+    CollectionKeyGeneratorsError,
     CollectionListError,
     DatabaseCreateError,
     DatabaseDeleteError,
@@ -692,6 +693,29 @@ class Database:
             if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
                 return False
             raise CollectionDeleteError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def key_generators(self) -> Result[List[str]]:
+        """Returns the available key generators for collections.
+
+        Returns:
+            list: List of available key generators.
+
+        Raises:
+            CollectionKeyGeneratorsError: If retrieval fails.
+
+        References:
+            - `get-the-available-key-generators <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-available-key-generators>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/key-generators")
+
+        def response_handler(resp: Response) -> List[str]:
+            if not resp.is_success:
+                raise CollectionKeyGeneratorsError(resp, request)
+            return cast(
+                List[str], self.deserializer.loads(resp.raw_body)["keyGenerators"]
+            )
 
         return await self._executor.execute(request, response_handler)
 

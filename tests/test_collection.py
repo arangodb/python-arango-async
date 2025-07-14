@@ -4,7 +4,12 @@ import pytest
 
 from arangoasync.errno import DATA_SOURCE_NOT_FOUND, INDEX_NOT_FOUND
 from arangoasync.exceptions import (
+    CollectionChecksumError,
     CollectionPropertiesError,
+    CollectionResponsibleShardError,
+    CollectionRevisionError,
+    CollectionShardsError,
+    CollectionStatisticsError,
     CollectionTruncateError,
     DocumentCountError,
     IndexCreateError,
@@ -22,7 +27,9 @@ def test_collection_attributes(db, doc_col):
 
 
 @pytest.mark.asyncio
-async def test_collection_misc_methods(doc_col, bad_col):
+async def test_collection_misc_methods(doc_col, bad_col, docs, cluster):
+    doc = await doc_col.insert(docs[0])
+
     # Properties
     properties = await doc_col.properties()
     assert properties.name == doc_col.name
@@ -30,6 +37,36 @@ async def test_collection_misc_methods(doc_col, bad_col):
     assert len(properties.format()) > 1
     with pytest.raises(CollectionPropertiesError):
         await bad_col.properties()
+
+    # Statistics
+    statistics = await doc_col.statistics()
+    assert statistics.name == doc_col.name
+    assert "figures" in statistics
+    with pytest.raises(CollectionStatisticsError):
+        await bad_col.statistics()
+
+    # Shards
+    if cluster:
+        shard = await doc_col.responsible_shard(doc)
+        assert isinstance(shard, str)
+        with pytest.raises(CollectionResponsibleShardError):
+            await bad_col.responsible_shard(doc)
+        shards = await doc_col.shards(details=True)
+        assert isinstance(shards, dict)
+        with pytest.raises(CollectionShardsError):
+            await bad_col.shards()
+
+    # Revision
+    revision = await doc_col.revision()
+    assert isinstance(revision, str)
+    with pytest.raises(CollectionRevisionError):
+        await bad_col.revision()
+
+    # Checksum
+    checksum = await doc_col.checksum(with_rev=True, with_data=True)
+    assert isinstance(checksum, str)
+    with pytest.raises(CollectionChecksumError):
+        await bad_col.checksum()
 
 
 @pytest.mark.asyncio
