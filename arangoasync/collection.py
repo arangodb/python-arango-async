@@ -18,6 +18,7 @@ from arangoasync.errno import (
 from arangoasync.exceptions import (
     CollectionPropertiesError,
     CollectionResponsibleShardError,
+    CollectionShardsError,
     CollectionStatisticsError,
     CollectionTruncateError,
     DocumentCountError,
@@ -624,6 +625,41 @@ class Collection(Generic[T, U, V]):
                 body = self.deserializer.loads(resp.raw_body)
                 return cast(str, body["shardId"])
             raise CollectionResponsibleShardError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def shards(self, details: Optional[bool] = None) -> Result[Json]:
+        """Return collection shards and properties.
+
+        Available only in a cluster setup.
+
+        Args:
+            details (bool | None): If set to `True`, include responsible
+                servers for these shards.
+
+        Returns:
+            dict: Collection shards and properties.
+
+        Raises:
+            CollectionShardsError: If retrieval fails.
+
+        References:
+            - `get-the-shard-ids-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-shard-ids-of-a-collection>`__
+        """  # noqa: E501
+        params: Params = {}
+        if details is not None:
+            params["details"] = details
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/shards",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise CollectionShardsError(resp, request)
+            return Response.format_body(self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
 

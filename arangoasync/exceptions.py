@@ -199,6 +199,10 @@ class CollectionResponsibleShardError(ArangoServerError):
     """Failed to retrieve responsible shard."""
 
 
+class CollectionShardsError(ArangoServerError):
+    """Failed to retrieve collection shards."""
+
+
 class CollectionStatisticsError(ArangoServerError):
     """Failed to retrieve collection statistics."""
 
