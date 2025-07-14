@@ -2022,7 +2022,9 @@ class Database:
         References:
             - `hot-reload-the-jwt-secrets-from-disk <https://docs.arangodb.com/stable/develop/http-api/authentication/#hot-reload-the-jwt-secrets-from-disk>`__
         """  # noqa: 501
-        request = Request(method=Method.POST, endpoint="/_admin/server/jwt")
+        request = Request(
+            method=Method.POST, endpoint="/_admin/server/jwt", prefix_needed=False
+        )
 
         def response_handler(resp: Response) -> Json:
             if not resp.is_success:

@@ -163,13 +163,11 @@ class BaseConnection(ABC):
     async def process_request(
         self,
         request: Request,
-        skip_db_prefix: bool = False,
     ) -> Response:
         """Process request, potentially trying multiple hosts.
 
         Args:
             request (Request): Request object.
-            skip_db_prefix (bool): If `True`, do not prepend the database endpoint.
 
         Returns:
             Response: Response object.
@@ -178,7 +176,7 @@ class BaseConnection(ABC):
             ConnectionAbortedError: If it can't connect to host(s) within limit.
         """
 
-        if not skip_db_prefix:
+        if request.prefix_needed:
             request.endpoint = f"{self._db_endpoint}{request.endpoint}"
         host_index = self._host_resolver.get_host_index()
         for tries in range(self._host_resolver.max_tries):
@@ -379,10 +377,11 @@ class JwtConnection(BaseConnection):
             method=Method.POST,
             endpoint="/_open/auth",
             data=auth.encode("utf-8"),
+            prefix_needed=False,
         )
 
         try:
-            resp = await self.process_request(request, skip_db_prefix=True)
+            resp = await self.process_request(request)
         except ClientConnectionAbortedError as e:
             raise JWTRefreshError(str(e)) from e
         except ServerConnectionError as e:
