@@ -183,6 +183,10 @@ class CollectionCreateError(ArangoServerError):
     """Failed to create collection."""
 
 
+class CollectionChecksumError(ArangoServerError):
+    """Failed to retrieve collection checksum."""
+
+
 class CollectionDeleteError(ArangoServerError):
     """Failed to delete collection."""
 

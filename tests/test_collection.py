@@ -4,6 +4,7 @@ import pytest
 
 from arangoasync.errno import DATA_SOURCE_NOT_FOUND, INDEX_NOT_FOUND
 from arangoasync.exceptions import (
+    CollectionChecksumError,
     CollectionPropertiesError,
     CollectionResponsibleShardError,
     CollectionRevisionError,
@@ -27,6 +28,8 @@ def test_collection_attributes(db, doc_col):
 
 @pytest.mark.asyncio
 async def test_collection_misc_methods(doc_col, bad_col, docs, cluster):
+    doc = await doc_col.insert(docs[0])
+
     # Properties
     properties = await doc_col.properties()
     assert properties.name == doc_col.name
@@ -44,7 +47,6 @@ async def test_collection_misc_methods(doc_col, bad_col, docs, cluster):
 
     # Shards
     if cluster:
-        doc = await doc_col.insert(docs[0])
         shard = await doc_col.responsible_shard(doc)
         assert isinstance(shard, str)
         with pytest.raises(CollectionResponsibleShardError):
@@ -59,6 +61,12 @@ async def test_collection_misc_methods(doc_col, bad_col, docs, cluster):
     assert isinstance(revision, str)
     with pytest.raises(CollectionRevisionError):
         await bad_col.revision()
+
+    # Checksum
+    checksum = await doc_col.checksum(with_rev=True, with_data=True)
+    assert isinstance(checksum, str)
+    with pytest.raises(CollectionChecksumError):
+        await bad_col.checksum()
 
 
 @pytest.mark.asyncio

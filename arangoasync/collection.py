@@ -16,6 +16,7 @@ from arangoasync.errno import (
     HTTP_PRECONDITION_FAILED,
 )
 from arangoasync.exceptions import (
+    CollectionChecksumError,
     CollectionPropertiesError,
     CollectionResponsibleShardError,
     CollectionRevisionError,
@@ -685,6 +686,43 @@ class Collection(Generic[T, U, V]):
             if not resp.is_success:
                 raise CollectionRevisionError(resp, request)
             return cast(str, self.deserializer.loads(resp.raw_body)["revision"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def checksum(
+        self, with_rev: Optional[bool] = None, with_data: Optional[bool] = None
+    ) -> Result[str]:
+        """Calculate collection checksum.
+
+        Args:
+            with_rev (bool | None): Include document revisions in checksum calculation.
+            with_data (bool | None): Include document data in checksum calculation.
+
+        Returns:
+            str: Collection checksum.
+
+        Raises:
+            CollectionChecksumError: If retrieval fails.
+
+        References:
+            - `get-the-collection-checksum <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-collection-checksum>`__
+        """  # noqa: E501
+        params: Params = {}
+        if with_rev is not None:
+            params["withRevision"] = with_rev
+        if with_data is not None:
+            params["withData"] = with_data
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/checksum",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> str:
+            if not resp.is_success:
+                raise CollectionChecksumError(resp, request)
+            return cast(str, self.deserializer.loads(resp.raw_body)["checksum"])
 
         return await self._executor.execute(request, response_handler)
 
