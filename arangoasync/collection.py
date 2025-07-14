@@ -17,6 +17,7 @@ from arangoasync.errno import (
 )
 from arangoasync.exceptions import (
     CollectionPropertiesError,
+    CollectionResponsibleShardError,
     CollectionStatisticsError,
     CollectionTruncateError,
     DocumentCountError,
@@ -591,6 +592,38 @@ class Collection(Generic[T, U, V]):
             if not resp.is_success:
                 raise CollectionStatisticsError(resp, request)
             return CollectionStatistics(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def responsible_shard(self, document: Json) -> Result[str]:
+        """Return the ID of the shard responsible for given document.
+
+        If the document does not exist, return the shard that would be
+        responsible.
+
+        Args:
+            document (dict): Document body with "_key" field.
+
+        Returns:
+            str: Shard ID.
+
+        Raises:
+            CollectionResponsibleShardError: If retrieval fails.
+
+        References:
+            - `get-the-responsible-shard-for-a-document <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-responsible-shard-for-a-document>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self.name}/responsibleShard",
+            data=self.serializer.dumps(document),
+        )
+
+        def response_handler(resp: Response) -> str:
+            if resp.is_success:
+                body = self.deserializer.loads(resp.raw_body)
+                return cast(str, body["shardId"])
+            raise CollectionResponsibleShardError(resp, request)
 
         return await self._executor.execute(request, response_handler)
 
