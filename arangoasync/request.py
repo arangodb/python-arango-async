@@ -33,6 +33,7 @@ class Request:
         params (dict | None): URL parameters.
         data (bytes | None): Request payload.
         auth (Auth | None): Authentication.
+        prefix_needed (bool): Whether the request needs a prefix (e.g., database name).
 
     Attributes:
         method (Method): HTTP method.
@@ -41,6 +42,7 @@ class Request:
         params (dict | None): URL parameters.
         data (bytes | None): Request payload.
         auth (Auth | None): Authentication.
+        prefix_needed (bool): Whether the request needs a prefix (e.g., database name).
     """
 
     __slots__ = (
@@ -50,6 +52,7 @@ class Request:
         "params",
         "data",
         "auth",
+        "prefix_needed",
     )
 
     def __init__(
@@ -60,6 +63,7 @@ class Request:
         params: Optional[Params] = None,
         data: Optional[bytes | str] = None,
         auth: Optional[Auth] = None,
+        prefix_needed: bool = True,
     ) -> None:
         self.method: Method = method
         self.endpoint: str = endpoint
@@ -67,6 +71,7 @@ class Request:
         self.params: Params = params or dict()
         self.data: Optional[bytes | str] = data
         self.auth: Optional[Auth] = auth
+        self.prefix_needed = prefix_needed
 
     def normalized_headers(self) -> RequestHeaders:
         """Normalize request headers.
