@@ -17,6 +17,7 @@ from arangoasync.errno import (
 )
 from arangoasync.exceptions import (
     CollectionChecksumError,
+    CollectionConfigureError,
     CollectionPropertiesError,
     CollectionResponsibleShardError,
     CollectionRevisionError,
@@ -507,7 +508,71 @@ class Collection(Generic[T, U, V]):
         def response_handler(resp: Response) -> CollectionProperties:
             if not resp.is_success:
                 raise CollectionPropertiesError(resp, request)
-            return CollectionProperties(self._executor.deserialize(resp.raw_body))
+            return CollectionProperties(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def configure(
+        self,
+        cache_enabled: Optional[bool] = None,
+        computed_values: Optional[Jsons] = None,
+        replication_factor: Optional[int | str] = None,
+        schema: Optional[Json] = None,
+        wait_for_sync: Optional[bool] = None,
+        write_concern: Optional[int] = None,
+    ) -> Result[CollectionProperties]:
+        """Changes the properties of a collection.
+
+        Only the provided attributes are updated.
+
+        Args:
+            cache_enabled (bool | None): Whether the in-memory hash cache
+                for documents should be enabled for this collection.
+            computed_values (list | None): An optional list of objects, each
+                representing a computed value.
+            replication_factor (int | None): In a cluster, this attribute determines
+                how many copies of each shard are kept on different DB-Servers.
+                For SatelliteCollections, it needs to be the string "satellite".
+            schema (dict | None): The configuration of the collection-level schema
+                validation for documents.
+            wait_for_sync (bool | None): If set to `True`, the data is synchronized
+                to disk before returning from a document create, update, replace or
+                removal operation.
+            write_concern (int | None): Determines how many copies of each shard are
+                required to be in sync on the different DB-Servers.
+
+        Returns:
+            CollectionProperties: Properties.
+
+        Raises:
+            CollectionConfigureError: If configuration fails.
+
+        References:
+            - `change-the-properties-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#change-the-properties-of-a-collection>`__
+        """  # noqa: E501
+        data: Json = {}
+        if cache_enabled is not None:
+            data["cacheEnabled"] = cache_enabled
+        if computed_values is not None:
+            data["computedValues"] = computed_values
+        if replication_factor is not None:
+            data["replicationFactor"] = replication_factor
+        if schema is not None:
+            data["schema"] = schema
+        if wait_for_sync is not None:
+            data["waitForSync"] = wait_for_sync
+        if write_concern is not None:
+            data["writeConcern"] = write_concern
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self.name}/properties",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> CollectionProperties:
+            if not resp.is_success:
+                raise CollectionConfigureError(resp, request)
+            return CollectionProperties(self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
 
@@ -1605,9 +1670,9 @@ class StandardCollection(Collection[T, U, V]):
 
         def response_handler(resp: Response) -> bool | Json:
             if resp.is_success:
-                if silent is True:
+                if silent:
                     return True
-                return self._executor.deserialize(resp.raw_body)
+                return self.deserializer.loads(resp.raw_body)
             msg: Optional[str] = None
             if resp.status_code == HTTP_BAD_PARAMETER:
                 msg = (
@@ -1712,7 +1777,7 @@ class StandardCollection(Collection[T, U, V]):
             if resp.is_success:
                 if silent is True:
                     return True
-                return self._executor.deserialize(resp.raw_body)
+                return self.deserializer.loads(resp.raw_body)
             msg: Optional[str] = None
             if resp.status_code == HTTP_PRECONDITION_FAILED:
                 raise DocumentRevisionError(resp, request)
@@ -1802,7 +1867,7 @@ class StandardCollection(Collection[T, U, V]):
             if resp.is_success:
                 if silent is True:
                     return True
-                return self._executor.deserialize(resp.raw_body)
+                return self.deserializer.loads(resp.raw_body)
             msg: Optional[str] = None
             if resp.status_code == HTTP_PRECONDITION_FAILED:
                 raise DocumentRevisionError(resp, request)
@@ -1887,7 +1952,7 @@ class StandardCollection(Collection[T, U, V]):
             if resp.is_success:
                 if silent is True:
                     return True
-                return self._executor.deserialize(resp.raw_body)
+                return self.deserializer.loads(resp.raw_body)
             msg: Optional[str] = None
             if resp.status_code == HTTP_PRECONDITION_FAILED:
                 raise DocumentRevisionError(resp, request)

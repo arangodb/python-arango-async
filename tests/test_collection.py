@@ -5,6 +5,7 @@ import pytest
 from arangoasync.errno import DATA_SOURCE_NOT_FOUND, INDEX_NOT_FOUND
 from arangoasync.exceptions import (
     CollectionChecksumError,
+    CollectionConfigureError,
     CollectionPropertiesError,
     CollectionResponsibleShardError,
     CollectionRevisionError,
@@ -37,6 +38,13 @@ async def test_collection_misc_methods(doc_col, bad_col, docs, cluster):
     assert len(properties.format()) > 1
     with pytest.raises(CollectionPropertiesError):
         await bad_col.properties()
+
+    # Configure
+    wfs = not properties.wait_for_sync
+    new_properties = await doc_col.configure(wait_for_sync=wfs)
+    assert new_properties.wait_for_sync == wfs
+    with pytest.raises(CollectionConfigureError):
+        await bad_col.configure(wait_for_sync=wfs)
 
     # Statistics
     statistics = await doc_col.statistics()

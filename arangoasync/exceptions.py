@@ -187,6 +187,10 @@ class CollectionChecksumError(ArangoServerError):
     """Failed to retrieve collection checksum."""
 
 
+class CollectionConfigureError(ArangoServerError):
+    """Failed to configure collection properties."""
+
+
 class CollectionDeleteError(ArangoServerError):
     """Failed to delete collection."""
 
