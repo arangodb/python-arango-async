@@ -207,6 +207,10 @@ class CollectionPropertiesError(ArangoServerError):
     """Failed to retrieve collection properties."""
 
 
+class CollectionRenameError(ArangoServerError):
+    """Failed to rename collection."""
+
+
 class CollectionResponsibleShardError(ArangoServerError):
     """Failed to retrieve responsible shard."""
 

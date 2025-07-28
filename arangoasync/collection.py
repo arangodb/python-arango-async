@@ -19,6 +19,7 @@ from arangoasync.exceptions import (
     CollectionChecksumError,
     CollectionConfigureError,
     CollectionPropertiesError,
+    CollectionRenameError,
     CollectionResponsibleShardError,
     CollectionRevisionError,
     CollectionShardsError,
@@ -573,6 +574,44 @@ class Collection(Generic[T, U, V]):
             if not resp.is_success:
                 raise CollectionConfigureError(resp, request)
             return CollectionProperties(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def rename(self, new_name: str) -> Result[bool]:
+        """Rename the collection.
+
+        Renames may not be reflected immediately in async execution, batch
+        execution or transactions. It is recommended to initialize new API
+        wrappers after a rename.
+
+        Note:
+            Renaming collections is not supported in cluster deployments.
+
+        Args:
+            new_name (str): New collection name.
+
+        Returns:
+            bool: `True` if the collection was renamed successfully.
+
+        Raises:
+            CollectionRenameError: If rename fails.
+
+        References:
+            - `rename-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#rename-a-collection>`__
+        """  # noqa: E501
+        data: Json = {"name": new_name}
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self.name}/rename",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> bool:
+            if not resp.is_success:
+                raise CollectionRenameError(resp, request)
+            self._name = new_name
+            self._id_prefix = f"{new_name}/"
+            return True
 
         return await self._executor.execute(request, response_handler)
 

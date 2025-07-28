@@ -7,6 +7,7 @@ from arangoasync.exceptions import (
     CollectionChecksumError,
     CollectionConfigureError,
     CollectionPropertiesError,
+    CollectionRenameError,
     CollectionResponsibleShardError,
     CollectionRevisionError,
     CollectionShardsError,
@@ -19,6 +20,7 @@ from arangoasync.exceptions import (
     IndexListError,
     IndexLoadError,
 )
+from tests.helpers import generate_col_name
 
 
 def test_collection_attributes(db, doc_col):
@@ -75,6 +77,27 @@ async def test_collection_misc_methods(doc_col, bad_col, docs, cluster):
     assert isinstance(checksum, str)
     with pytest.raises(CollectionChecksumError):
         await bad_col.checksum()
+
+
+@pytest.mark.asyncio
+async def test_collection_rename(cluster, db, bad_col, docs):
+    if cluster:
+        pytest.skip("Renaming collections is not supported in cluster deployments.")
+
+    with pytest.raises(CollectionRenameError):
+        await bad_col.rename("new_name")
+
+    col_name = generate_col_name()
+    new_name = generate_col_name()
+    try:
+        await db.create_collection(col_name)
+        col = db.collection(col_name)
+        await col.rename(new_name)
+        assert col.name == new_name
+        doc = await col.insert(docs[0])
+        assert col.get_col_name(doc) == new_name
+    finally:
+        db.delete_collection(new_name, ignore_missing=True)
 
 
 @pytest.mark.asyncio
