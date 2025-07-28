@@ -16,7 +16,16 @@ from arangoasync.errno import (
     HTTP_PRECONDITION_FAILED,
 )
 from arangoasync.exceptions import (
+    CollectionChecksumError,
+    CollectionCompactError,
+    CollectionConfigureError,
     CollectionPropertiesError,
+    CollectionRecalculateCountError,
+    CollectionRenameError,
+    CollectionResponsibleShardError,
+    CollectionRevisionError,
+    CollectionShardsError,
+    CollectionStatisticsError,
     CollectionTruncateError,
     DocumentCountError,
     DocumentDeleteError,
@@ -40,7 +49,9 @@ from arangoasync.response import Response
 from arangoasync.result import Result
 from arangoasync.serialization import Deserializer, Serializer
 from arangoasync.typings import (
+    CollectionInfo,
     CollectionProperties,
+    CollectionStatistics,
     IndexProperties,
     Json,
     Jsons,
@@ -481,6 +492,26 @@ class Collection(Generic[T, U, V]):
 
         return await self._executor.execute(request, response_handler)
 
+    async def recalculate_count(self) -> None:
+        """Recalculate the document count.
+
+        Raises:
+            CollectionRecalculateCountError: If re-calculation fails.
+
+        References:
+            - `recalculate-the-document-count-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#recalculate-the-document-count-of-a-collection>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self.name}/recalculateCount",
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise CollectionRecalculateCountError(resp, request)
+
+        await self._executor.execute(request, response_handler)
+
     async def properties(self) -> Result[CollectionProperties]:
         """Return the full properties of the current collection.
 
@@ -501,7 +532,129 @@ class Collection(Generic[T, U, V]):
         def response_handler(resp: Response) -> CollectionProperties:
             if not resp.is_success:
                 raise CollectionPropertiesError(resp, request)
-            return CollectionProperties(self._executor.deserialize(resp.raw_body))
+            return CollectionProperties(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def configure(
+        self,
+        cache_enabled: Optional[bool] = None,
+        computed_values: Optional[Jsons] = None,
+        replication_factor: Optional[int | str] = None,
+        schema: Optional[Json] = None,
+        wait_for_sync: Optional[bool] = None,
+        write_concern: Optional[int] = None,
+    ) -> Result[CollectionProperties]:
+        """Changes the properties of a collection.
+
+        Only the provided attributes are updated.
+
+        Args:
+            cache_enabled (bool | None): Whether the in-memory hash cache
+                for documents should be enabled for this collection.
+            computed_values (list | None): An optional list of objects, each
+                representing a computed value.
+            replication_factor (int | None): In a cluster, this attribute determines
+                how many copies of each shard are kept on different DB-Servers.
+                For SatelliteCollections, it needs to be the string "satellite".
+            schema (dict | None): The configuration of the collection-level schema
+                validation for documents.
+            wait_for_sync (bool | None): If set to `True`, the data is synchronized
+                to disk before returning from a document create, update, replace or
+                removal operation.
+            write_concern (int | None): Determines how many copies of each shard are
+                required to be in sync on the different DB-Servers.
+
+        Returns:
+            CollectionProperties: Properties.
+
+        Raises:
+            CollectionConfigureError: If configuration fails.
+
+        References:
+            - `change-the-properties-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#change-the-properties-of-a-collection>`__
+        """  # noqa: E501
+        data: Json = {}
+        if cache_enabled is not None:
+            data["cacheEnabled"] = cache_enabled
+        if computed_values is not None:
+            data["computedValues"] = computed_values
+        if replication_factor is not None:
+            data["replicationFactor"] = replication_factor
+        if schema is not None:
+            data["schema"] = schema
+        if wait_for_sync is not None:
+            data["waitForSync"] = wait_for_sync
+        if write_concern is not None:
+            data["writeConcern"] = write_concern
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self.name}/properties",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> CollectionProperties:
+            if not resp.is_success:
+                raise CollectionConfigureError(resp, request)
+            return CollectionProperties(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def rename(self, new_name: str) -> None:
+        """Rename the collection.
+
+        Renames may not be reflected immediately in async execution, batch
+        execution or transactions. It is recommended to initialize new API
+        wrappers after a rename.
+
+        Note:
+            Renaming collections is not supported in cluster deployments.
+
+        Args:
+            new_name (str): New collection name.
+
+        Raises:
+            CollectionRenameError: If rename fails.
+
+        References:
+            - `rename-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#rename-a-collection>`__
+        """  # noqa: E501
+        data: Json = {"name": new_name}
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self.name}/rename",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise CollectionRenameError(resp, request)
+            self._name = new_name
+            self._id_prefix = f"{new_name}/"
+
+        await self._executor.execute(request, response_handler)
+
+    async def compact(self) -> Result[CollectionInfo]:
+        """Compact a collection.
+
+        Returns:
+            CollectionInfo: Collection information.
+
+        Raises:
+            CollectionCompactError: If compaction fails.
+
+        References:
+            - `compact-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#compact-a-collection>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self.name}/compact",
+        )
+
+        def response_handler(resp: Response) -> CollectionInfo:
+            if not resp.is_success:
+                raise CollectionCompactError(resp, request)
+            return CollectionInfo(self.deserializer.loads(resp.raw_body))
 
         return await self._executor.execute(request, response_handler)
 
@@ -552,7 +705,10 @@ class Collection(Generic[T, U, V]):
 
         Raises:
             DocumentCountError: If retrieval fails.
-        """
+
+        References:
+            - `get-the-document-count-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-document-count-of-a-collection>`__
+        """  # noqa: E501
         request = Request(
             method=Method.GET, endpoint=f"/_api/collection/{self.name}/count"
         )
@@ -562,6 +718,158 @@ class Collection(Generic[T, U, V]):
                 result: int = self.deserializer.loads(resp.raw_body)["count"]
                 return result
             raise DocumentCountError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def statistics(self) -> Result[CollectionStatistics]:
+        """Get additional statistical information about the collection.
+
+        Returns:
+            CollectionStatistics: Collection statistics.
+
+        Raises:
+            CollectionStatisticsError: If retrieval fails.
+
+        References:
+            - `get-the-collection-statistics <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-collection-statistics>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/figures",
+        )
+
+        def response_handler(resp: Response) -> CollectionStatistics:
+            if not resp.is_success:
+                raise CollectionStatisticsError(resp, request)
+            return CollectionStatistics(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def responsible_shard(self, document: Json) -> Result[str]:
+        """Return the ID of the shard responsible for given document.
+
+        If the document does not exist, return the shard that would be
+        responsible.
+
+        Args:
+            document (dict): Document body with "_key" field.
+
+        Returns:
+            str: Shard ID.
+
+        Raises:
+            CollectionResponsibleShardError: If retrieval fails.
+
+        References:
+            - `get-the-responsible-shard-for-a-document <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-responsible-shard-for-a-document>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self.name}/responsibleShard",
+            data=self.serializer.dumps(document),
+        )
+
+        def response_handler(resp: Response) -> str:
+            if resp.is_success:
+                body = self.deserializer.loads(resp.raw_body)
+                return cast(str, body["shardId"])
+            raise CollectionResponsibleShardError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def shards(self, details: Optional[bool] = None) -> Result[Json]:
+        """Return collection shards and properties.
+
+        Available only in a cluster setup.
+
+        Args:
+            details (bool | None): If set to `True`, include responsible
+                servers for these shards.
+
+        Returns:
+            dict: Collection shards.
+
+        Raises:
+            CollectionShardsError: If retrieval fails.
+
+        References:
+            - `get-the-shard-ids-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-shard-ids-of-a-collection>`__
+        """  # noqa: E501
+        params: Params = {}
+        if details is not None:
+            params["details"] = details
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/shards",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise CollectionShardsError(resp, request)
+            return cast(Json, self.deserializer.loads(resp.raw_body)["shards"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def revision(self) -> Result[str]:
+        """Return collection revision.
+
+        Returns:
+            str: Collection revision.
+
+        Raises:
+            CollectionRevisionError: If retrieval fails.
+
+        References:
+            - `get-the-collection-revision-id <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-collection-revision-id>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/revision",
+        )
+
+        def response_handler(resp: Response) -> str:
+            if not resp.is_success:
+                raise CollectionRevisionError(resp, request)
+            return cast(str, self.deserializer.loads(resp.raw_body)["revision"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def checksum(
+        self, with_rev: Optional[bool] = None, with_data: Optional[bool] = None
+    ) -> Result[str]:
+        """Calculate collection checksum.
+
+        Args:
+            with_rev (bool | None): Include document revisions in checksum calculation.
+            with_data (bool | None): Include document data in checksum calculation.
+
+        Returns:
+            str: Collection checksum.
+
+        Raises:
+            CollectionChecksumError: If retrieval fails.
+
+        References:
+            - `get-the-collection-checksum <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-collection-checksum>`__
+        """  # noqa: E501
+        params: Params = {}
+        if with_rev is not None:
+            params["withRevision"] = with_rev
+        if with_data is not None:
+            params["withData"] = with_data
+
+        request = Request(
+            method=Method.GET,
+            endpoint=f"/_api/collection/{self.name}/checksum",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> str:
+            if not resp.is_success:
+                raise CollectionChecksumError(resp, request)
+            return cast(str, self.deserializer.loads(resp.raw_body)["checksum"])
 
         return await self._executor.execute(request, response_handler)
 
@@ -1444,9 +1752,9 @@ class StandardCollection(Collection[T, U, V]):
 
         def response_handler(resp: Response) -> bool | Json:
             if resp.is_success:
-                if silent is True:
+                if silent:
                     return True
-                return self._executor.deserialize(resp.raw_body)
+                return self.deserializer.loads(resp.raw_body)
             msg: Optional[str] = None
             if resp.status_code == HTTP_BAD_PARAMETER:
                 msg = (
@@ -1551,7 +1859,7 @@ class StandardCollection(Collection[T, U, V]):
             if resp.is_success:
                 if silent is True:
                     return True
-                return self._executor.deserialize(resp.raw_body)
+                return self.deserializer.loads(resp.raw_body)
             msg: Optional[str] = None
             if resp.status_code == HTTP_PRECONDITION_FAILED:
                 raise DocumentRevisionError(resp, request)
@@ -1641,7 +1949,7 @@ class StandardCollection(Collection[T, U, V]):
             if resp.is_success:
                 if silent is True:
                     return True
-                return self._executor.deserialize(resp.raw_body)
+                return self.deserializer.loads(resp.raw_body)
             msg: Optional[str] = None
             if resp.status_code == HTTP_PRECONDITION_FAILED:
                 raise DocumentRevisionError(resp, request)
@@ -1726,7 +2034,7 @@ class StandardCollection(Collection[T, U, V]):
             if resp.is_success:
                 if silent is True:
                     return True
-                return self._executor.deserialize(resp.raw_body)
+                return self.deserializer.loads(resp.raw_body)
             msg: Optional[str] = None
             if resp.status_code == HTTP_PRECONDITION_FAILED:
                 raise DocumentRevisionError(resp, request)
