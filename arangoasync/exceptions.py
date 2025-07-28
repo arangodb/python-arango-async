@@ -207,6 +207,10 @@ class CollectionPropertiesError(ArangoServerError):
     """Failed to retrieve collection properties."""
 
 
+class CollectionRecalculateCountError(ArangoServerError):
+    """Failed to recalculate document count."""
+
+
 class CollectionRenameError(ArangoServerError):
     """Failed to rename collection."""
 

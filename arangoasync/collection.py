@@ -19,6 +19,7 @@ from arangoasync.exceptions import (
     CollectionChecksumError,
     CollectionConfigureError,
     CollectionPropertiesError,
+    CollectionRecalculateCountError,
     CollectionRenameError,
     CollectionResponsibleShardError,
     CollectionRevisionError,
@@ -489,6 +490,26 @@ class Collection(Generic[T, U, V]):
 
         return await self._executor.execute(request, response_handler)
 
+    async def recalculate_count(self) -> None:
+        """Recalculate the document count.
+
+        Raises:
+            CollectionRecalculateCountError: If re-calculation fails.
+
+        References:
+            - `recalculate-the-document-count-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#recalculate-the-document-count-of-a-collection>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self.name}/recalculateCount",
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise CollectionRecalculateCountError(resp, request)
+
+        await self._executor.execute(request, response_handler)
+
     async def properties(self) -> Result[CollectionProperties]:
         """Return the full properties of the current collection.
 
@@ -577,7 +598,7 @@ class Collection(Generic[T, U, V]):
 
         return await self._executor.execute(request, response_handler)
 
-    async def rename(self, new_name: str) -> Result[bool]:
+    async def rename(self, new_name: str) -> None:
         """Rename the collection.
 
         Renames may not be reflected immediately in async execution, batch
@@ -589,9 +610,6 @@ class Collection(Generic[T, U, V]):
 
         Args:
             new_name (str): New collection name.
-
-        Returns:
-            bool: `True` if the collection was renamed successfully.
 
         Raises:
             CollectionRenameError: If rename fails.
@@ -606,14 +624,13 @@ class Collection(Generic[T, U, V]):
             data=self.serializer.dumps(data),
         )
 
-        def response_handler(resp: Response) -> bool:
+        def response_handler(resp: Response) -> None:
             if not resp.is_success:
                 raise CollectionRenameError(resp, request)
             self._name = new_name
             self._id_prefix = f"{new_name}/"
-            return True
 
-        return await self._executor.execute(request, response_handler)
+        await self._executor.execute(request, response_handler)
 
     async def truncate(
         self,

@@ -7,6 +7,7 @@ from arangoasync.exceptions import (
     CollectionChecksumError,
     CollectionConfigureError,
     CollectionPropertiesError,
+    CollectionRecalculateCountError,
     CollectionRenameError,
     CollectionResponsibleShardError,
     CollectionRevisionError,
@@ -77,6 +78,11 @@ async def test_collection_misc_methods(doc_col, bad_col, docs, cluster):
     assert isinstance(checksum, str)
     with pytest.raises(CollectionChecksumError):
         await bad_col.checksum()
+
+    # Recalculate count
+    with pytest.raises(CollectionRecalculateCountError):
+        await bad_col.recalculate_count()
+    await doc_col.recalculate_count()
 
 
 @pytest.mark.asyncio
