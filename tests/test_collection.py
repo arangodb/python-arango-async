@@ -5,6 +5,7 @@ import pytest
 from arangoasync.errno import DATA_SOURCE_NOT_FOUND, INDEX_NOT_FOUND
 from arangoasync.exceptions import (
     CollectionChecksumError,
+    CollectionCompactError,
     CollectionConfigureError,
     CollectionPropertiesError,
     CollectionRecalculateCountError,
@@ -83,6 +84,12 @@ async def test_collection_misc_methods(doc_col, bad_col, docs, cluster):
     with pytest.raises(CollectionRecalculateCountError):
         await bad_col.recalculate_count()
     await doc_col.recalculate_count()
+
+    # Compact
+    with pytest.raises(CollectionCompactError):
+        await bad_col.compact()
+    res = await doc_col.compact()
+    assert res.name == doc_col.name
 
 
 @pytest.mark.asyncio

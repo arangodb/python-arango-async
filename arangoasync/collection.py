@@ -17,6 +17,7 @@ from arangoasync.errno import (
 )
 from arangoasync.exceptions import (
     CollectionChecksumError,
+    CollectionCompactError,
     CollectionConfigureError,
     CollectionPropertiesError,
     CollectionRecalculateCountError,
@@ -48,6 +49,7 @@ from arangoasync.response import Response
 from arangoasync.result import Result
 from arangoasync.serialization import Deserializer, Serializer
 from arangoasync.typings import (
+    CollectionInfo,
     CollectionProperties,
     CollectionStatistics,
     IndexProperties,
@@ -631,6 +633,30 @@ class Collection(Generic[T, U, V]):
             self._id_prefix = f"{new_name}/"
 
         await self._executor.execute(request, response_handler)
+
+    async def compact(self) -> Result[CollectionInfo]:
+        """Compact a collection.
+
+        Returns:
+            CollectionInfo: Collection information.
+
+        Raises:
+            CollectionCompactError: If compaction fails.
+
+        References:
+            - `compact-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#compact-a-collection>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PUT,
+            endpoint=f"/_api/collection/{self.name}/compact",
+        )
+
+        def response_handler(resp: Response) -> CollectionInfo:
+            if not resp.is_success:
+                raise CollectionCompactError(resp, request)
+            return CollectionInfo(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
 
     async def truncate(
         self,

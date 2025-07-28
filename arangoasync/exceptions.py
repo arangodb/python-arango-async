@@ -191,6 +191,10 @@ class CollectionConfigureError(ArangoServerError):
     """Failed to configure collection properties."""
 
 
+class CollectionCompactError(ArangoServerError):
+    """Failed to compact collection."""
+
+
 class CollectionDeleteError(ArangoServerError):
     """Failed to delete collection."""
 
