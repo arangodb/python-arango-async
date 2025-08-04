@@ -28,6 +28,9 @@ python-arango-async.
 .. automodule:: arangoasync.cursor
     :members:
 
+.. automodule:: arangoasync.backup
+    :members:
+
 .. automodule:: arangoasync.compression
     :members:
 
