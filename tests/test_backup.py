@@ -12,7 +12,10 @@ from arangoasync.exceptions import (
 
 
 @pytest.mark.asyncio
-async def test_backup(url, sys_db_name, bad_db, token):
+async def test_backup(url, sys_db_name, bad_db, token, cluster):
+    if not cluster:
+        pytest.skip("Backup tests are only applicable to cluster setups.")
+
     with pytest.raises(BackupCreateError):
         await bad_db.backup.create()
     with pytest.raises(BackupGetError):
