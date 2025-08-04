@@ -72,6 +72,7 @@ Contents
     certificates
     compression
     serialization
+    backup
     errors
     errno
     logging

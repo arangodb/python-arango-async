@@ -179,6 +179,30 @@ class AuthHeaderError(ArangoClientError):
     """The authentication header could not be determined."""
 
 
+class BackupCreateError(ArangoServerError):
+    """Failed to create a backup."""
+
+
+class BackupDeleteError(ArangoServerError):
+    """Failed to delete a backup."""
+
+
+class BackupDownloadError(ArangoServerError):
+    """Failed to download a backup from remote repository."""
+
+
+class BackupGetError(ArangoServerError):
+    """Failed to retrieve backup details."""
+
+
+class BackupRestoreError(ArangoServerError):
+    """Failed to restore from backup."""
+
+
+class BackupUploadError(ArangoServerError):
+    """Failed to upload a backup to remote repository."""
+
+
 class CollectionCreateError(ArangoServerError):
     """Failed to create collection."""
 
