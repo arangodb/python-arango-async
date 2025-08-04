@@ -12,9 +12,9 @@ from arangoasync.exceptions import (
 
 
 @pytest.mark.asyncio
-async def test_backup(url, sys_db_name, bad_db, token, cluster):
-    if not cluster:
-        pytest.skip("Backup tests are only applicable to cluster setups.")
+async def test_backup(url, sys_db_name, bad_db, token, enterprise):
+    if not enterprise:
+        pytest.skip("Backup API is only available in ArangoDB Enterprise Edition")
 
     with pytest.raises(BackupCreateError):
         await bad_db.backup.create()
