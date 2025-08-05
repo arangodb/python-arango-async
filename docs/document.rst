@@ -150,6 +150,39 @@ Standard documents are managed via collection API wrapper:
         # Delete one or more matching documents.
         await students.delete_match({"first": "Emma"})
 
+Importing documents in bulk is faster when using specialized methods. Suppose
+our data is in a file containing JSON Lines (JSONL) format. Each line is expected
+to be one JSON object. Example of a "students.jsonl" file:
+
+.. code-block:: json
+
+    {"_key":"john","name":"John Smith","age":35}
+    {"_key":"katie","name":"Katie Foster","age":28}
+
+To import this file into the "students" collection, we can use the `import_bulk` API:
+
+.. code-block:: python
+
+    from arangoasync import ArangoClient
+    from arangoasync.auth import Auth
+    import aiofiles
+
+    async with ArangoClient(hosts="http://localhost:8529") as client:
+        auth = Auth(username="root", password="passwd")
+
+        # Connect to "test" database as root user.
+        db = await client.db("test", auth=auth)
+
+        # Get the API wrapper for "students" collection.
+        students = db.collection("students")
+
+        # Read the JSONL file asynchronously.
+        async with aiofiles.open('students.jsonl', mode='r') as f:
+            documents = await f.read()
+
+        # Import documents in bulk.
+        result = await students.import_bulk(documents, doc_type="documents")
+
 You can manage documents via database API wrappers also, but only simple
 operations (i.e. get, insert, update, replace, delete) are supported and you
 must provide document IDs instead of keys:

@@ -1578,6 +1578,108 @@ class Collection(Generic[T, U, V]):
 
         return await self._executor.execute(request, response_handler)
 
+    async def import_bulk(
+        self,
+        documents: bytes | str,
+        doc_type: Optional[str] = None,
+        complete: Optional[bool] = True,
+        details: Optional[bool] = True,
+        from_prefix: Optional[str] = None,
+        to_prefix: Optional[str] = None,
+        overwrite: Optional[bool] = None,
+        overwrite_collection_prefix: Optional[bool] = None,
+        on_duplicate: Optional[str] = None,
+        wait_for_sync: Optional[bool] = None,
+        ignore_missing: Optional[bool] = None,
+    ) -> Result[Json]:
+        """Load JSON data in bulk into ArangoDB.
+
+        Args:
+            documents (bytes | str): String representation of the JSON data to import.
+            doc_type (str | None): Determines how the body of the request is interpreted.
+                Possible values: "", "documents", "array", "auto".
+            complete (bool | None): If set to `True`, the whole import fails if any error occurs.
+                Otherwise, the import continues even if some documents are invalid and cannot
+                be imported, skipping the problematic documents.
+            details (bool | None): If set to `True`, the result includes a `details`
+                attribute with information about documents that could not be imported.
+            from_prefix (str | None): String prefix prepended to the value of "_from"
+                field in each edge document inserted. For example, prefix "foo"
+                prepended to "_from": "bar" will result in "_from": "foo/bar".
+                Applies only to edge collections.
+            to_prefix (str | None): String prefix prepended to the value of "_to"
+                field in each edge document inserted. For example, prefix "foo"
+                prepended to "_to": "bar" will result in "_to": "foo/bar".
+                Applies only to edge collections.
+            overwrite (bool | None): If set to `True`, all existing documents are removed
+                prior to the import. Indexes are still preserved.
+            overwrite_collection_prefix (bool | None): Force the `fromPrefix` and
+                `toPrefix`, possibly replacing existing collection name prefixes.
+            on_duplicate (str | None): Action to take on unique key constraint violations
+                (for documents with "_key" fields). Allowed values are "error" (do
+                not import the new documents and count them as errors), "update"
+                (update the existing documents while preserving any fields missing
+                in the new ones), "replace" (replace the existing documents with
+                new ones), and  "ignore" (do not import the new documents and count
+                them as ignored, as opposed to counting them as errors). Options
+                "update" and "replace" may fail on secondary unique key constraint
+                violations.
+            wait_for_sync (bool | None): Block until operation is synchronized to disk.
+            ignore_missing (bool | None): When importing JSON arrays of tabular data
+                (type parameter is omitted), the first line of the request body defines
+                the attribute keys and the subsequent lines the attribute values for each
+                document. Subsequent lines with a different number of elements than the
+                first line are not imported by default. You can enable this option to
+                import them anyway. For the missing elements, the document attributes
+                are omitted. Excess elements are ignored.
+
+        Returns:
+            dict: Result of the import operation.
+
+        Raises:
+            DocumentInsertError: If import fails.
+
+        References:
+            - `import-json-data-as-documents <https://docs.arangodb.com/stable/develop/http-api/import/#import-json-data-as-documents>`__
+        """  # noqa: E501
+        params: Params = dict()
+        params["collection"] = self.name
+        if doc_type is not None:
+            params["type"] = doc_type
+        if complete is not None:
+            params["complete"] = complete
+        if details is not None:
+            params["details"] = details
+        if from_prefix is not None:
+            params["fromPrefix"] = from_prefix
+        if to_prefix is not None:
+            params["toPrefix"] = to_prefix
+        if overwrite is not None:
+            params["overwrite"] = overwrite
+        if overwrite_collection_prefix is not None:
+            params["overwriteCollectionPrefix"] = overwrite_collection_prefix
+        if on_duplicate is not None:
+            params["onDuplicate"] = on_duplicate
+        if wait_for_sync is not None:
+            params["waitForSync"] = wait_for_sync
+        if ignore_missing is not None:
+            params["ignoreMissing"] = ignore_missing
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise DocumentInsertError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/import",
+            data=documents,
+            params=params,
+        )
+
+        return await self._executor.execute(request, response_handler)
+
 
 class StandardCollection(Collection[T, U, V]):
     """Standard collection API wrapper.

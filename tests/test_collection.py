@@ -16,6 +16,7 @@ from arangoasync.exceptions import (
     CollectionStatisticsError,
     CollectionTruncateError,
     DocumentCountError,
+    DocumentInsertError,
     IndexCreateError,
     IndexDeleteError,
     IndexGetError,
@@ -263,3 +264,20 @@ async def test_collection_truncate_count(docs, doc_col, bad_col):
     await doc_col.truncate(wait_for_sync=True, compact=True)
     cnt = await doc_col.count()
     assert cnt == 0
+
+
+@pytest.mark.asyncio
+async def test_collection_import_bulk(doc_col, bad_col, docs):
+    documents = "\n".join(doc_col.serializer.dumps(doc) for doc in docs)
+
+    # Test errors
+    with pytest.raises(DocumentInsertError):
+        await bad_col.import_bulk(documents, doc_type="documents")
+
+    # Insert documents in bulk
+    result = await doc_col.import_bulk(documents, doc_type="documents")
+
+    # Verify the documents were inserted
+    count = await doc_col.count()
+    assert count == len(docs)
+    assert result["created"] == count
