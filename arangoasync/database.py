@@ -40,6 +40,10 @@ from arangoasync.exceptions import (
     PermissionUpdateError,
     ServerStatusError,
     ServerVersionError,
+    TaskCreateError,
+    TaskDeleteError,
+    TaskGetError,
+    TaskListError,
     TransactionAbortError,
     TransactionCommitError,
     TransactionExecuteError,
@@ -2190,6 +2194,148 @@ class Database:
             if not resp.is_success:
                 raise ServerVersionError(resp, request)
             return self.deserializer.loads(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def tasks(self) -> Result[Jsons]:
+        """Fetches all existing tasks from the server.
+
+        Returns:
+            list: List of currently active server tasks.
+
+        Raises:
+            TaskListError: If the list cannot be retrieved.
+
+        References:
+            - `list-all-tasks <https://docs.arangodb.com/stable/develop/http-api/tasks/#list-all-tasks>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/tasks")
+
+        def response_handler(resp: Response) -> Jsons:
+            if not resp.is_success:
+                raise TaskListError(resp, request)
+            result: Jsons = self.deserializer.loads_many(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def task(self, task_id: str) -> Result[Json]:
+        """Return the details of an active server task.
+
+        Args:
+            task_id (str) -> Server task ID.
+
+        Returns:
+            dict: Details of the server task.
+
+        Raises:
+            TaskGetError: If the task details cannot be retrieved.
+
+        References:
+            - `get-a-task <https://docs.arangodb.com/stable/develop/http-api/tasks/#get-a-task>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint=f"/_api/tasks/{task_id}")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise TaskGetError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def create_task(
+        self,
+        command: str,
+        task_id: Optional[str] = None,
+        name: Optional[str] = None,
+        offset: Optional[int] = None,
+        params: Optional[Json] = None,
+        period: Optional[int] = None,
+    ) -> Result[Json]:
+        """Create a new task.
+
+        Args:
+            command (str): The JavaScript code to be executed.
+            task_id (str | None): Optional task ID. If not provided, the server will
+                generate a unique ID.
+            name (str | None): The name of the task.
+            offset (int | None): The offset in seconds after which the task should
+                start executing.
+            params (dict | None): Parameters to be passed to the command.
+            period (int | None): The number of seconds between the executions.
+
+        Returns:
+            dict: Details of the created task.
+
+        Raises:
+            TaskCreateError: If the task cannot be created.
+
+        References:
+            - `create-a-task <https://docs.arangodb.com/stable/develop/http-api/tasks/#create-a-task>`__
+            - `create-a-task-with-id <https://docs.arangodb.com/stable/develop/http-api/tasks/#create-a-task-with-id>`__
+        """  # noqa: E501
+        data: Json = {"command": command}
+        if name is not None:
+            data["name"] = name
+        if offset is not None:
+            data["offset"] = offset
+        if params is not None:
+            data["params"] = params
+        if period is not None:
+            data["period"] = period
+
+        if task_id is None:
+            request = Request(
+                method=Method.POST,
+                endpoint="/_api/tasks",
+                data=self.serializer.dumps(data),
+            )
+        else:
+            request = Request(
+                method=Method.PUT,
+                endpoint=f"/_api/tasks/{task_id}",
+                data=self.serializer.dumps(data),
+            )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise TaskCreateError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete_task(
+        self,
+        task_id: str,
+        ignore_missing: bool = False,
+    ) -> Result[bool]:
+        """Delete a server task.
+
+        Args:
+            task_id (str): Task ID.
+            ignore_missing (bool): If `True`, do not raise an exception if the
+                task does not exist.
+
+        Returns:
+            bool: `True` if the task was deleted successfully, `False` if the
+                task was not found and **ignore_missing** was set to `True`.
+
+        Raises:
+            TaskDeleteError: If the operation fails.
+
+        References:
+            - `delete-a-task <https://docs.arangodb.com/stable/develop/http-api/tasks/#delete-a-task>`__
+        """  # noqa: E501
+        request = Request(method=Method.DELETE, endpoint=f"/_api/tasks/{task_id}")
+
+        def response_handler(resp: Response) -> bool:
+            if resp.is_success:
+                return True
+            if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
+                return False
+            raise TaskDeleteError(resp, request)
 
         return await self._executor.execute(request, response_handler)
 

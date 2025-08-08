@@ -256,6 +256,19 @@ async def teardown():
             verify=False,
         )
 
+        # Remove all tasks
+        test_tasks = [
+            task
+            for task in await sys_db.tasks()
+            if task["name"].startswith("test_task")
+        ]
+        await asyncio.gather(
+            *(
+                sys_db.delete_task(task["id"], ignore_missing=True)
+                for task in test_tasks
+            )
+        )
+
         # Remove all test users.
         tst_users = [
             user["user"]
