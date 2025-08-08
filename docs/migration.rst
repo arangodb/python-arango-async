@@ -2,7 +2,7 @@ Coming from python-arango
 -------------------------
 
 Generally, migrating from `python-arango`_ should be a smooth transition. For the most part, the API is similar,
-but there are a few things to note._
+but there are a few things to note.
 
 Helpers
 =======
