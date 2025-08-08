@@ -2250,7 +2250,7 @@ class Database:
         task_id: Optional[str] = None,
         name: Optional[str] = None,
         offset: Optional[int] = None,
-        params: Optional[str] = None,
+        params: Optional[Json] = None,
         period: Optional[int] = None,
     ) -> Result[Json]:
         """Create a new task.
@@ -2262,7 +2262,7 @@ class Database:
             name (str | None): The name of the task.
             offset (int | None): The offset in seconds after which the task should
                 start executing.
-            params (str | None): Parameters to be passed to the command.
+            params (dict | None): Parameters to be passed to the command.
             period (int | None): The number of seconds between the executions.
 
         Returns:

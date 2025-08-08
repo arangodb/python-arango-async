@@ -73,6 +73,7 @@ Contents
     compression
     serialization
     backup
+    task
     errors
     errno
     logging
