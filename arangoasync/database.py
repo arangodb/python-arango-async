@@ -38,7 +38,10 @@ from arangoasync.exceptions import (
     PermissionListError,
     PermissionResetError,
     PermissionUpdateError,
+    ServerEncryptionError,
     ServerStatusError,
+    ServerTLSError,
+    ServerTLSReloadError,
     ServerVersionError,
     TaskCreateError,
     TaskDeleteError,
@@ -2069,6 +2072,81 @@ class Database:
                 raise JWTSecretReloadError(resp, request)
             result: Json = self.deserializer.loads(resp.raw_body)
             return Response.format_body(result)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def tls(self) -> Result[Json]:
+        """Return TLS data (keyfile, clientCA).
+
+        This API requires authentication.
+
+        Returns:
+            dict: dict containing the following components:
+                - keyfile: Information about the key file.
+                - clientCA: Information about the Certificate Authority (CA) for client certificate verification.
+
+        Raises:
+            ServerTLSError: If the operation fails.
+
+        References:
+            - `get-the-tls-data <https://docs.arangodb.com/stable/develop/http-api/security/#get-the-tls-data>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_admin/server/tls")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerTLSError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)["result"]
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def reload_tls(self) -> Result[Json]:
+        """Reload TLS data (keyfile, clientCA).
+
+        This is a protected API and can only be executed with superuser rights.
+
+        Returns:
+            dict: New TLS data.
+
+        Raises:
+            ServerTLSReloadError: If the operation fails.
+
+        References:
+            - `reload-the-tls-data <https://docs.arangodb.com/stable/develop/http-api/security/#reload-the-tls-data>`__
+        """  # noqa: E501
+        request = Request(method=Method.POST, endpoint="/_admin/server/tls")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerTLSReloadError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)["result"]
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def encryption(self) -> Result[Json]:
+        """Rotate the user-supplied keys for encryption.
+
+        This is a protected API and can only be executed with superuser rights.
+        This API is not available on Coordinator nodes.
+
+        Returns:
+            dict: Encryption keys.
+
+        Raises:
+            ServerEncryptionError: If the operation fails.
+
+        References:
+           - `rotate-the-encryption-keys <https://docs.arangodb.com/stable/develop/http-api/security/#rotate-the-encryption-keys>`__
+        """  # noqa: E501
+        request = Request(method=Method.POST, endpoint="/_admin/server/encryption")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerEncryptionError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)["result"]
+            return result
 
         return await self._executor.execute(request, response_handler)
 

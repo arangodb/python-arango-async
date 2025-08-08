@@ -108,3 +108,25 @@ Use a client certificate chain
 
 If you want to have fine-grained control over the HTTP connection, you should define
 your HTTP client as described in the :ref:`HTTP` section.
+
+Security features
+=================
+
+See the `ArangoDB Manual`_ for more information on security features.
+
+**Example:**
+
+.. code-block:: python
+
+    async with ArangoClient(hosts=url) as client:
+        db = await client.db(
+            sys_db_name, auth_method="superuser", token=token, verify=True
+        )
+
+        # Get TLS data
+        tls = await db.tls()
+
+        # Reload TLS data
+        tls = await db.reload_tls()
+
+.. _ArangoDB Manual: https://docs.arangodb.com/stable/develop/http-api/security/

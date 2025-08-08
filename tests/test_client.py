@@ -3,6 +3,7 @@ import pytest
 from arangoasync.auth import JwtToken
 from arangoasync.client import ArangoClient
 from arangoasync.compression import DefaultCompressionManager
+from arangoasync.exceptions import ServerEncryptionError
 from arangoasync.http import DefaultHTTPClient
 from arangoasync.resolver import DefaultHostResolver, RoundRobinHostResolver
 from arangoasync.version import __version__
@@ -130,6 +131,19 @@ async def test_client_jwt_superuser_auth(
         if enterprise:
             await db.jwt_secrets()
             await db.reload_jwt_secrets()
+
+        # Get TLS data
+        tls = await db.tls()
+        assert isinstance(tls, dict)
+
+        # Reload TLS data
+        tls = await db.reload_tls()
+        assert isinstance(tls, dict)
+
+        # Rotate
+        with pytest.raises(ServerEncryptionError):
+            # Not allowed on coordinators
+            await db.encryption()
 
     # token missing
     async with ArangoClient(hosts=url) as client:

@@ -435,12 +435,24 @@ class SerializationError(ArangoClientError):
     """Failed to serialize the request."""
 
 
+class ServerEncryptionError(ArangoServerError):
+    """Failed to reload user-defined encryption keys."""
+
+
 class ServerConnectionError(ArangoServerError):
     """Failed to connect to ArangoDB server."""
 
 
 class ServerStatusError(ArangoServerError):
     """Failed to retrieve server status."""
+
+
+class ServerTLSError(ArangoServerError):
+    """Failed to retrieve TLS data."""
+
+
+class ServerTLSReloadError(ArangoServerError):
+    """Failed to reload TLS."""
 
 
 class ServerVersionError(ArangoServerError):
