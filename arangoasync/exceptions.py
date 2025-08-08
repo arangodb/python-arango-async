@@ -451,6 +451,22 @@ class SortValidationError(ArangoClientError):
     """Invalid sort parameters."""
 
 
+class TaskCreateError(ArangoServerError):
+    """Failed to create server task."""
+
+
+class TaskDeleteError(ArangoServerError):
+    """Failed to delete server task."""
+
+
+class TaskGetError(ArangoServerError):
+    """Failed to retrieve server task details."""
+
+
+class TaskListError(ArangoServerError):
+    """Failed to retrieve server tasks."""
+
+
 class TransactionAbortError(ArangoServerError):
     """Failed to abort transaction."""
 

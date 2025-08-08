@@ -62,3 +62,21 @@ def generate_analyzer_name():
         str: Random analyzer name.
     """
     return f"test_analyzer_{uuid4().hex}"
+
+
+def generate_task_name():
+    """Generate and return a random task name.
+
+    Returns:
+        str: Random task name.
+    """
+    return f"test_task_{uuid4().hex}"
+
+
+def generate_task_id():
+    """Generate and return a random task ID.
+
+    Returns:
+        str: Random task ID
+    """
+    return f"test_task_id_{uuid4().hex}"
