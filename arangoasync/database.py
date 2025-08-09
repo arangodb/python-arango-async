@@ -11,6 +11,7 @@ from warnings import warn
 
 from arangoasync.aql import AQL
 from arangoasync.backup import Backup
+from arangoasync.cluster import Cluster
 from arangoasync.collection import Collection, StandardCollection
 from arangoasync.connection import Connection
 from arangoasync.errno import HTTP_FORBIDDEN, HTTP_NOT_FOUND
@@ -188,6 +189,15 @@ class Database:
             arangoasync.backup.Backup: Backup API wrapper.
         """
         return Backup(self._executor)
+
+    @property
+    def cluster(self) -> Cluster:
+        """Return Cluster API wrapper.
+
+        Returns:
+            arangoasync.cluster.Cluster: Cluster API wrapper.
+        """
+        return Cluster(self._executor)
 
     async def properties(self) -> Result[DatabaseProperties]:
         """Return database properties.
