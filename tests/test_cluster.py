@@ -6,6 +6,7 @@ from arangoasync.exceptions import (
     ClusterEndpointsError,
     ClusterHealthError,
     ClusterMaintenanceModeError,
+    ClusterRebalanceError,
     ClusterServerIDError,
     ClusterServerRoleError,
     ClusterStatisticsError,
@@ -40,6 +41,14 @@ async def test_cluster(
         await bad_db.cluster.toggle_server_maintenance_mode("PRMR0001", "normal")
     with pytest.raises(ClusterMaintenanceModeError):
         await bad_db.cluster.server_maintenance_mode("PRMR0001")
+    with pytest.raises(ClusterRebalanceError):
+        await bad_db.cluster.calculate_imbalance()
+    with pytest.raises(ClusterRebalanceError):
+        await bad_db.cluster.rebalance()
+    with pytest.raises(ClusterRebalanceError):
+        await bad_db.cluster.calculate_rebalance_plan()
+    with pytest.raises(ClusterRebalanceError):
+        await bad_db.cluster.execute_rebalance_plan(moves=[])
 
     async with ArangoClient(hosts=url) as client:
         db = await client.db(
@@ -80,3 +89,13 @@ async def test_cluster(
         status = await cluster.server_maintenance_mode(db_server)
         assert isinstance(status, dict)
         await cluster.toggle_server_maintenance_mode(db_server, "normal")
+
+        # Rebalance
+        result = await cluster.calculate_imbalance()
+        assert isinstance(result, dict)
+        result = await cluster.calculate_rebalance_plan()
+        assert isinstance(result, dict)
+        result = await cluster.execute_rebalance_plan(moves=[])
+        assert result == 200
+        result = await cluster.rebalance()
+        assert isinstance(result, dict)

@@ -1,11 +1,12 @@
 __all__ = ["Cluster"]
 
-from typing import List, Optional
+from typing import List, Optional, cast
 
 from arangoasync.exceptions import (
     ClusterEndpointsError,
     ClusterHealthError,
     ClusterMaintenanceModeError,
+    ClusterRebalanceError,
     ClusterServerIDError,
     ClusterServerRoleError,
     ClusterStatisticsError,
@@ -259,3 +260,192 @@ class Cluster:
                 raise ClusterMaintenanceModeError(resp, request)
 
         await self._executor.execute(request, response_handler)
+
+    async def calculate_imbalance(self) -> Result[Json]:
+        """Computes the current cluster imbalance and returns the result.
+
+        Returns:
+            dict: Cluster imbalance information.
+
+        Raises:
+            ClusterRebalanceError: If retrieval fails.
+
+        References:
+           - `get-the-current-cluster-imbalance <https://docs.arangodb.com/stable/develop/http-api/cluster/#get-the-current-cluster-imbalance>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_admin/cluster/rebalance")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ClusterRebalanceError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return Response.format_body(result)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def calculate_rebalance_plan(
+        self,
+        databases_excluded: Optional[List[str]] = None,
+        exclude_system_collections: Optional[bool] = None,
+        leader_changes: Optional[bool] = None,
+        maximum_number_of_moves: Optional[int] = None,
+        move_followers: Optional[bool] = None,
+        move_leaders: Optional[bool] = None,
+        pi_factor: Optional[float] = None,
+        version: int = 1,
+    ) -> Result[Json]:
+        """Compute a set of move shard operations to improve balance.
+
+        Args:
+            databases_excluded (list | None): List of database names to be excluded from
+                the analysis.
+            exclude_system_collections (bool | None): Ignore system collections in the
+                rebalance plan.
+            leader_changes (bool | None): Allow leader changes without moving data.
+            maximum_number_of_moves (int | None): Maximum number of moves to be computed.
+            move_followers (bool | None): Allow moving shard followers.
+            move_leaders (bool | None): Allow moving shard leaders.
+            pi_factor (float | None): A weighting factor that should remain untouched.
+            version (int): Must be set to 1.
+
+        Returns:
+            dict: Cluster rebalance plan.
+
+        Raises:
+            ClusterRebalanceError: If retrieval fails.
+
+        References:
+            - `compute-a-set-of-move-shard-operations-to-improve-balance <https://docs.arangodb.com/stable/develop/http-api/cluster/#compute-a-set-of-move-shard-operations-to-improve-balance>`__
+        """  # noqa: E501
+        data: Json = dict(version=version)
+        if databases_excluded is not None:
+            data["databasesExcluded"] = databases_excluded
+        if exclude_system_collections is not None:
+            data["excludeSystemCollections"] = exclude_system_collections
+        if leader_changes is not None:
+            data["leaderChanges"] = leader_changes
+        if maximum_number_of_moves is not None:
+            data["maximumNumberOfMoves"] = maximum_number_of_moves
+        if move_followers is not None:
+            data["moveFollowers"] = move_followers
+        if move_leaders is not None:
+            data["moveLeaders"] = move_leaders
+        if pi_factor is not None:
+            data["piFactor"] = pi_factor
+
+        request = Request(
+            method=Method.POST,
+            endpoint="/_admin/cluster/rebalance",
+            prefix_needed=False,
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ClusterRebalanceError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return cast(Json, result["result"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def rebalance(
+        self,
+        databases_excluded: Optional[List[str]] = None,
+        exclude_system_collections: Optional[bool] = None,
+        leader_changes: Optional[bool] = None,
+        maximum_number_of_moves: Optional[int] = None,
+        move_followers: Optional[bool] = None,
+        move_leaders: Optional[bool] = None,
+        pi_factor: Optional[float] = None,
+        version: int = 1,
+    ) -> Result[Json]:
+        """Compute and execute a set of move shard operations to improve balance.
+
+        Args:
+            databases_excluded (list | None): List of database names to be excluded from
+                the analysis.
+            exclude_system_collections (bool | None): Ignore system collections in the
+                rebalance plan.
+            leader_changes (bool | None): Allow leader changes without moving data.
+            maximum_number_of_moves (int | None): Maximum number of moves to be computed.
+            move_followers (bool | None): Allow moving shard followers.
+            move_leaders (bool | None): Allow moving shard leaders.
+            pi_factor (float | None): A weighting factor that should remain untouched.
+            version (int): Must be set to 1.
+
+        Returns:
+            dict: Cluster rebalance plan.
+
+        Raises:
+            ClusterRebalanceError: If retrieval fails.
+
+        References:
+            - `compute-and-execute-a-set-of-move-shard-operations-to-improve-balance <https://docs.arangodb.com/stable/develop/http-api/cluster/#compute-and-execute-a-set-of-move-shard-operations-to-improve-balance>`__
+        """  # noqa: E501
+        data: Json = dict(version=version)
+        if databases_excluded is not None:
+            data["databasesExcluded"] = databases_excluded
+        if exclude_system_collections is not None:
+            data["excludeSystemCollections"] = exclude_system_collections
+        if leader_changes is not None:
+            data["leaderChanges"] = leader_changes
+        if maximum_number_of_moves is not None:
+            data["maximumNumberOfMoves"] = maximum_number_of_moves
+        if move_followers is not None:
+            data["moveFollowers"] = move_followers
+        if move_leaders is not None:
+            data["moveLeaders"] = move_leaders
+        if pi_factor is not None:
+            data["piFactor"] = pi_factor
+
+        request = Request(
+            method=Method.PUT,
+            endpoint="/_admin/cluster/rebalance",
+            prefix_needed=False,
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ClusterRebalanceError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return cast(Json, result["result"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def execute_rebalance_plan(
+        self,
+        moves: List[Json],
+        version: int = 1,
+    ) -> Result[int]:
+        """Execute a set of move shard operations.
+
+        Args:
+            moves (list): List of move shard operations to be executed.
+            version (int): Must be set to 1.
+
+        Returns:
+            int: Indicates whether the methods have been accepted and scheduled for execution.
+
+        Raises:
+            ClusterRebalanceError: If the execution fails.
+
+        References:
+            - `execute-a-set-of-move-shard-operations <https://docs.arangodb.com/stable/develop/http-api/cluster/#execute-a-set-of-move-shard-operations>`__
+        """  # noqa: E501
+        data: Json = dict(version=version, moves=moves)
+
+        request = Request(
+            method=Method.POST,
+            endpoint="/_admin/cluster/rebalance/execute",
+            data=self.serializer.dumps(data),
+            prefix_needed=False,
+        )
+
+        def response_handler(resp: Response) -> int:
+            if not resp.is_success:
+                raise ClusterRebalanceError(resp, request)
+            result: int = self.deserializer.loads(resp.raw_body)["code"]
+            return result
+
+        return await self._executor.execute(request, response_handler)

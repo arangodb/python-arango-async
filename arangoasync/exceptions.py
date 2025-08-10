@@ -283,6 +283,10 @@ class ClusterMaintenanceModeError(ArangoServerError):
     """Failed to enable/disable cluster supervision maintenance mode."""
 
 
+class ClusterRebalanceError(ArangoServerError):
+    """Failed to execute cluster rebalancing operation."""
+
+
 class ClusterServerRoleError(ArangoServerError):
     """Failed to retrieve server role in a cluster."""
 
