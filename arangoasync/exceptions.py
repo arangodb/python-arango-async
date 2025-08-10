@@ -395,6 +395,66 @@ class EdgeListError(ArangoServerError):
     """Failed to retrieve edges coming in and out of a vertex."""
 
 
+class FoxxConfigGetError(ArangoServerError):
+    """Failed to retrieve Foxx service configuration."""
+
+
+class FoxxConfigReplaceError(ArangoServerError):
+    """Failed to replace Foxx service configuration."""
+
+
+class FoxxConfigUpdateError(ArangoServerError):
+    """Failed to update Foxx service configuration."""
+
+
+class FoxxDependencyGetError(ArangoServerError):
+    """Failed to retrieve Foxx service dependencies."""
+
+
+class FoxxDependencyReplaceError(ArangoServerError):
+    """Failed to replace Foxx service dependencies."""
+
+
+class FoxxDependencyUpdateError(ArangoServerError):
+    """Failed to update Foxx service dependencies."""
+
+
+class FoxxScriptListError(ArangoServerError):
+    """Failed to retrieve Foxx service scripts."""
+
+
+class FoxxScriptRunError(ArangoServerError):
+    """Failed to run Foxx service script."""
+
+
+class FoxxServiceCreateError(ArangoServerError):
+    """Failed to create Foxx service."""
+
+
+class FoxxServiceDeleteError(ArangoServerError):
+    """Failed to delete Foxx services."""
+
+
+class FoxxServiceGetError(ArangoServerError):
+    """Failed to retrieve Foxx service metadata."""
+
+
+class FoxxServiceListError(ArangoServerError):
+    """Failed to retrieve Foxx services."""
+
+
+class FoxxServiceReplaceError(ArangoServerError):
+    """Failed to replace Foxx service."""
+
+
+class FoxxServiceUpdateError(ArangoServerError):
+    """Failed to update Foxx service."""
+
+
+class FoxxTestRunError(ArangoServerError):
+    """Failed to run Foxx service tests."""
+
+
 class GraphCreateError(ArangoServerError):
     """Failed to create the graph."""
 

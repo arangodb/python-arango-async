@@ -177,7 +177,7 @@ To import this file into the "students" collection, we can use the `import_bulk`
         students = db.collection("students")
 
         # Read the JSONL file asynchronously.
-        async with aiofiles.open('students.jsonl', mode='r') as f:
+        async with aiofiles.open("students.jsonl", mode="r") as f:
             documents = await f.read()
 
         # Import documents in bulk.

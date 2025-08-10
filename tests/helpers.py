@@ -80,3 +80,12 @@ def generate_task_id():
         str: Random task ID
     """
     return f"test_task_id_{uuid4().hex}"
+
+
+def generate_service_mount():
+    """Generate and return a random service name.
+
+    Returns:
+        str: Random service name.
+    """
+    return f"/test_{uuid4().hex}"

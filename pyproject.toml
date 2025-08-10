@@ -49,6 +49,7 @@ version = { attr = "arangoasync.version.__version__" }
 
 [project.optional-dependencies]
 dev = [
+    "aiofiles>=24.1.0",
     "black>=24.2",
     "flake8>=7.0",
     "isort>=5.10",
