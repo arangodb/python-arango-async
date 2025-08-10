@@ -271,6 +271,34 @@ class ClientConnectionError(ArangoClientError):
     """The request was unable to reach the server."""
 
 
+class ClusterEndpointsError(ArangoServerError):
+    """Failed to retrieve coordinator endpoints."""
+
+
+class ClusterHealthError(ArangoServerError):
+    """Failed to retrieve cluster health."""
+
+
+class ClusterMaintenanceModeError(ArangoServerError):
+    """Failed to enable/disable cluster supervision maintenance mode."""
+
+
+class ClusterRebalanceError(ArangoServerError):
+    """Failed to execute cluster rebalancing operation."""
+
+
+class ClusterServerRoleError(ArangoServerError):
+    """Failed to retrieve server role in a cluster."""
+
+
+class ClusterServerIDError(ArangoServerError):
+    """Failed to retrieve server ID."""
+
+
+class ClusterStatisticsError(ArangoServerError):
+    """Failed to retrieve DB-Server statistics."""
+
+
 class CursorCloseError(ArangoServerError):
     """Failed to delete the cursor result from server."""
 

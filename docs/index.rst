@@ -46,6 +46,7 @@ Contents
     transaction
     view
     analyzer
+    cluster
 
 **API Executions**
 
