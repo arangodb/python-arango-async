@@ -43,6 +43,7 @@ Contents
 .. toctree::
     :maxdepth: 1
 
+    foxx
     transaction
     view
     analyzer
