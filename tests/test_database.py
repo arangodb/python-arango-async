@@ -64,6 +64,10 @@ async def test_database_misc_methods(sys_db, db, bad_db, cluster, db_version):
         with pytest.raises(CollectionKeyGeneratorsError):
             await bad_db.key_generators()
 
+    # Administration
+    result = await db.engine()
+    assert isinstance(result, dict)
+
 
 @pytest.mark.asyncio
 async def test_create_drop_database(

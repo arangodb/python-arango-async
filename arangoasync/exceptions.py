@@ -547,12 +547,16 @@ class SerializationError(ArangoClientError):
     """Failed to serialize the request."""
 
 
+class ServerConnectionError(ArangoServerError):
+    """Failed to connect to ArangoDB server."""
+
+
 class ServerEncryptionError(ArangoServerError):
     """Failed to reload user-defined encryption keys."""
 
 
-class ServerConnectionError(ArangoServerError):
-    """Failed to connect to ArangoDB server."""
+class ServerEngineError(ArangoServerError):
+    """Failed to retrieve database engine."""
 
 
 class ServerStatusError(ArangoServerError):

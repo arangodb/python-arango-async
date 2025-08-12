@@ -40,6 +40,7 @@ from arangoasync.exceptions import (
     PermissionResetError,
     PermissionUpdateError,
     ServerEncryptionError,
+    ServerEngineError,
     ServerStatusError,
     ServerTLSError,
     ServerTLSReloadError,
@@ -2434,6 +2435,28 @@ class Database:
             if resp.status_code == HTTP_NOT_FOUND and ignore_missing:
                 return False
             raise TaskDeleteError(resp, request)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def engine(self) -> Result[Json]:
+        """Returns the storage engine the server is configured to use.
+
+        Returns:
+            dict: Database engine details.
+
+        Raises:
+            ServerEngineError: If the operation fails.
+
+        References:
+            - `get-the-storage-engine-type <https://docs.arangodb.com/stable/develop/http-api/administration/#get-the-storage-engine-type>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_api/engine")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerEngineError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
 
         return await self._executor.execute(request, response_handler)
 
