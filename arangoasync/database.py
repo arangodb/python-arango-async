@@ -74,6 +74,7 @@ from arangoasync.executor import (
     DefaultApiExecutor,
     TransactionApiExecutor,
 )
+from arangoasync.foxx import Foxx
 from arangoasync.graph import Graph
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
@@ -198,6 +199,15 @@ class Database:
             arangoasync.cluster.Cluster: Cluster API wrapper.
         """
         return Cluster(self._executor)
+
+    @property
+    def foxx(self) -> Foxx:
+        """Return Foxx API wrapper.
+
+        Returns:
+            arangoasync.foxx.Foxx: Foxx API wrapper.
+        """
+        return Foxx(self._executor)
 
     async def properties(self) -> Result[DatabaseProperties]:
         """Return database properties.

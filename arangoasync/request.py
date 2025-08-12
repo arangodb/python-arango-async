@@ -4,7 +4,7 @@ __all__ = [
 ]
 
 from enum import Enum, auto
-from typing import Optional
+from typing import Any, Optional
 
 from arangoasync.auth import Auth
 from arangoasync.typings import Params, RequestHeaders
@@ -31,7 +31,7 @@ class Request:
         endpoint (str): API endpoint.
         headers (dict | None): Request headers.
         params (dict | None): URL parameters.
-        data (bytes | None): Request payload.
+        data (Any): Request payload.
         auth (Auth | None): Authentication.
         prefix_needed (bool): Whether the request needs a prefix (e.g., database name).
 
@@ -40,7 +40,7 @@ class Request:
         endpoint (str): API endpoint.
         headers (dict | None): Request headers.
         params (dict | None): URL parameters.
-        data (bytes | None): Request payload.
+        data (Any): Request payload.
         auth (Auth | None): Authentication.
         prefix_needed (bool): Whether the request needs a prefix (e.g., database name).
     """
@@ -61,7 +61,7 @@ class Request:
         endpoint: str,
         headers: Optional[RequestHeaders] = None,
         params: Optional[Params] = None,
-        data: Optional[bytes | str] = None,
+        data: Optional[Any] = None,
         auth: Optional[Auth] = None,
         prefix_needed: bool = True,
     ) -> None:
@@ -69,7 +69,7 @@ class Request:
         self.endpoint: str = endpoint
         self.headers: RequestHeaders = headers or dict()
         self.params: Params = params or dict()
-        self.data: Optional[bytes | str] = data
+        self.data: Optional[Any] = data
         self.auth: Optional[Auth] = auth
         self.prefix_needed = prefix_needed
 

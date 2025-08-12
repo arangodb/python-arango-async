@@ -395,6 +395,90 @@ class EdgeListError(ArangoServerError):
     """Failed to retrieve edges coming in and out of a vertex."""
 
 
+class FoxxConfigGetError(ArangoServerError):
+    """Failed to retrieve Foxx service configuration."""
+
+
+class FoxxConfigReplaceError(ArangoServerError):
+    """Failed to replace Foxx service configuration."""
+
+
+class FoxxConfigUpdateError(ArangoServerError):
+    """Failed to update Foxx service configuration."""
+
+
+class FoxxCommitError(ArangoServerError):
+    """Failed to commit local Foxx service state."""
+
+
+class FoxxDependencyGetError(ArangoServerError):
+    """Failed to retrieve Foxx service dependencies."""
+
+
+class FoxxDependencyReplaceError(ArangoServerError):
+    """Failed to replace Foxx service dependencies."""
+
+
+class FoxxDependencyUpdateError(ArangoServerError):
+    """Failed to update Foxx service dependencies."""
+
+
+class FoxxScriptListError(ArangoServerError):
+    """Failed to retrieve Foxx service scripts."""
+
+
+class FoxxDevModeEnableError(ArangoServerError):
+    """Failed to enable development mode for Foxx service."""
+
+
+class FoxxDevModeDisableError(ArangoServerError):
+    """Failed to disable development mode for Foxx service."""
+
+
+class FoxxDownloadError(ArangoServerError):
+    """Failed to download Foxx service bundle."""
+
+
+class FoxxReadmeGetError(ArangoServerError):
+    """Failed to retrieve Foxx service readme."""
+
+
+class FoxxScriptRunError(ArangoServerError):
+    """Failed to run Foxx service script."""
+
+
+class FoxxServiceCreateError(ArangoServerError):
+    """Failed to create Foxx service."""
+
+
+class FoxxServiceDeleteError(ArangoServerError):
+    """Failed to delete Foxx services."""
+
+
+class FoxxServiceGetError(ArangoServerError):
+    """Failed to retrieve Foxx service metadata."""
+
+
+class FoxxServiceListError(ArangoServerError):
+    """Failed to retrieve Foxx services."""
+
+
+class FoxxServiceReplaceError(ArangoServerError):
+    """Failed to replace Foxx service."""
+
+
+class FoxxServiceUpdateError(ArangoServerError):
+    """Failed to update Foxx service."""
+
+
+class FoxxSwaggerGetError(ArangoServerError):
+    """Failed to retrieve Foxx service swagger."""
+
+
+class FoxxTestRunError(ArangoServerError):
+    """Failed to run Foxx service tests."""
+
+
 class GraphCreateError(ArangoServerError):
     """Failed to create the graph."""
 
