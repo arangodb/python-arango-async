@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 import aiofiles
@@ -5,12 +6,17 @@ import aiohttp
 import pytest
 
 from arangoasync.exceptions import (
+    FoxxCommitError,
     FoxxConfigGetError,
     FoxxConfigReplaceError,
     FoxxConfigUpdateError,
     FoxxDependencyGetError,
     FoxxDependencyReplaceError,
     FoxxDependencyUpdateError,
+    FoxxDevModeDisableError,
+    FoxxDevModeEnableError,
+    FoxxDownloadError,
+    FoxxReadmeGetError,
     FoxxScriptListError,
     FoxxScriptRunError,
     FoxxServiceCreateError,
@@ -19,6 +25,7 @@ from arangoasync.exceptions import (
     FoxxServiceListError,
     FoxxServiceReplaceError,
     FoxxServiceUpdateError,
+    FoxxSwaggerGetError,
     FoxxTestRunError,
 )
 from tests.helpers import generate_service_mount
@@ -28,7 +35,7 @@ service_name = "test"
 
 
 @pytest.mark.asyncio
-async def test_foxx(db, bad_db, cluster):
+async def test_foxx(db, bad_db):
     # Test errors
     with pytest.raises(FoxxServiceGetError):
         await bad_db.foxx.service(service_name)
@@ -61,6 +68,18 @@ async def test_foxx(db, bad_db, cluster):
         await bad_db.foxx.replace_dependencies(mount="foo", options={})
     with pytest.raises(FoxxDependencyUpdateError):
         await bad_db.foxx.update_dependencies(mount="foo", options={})
+    with pytest.raises(FoxxDevModeEnableError):
+        await bad_db.foxx.enable_development("foo")
+    with pytest.raises(FoxxDevModeDisableError):
+        await bad_db.foxx.disable_development("foo")
+    with pytest.raises(FoxxReadmeGetError):
+        await bad_db.foxx.readme("foo")
+    with pytest.raises(FoxxSwaggerGetError):
+        await bad_db.foxx.swagger("foo")
+    with pytest.raises(FoxxDownloadError):
+        await bad_db.foxx.download("foo")
+    with pytest.raises(FoxxCommitError):
+        await bad_db.foxx.commit()
 
     services = await db.foxx.services()
     assert isinstance(services, list)
@@ -197,3 +216,30 @@ async def test_foxx(db, bad_db, cluster):
     # Run tests on missing service
     with pytest.raises(FoxxTestRunError):
         await db.foxx.run_tests("foo")
+
+    # Development mode
+    result = await db.foxx.enable_development(mount1)
+    assert result["mount"] == mount1
+    result = await db.foxx.disable_development(mount1)
+    assert result["mount"] == mount1
+
+    # Readme
+    result = await db.foxx.readme(mount1)
+    assert isinstance(result, str)
+
+    # Swagger
+    result = await db.foxx.swagger(mount1)
+    assert isinstance(result, dict)
+
+    # Download service
+    result = await db.foxx.download(mount1)
+    assert isinstance(result, bytes)
+
+    # Commit
+    await db.foxx.commit(replace=True)
+
+    # Delete remaining services
+    await asyncio.gather(
+        db.foxx.delete_service(mount1),
+        db.foxx.delete_service(mount2),
+    )

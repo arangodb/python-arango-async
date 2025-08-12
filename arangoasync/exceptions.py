@@ -407,6 +407,10 @@ class FoxxConfigUpdateError(ArangoServerError):
     """Failed to update Foxx service configuration."""
 
 
+class FoxxCommitError(ArangoServerError):
+    """Failed to commit local Foxx service state."""
+
+
 class FoxxDependencyGetError(ArangoServerError):
     """Failed to retrieve Foxx service dependencies."""
 
@@ -421,6 +425,22 @@ class FoxxDependencyUpdateError(ArangoServerError):
 
 class FoxxScriptListError(ArangoServerError):
     """Failed to retrieve Foxx service scripts."""
+
+
+class FoxxDevModeEnableError(ArangoServerError):
+    """Failed to enable development mode for Foxx service."""
+
+
+class FoxxDevModeDisableError(ArangoServerError):
+    """Failed to disable development mode for Foxx service."""
+
+
+class FoxxDownloadError(ArangoServerError):
+    """Failed to download Foxx service bundle."""
+
+
+class FoxxReadmeGetError(ArangoServerError):
+    """Failed to retrieve Foxx service readme."""
 
 
 class FoxxScriptRunError(ArangoServerError):
@@ -449,6 +469,10 @@ class FoxxServiceReplaceError(ArangoServerError):
 
 class FoxxServiceUpdateError(ArangoServerError):
     """Failed to update Foxx service."""
+
+
+class FoxxSwaggerGetError(ArangoServerError):
+    """Failed to retrieve Foxx service swagger."""
 
 
 class FoxxTestRunError(ArangoServerError):

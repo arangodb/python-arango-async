@@ -3,12 +3,17 @@ __all__ = ["Foxx"]
 from typing import Any, Optional
 
 from arangoasync.exceptions import (
+    FoxxCommitError,
     FoxxConfigGetError,
     FoxxConfigReplaceError,
     FoxxConfigUpdateError,
     FoxxDependencyGetError,
     FoxxDependencyReplaceError,
     FoxxDependencyUpdateError,
+    FoxxDevModeDisableError,
+    FoxxDevModeEnableError,
+    FoxxDownloadError,
+    FoxxReadmeGetError,
     FoxxScriptListError,
     FoxxScriptRunError,
     FoxxServiceCreateError,
@@ -17,6 +22,7 @@ from arangoasync.exceptions import (
     FoxxServiceListError,
     FoxxServiceReplaceError,
     FoxxServiceUpdateError,
+    FoxxSwaggerGetError,
     FoxxTestRunError,
 )
 from arangoasync.executor import ApiExecutor
@@ -638,3 +644,186 @@ class Foxx:
             return resp.raw_body.decode("utf-8")
 
         return await self._executor.execute(request, response_handler)
+
+    async def enable_development(self, mount: str) -> Result[Json]:
+        """Puts the service into development mode.
+
+        While the service is running in development mode, it is reloaded from
+        the file system, and its setup script (if any) is re-executed every
+        time the service handles a request.
+
+        In a cluster with multiple coordinators, changes to the filesystem on
+        one coordinator is not reflected across other coordinators.
+
+        Args:
+            mount (str): Service mount path.
+
+        Returns:
+            dict: Service metadata.
+
+        Raises:
+            FoxxDevModeEnableError: If the operation fails.
+
+        References:
+           - `enable-the-development-mode <https://docs.arangodb.com/stable/develop/http-api/foxx/#enable-the-development-mode>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.POST,
+            endpoint="/_api/foxx/development",
+            params={"mount": mount},
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise FoxxDevModeEnableError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def disable_development(self, mount: str) -> Result[Json]:
+        """Puts the service into production mode.
+
+        In a cluster with multiple coordinators, the services on all other
+        coordinators are replaced with the version on the calling coordinator.
+
+        Args:
+            mount (str): Service mount path.
+
+        Returns:
+            dict: Service metadata.
+
+        Raises:
+            FoxxDevModeDisableError: If the operation fails.
+
+        References:
+            - `disable-the-development-mode <https://docs.arangodb.com/stable/develop/http-api/foxx/#disable-the-development-mode>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.DELETE,
+            endpoint="/_api/foxx/development",
+            params={"mount": mount},
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise FoxxDevModeDisableError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def readme(self, mount: str) -> Result[str]:
+        """Return the service readme.
+
+        Args:
+            mount (str): Service mount path.
+
+        Returns:
+            str: Service readme content.
+
+        Raises:
+            FoxxReadmeGetError: If retrieval fails.
+
+        References:
+            - `get-the-service-readme <https://docs.arangodb.com/stable/develop/http-api/foxx/#get-the-service-readme>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint="/_api/foxx/readme",
+            params={"mount": mount},
+        )
+
+        def response_handler(resp: Response) -> str:
+            if not resp.is_success:
+                raise FoxxReadmeGetError(resp, request)
+            return resp.raw_body.decode("utf-8")
+
+        return await self._executor.execute(request, response_handler)
+
+    async def swagger(self, mount: str) -> Result[Json]:
+        """Return the Swagger API description for the given service.
+
+        Args:
+            mount (str): Service mount path.
+
+        Returns:
+            dict: Swagger API description.
+
+        Raises:
+            FoxxSwaggerGetError: If retrieval fails.
+
+        References:
+           - `get-the-swagger-description <https://docs.arangodb.com/stable/develop/http-api/foxx/#get-the-swagger-description>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET, endpoint="/_api/foxx/swagger", params={"mount": mount}
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise FoxxSwaggerGetError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def download(self, mount: str) -> Result[bytes]:
+        """Downloads a zip bundle of the service directory.
+
+        When development mode is enabled, this always creates a new bundle.
+        Otherwise, the bundle will represent the version of a service that is
+        installed on that ArangoDB instance.
+
+        Args:
+            mount (str): Service mount path.
+
+        Returns:
+            bytes: Service bundle zip in raw bytes form.
+
+        Raises:
+            FoxxDownloadError: If download fails.
+
+        References:
+           - `download-a-service-bundle <https://docs.arangodb.com/stable/develop/http-api/foxx/#download-a-service-bundle>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.POST, endpoint="/_api/foxx/download", params={"mount": mount}
+        )
+
+        def response_handler(resp: Response) -> bytes:
+            if not resp.is_success:
+                raise FoxxDownloadError(resp, request)
+            return resp.raw_body
+
+        return await self._executor.execute(request, response_handler)
+
+    async def commit(self, replace: Optional[bool] = None) -> None:
+        """Commit local service state of the coordinator to the database.
+
+        This can be used to resolve service conflicts between coordinators
+        that cannot be fixed automatically due to missing data.
+
+        Args:
+            replace (bool | None): If set to `True`, any existing service files in the database
+                will be overwritten.
+
+        Raises:
+            FoxxCommitError: If commit fails.
+
+        References:
+            - `commit-the-local-service-state <https://docs.arangodb.com/stable/develop/http-api/foxx/#commit-the-local-service-state>`__
+        """  # noqa: E501
+        params: Params = {}
+        if replace is not None:
+            params["replace"] = replace
+
+        request = Request(
+            method=Method.POST, endpoint="/_api/foxx/commit", params=params
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise FoxxCommitError(resp, request)
+
+        await self._executor.execute(request, response_handler)
