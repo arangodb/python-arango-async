@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 
 import pytest
 from packaging import version
@@ -13,9 +14,19 @@ from arangoasync.exceptions import (
     DatabaseDeleteError,
     DatabaseListError,
     DatabasePropertiesError,
+    DatabaseSupportInfoError,
     JWTSecretListError,
     JWTSecretReloadError,
+    ServerAvailableOptionsGetError,
+    ServerCheckAvailabilityError,
+    ServerCurrentOptionsGetError,
+    ServerEngineError,
+    ServerLicenseGetError,
+    ServerLicenseSetError,
+    ServerModeError,
+    ServerModeSetError,
     ServerStatusError,
+    ServerTimeError,
     ServerVersionError,
 )
 from arangoasync.typings import CollectionType, KeyOptions, UserInfo
@@ -65,8 +76,49 @@ async def test_database_misc_methods(sys_db, db, bad_db, cluster, db_version):
             await bad_db.key_generators()
 
     # Administration
+    with pytest.raises(ServerEngineError):
+        await bad_db.engine()
     result = await db.engine()
     assert isinstance(result, dict)
+
+    with pytest.raises(ServerTimeError):
+        await bad_db.time()
+    time = await db.time()
+    assert isinstance(time, datetime.datetime)
+
+    with pytest.raises(ServerCheckAvailabilityError):
+        await bad_db.check_availability()
+    assert isinstance(await db.check_availability(), str)
+
+    with pytest.raises(DatabaseSupportInfoError):
+        await bad_db.support_info()
+    info = await sys_db.support_info()
+    assert isinstance(info, dict)
+
+    with pytest.raises(ServerCurrentOptionsGetError):
+        await bad_db.options()
+    options = await sys_db.options()
+    assert isinstance(options, dict)
+    with pytest.raises(ServerAvailableOptionsGetError):
+        await bad_db.options_available()
+    options_available = await sys_db.options_available()
+    assert isinstance(options_available, dict)
+
+    with pytest.raises(ServerModeError):
+        await bad_db.mode()
+    mode = await sys_db.mode()
+    assert isinstance(mode, str)
+    with pytest.raises(ServerModeSetError):
+        await bad_db.set_mode("foo")
+    mode = await sys_db.set_mode("default")
+    assert isinstance(mode, str)
+
+    with pytest.raises(ServerLicenseGetError):
+        await bad_db.license()
+    license = await sys_db.license()
+    assert isinstance(license, dict)
+    with pytest.raises(ServerLicenseSetError):
+        await sys_db.set_license('"abc"')
 
 
 @pytest.mark.asyncio

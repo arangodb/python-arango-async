@@ -21,3 +21,21 @@ Most of these operations can only be performed by admin users via the
 
         # Retrieve the database engine.
         await sys_db.engine()
+
+        # Retrieve the server time..
+        time = await sys_db.time()
+
+        # Check server availability
+        availability = sys_db.check_availability()
+
+        # Support info
+        info = sys_db.support_info()
+
+        # Get the startup option configuration
+        options = await sys_db.options()
+
+        # Get the available startup options
+        options = await sys_db.options_available()
+
+        # Return whether or not a server is in read-only mode
+        mode = await sys_db.mode()

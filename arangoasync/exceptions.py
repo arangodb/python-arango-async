@@ -335,6 +335,10 @@ class DatabasePropertiesError(ArangoServerError):
     """Failed to retrieve database properties."""
 
 
+class DatabaseSupportInfoError(ArangoServerError):
+    """Failed to retrieve support info for deployment."""
+
+
 class DeserializationError(ArangoClientError):
     """Failed to deserialize the server response."""
 
@@ -547,8 +551,20 @@ class SerializationError(ArangoClientError):
     """Failed to serialize the request."""
 
 
+class ServerAvailableOptionsGetError(ArangoServerError):
+    """Failed to retrieve available server options."""
+
+
+class ServerCheckAvailabilityError(ArangoServerError):
+    """Failed to retrieve server availability mode."""
+
+
 class ServerConnectionError(ArangoServerError):
     """Failed to connect to ArangoDB server."""
+
+
+class ServerCurrentOptionsGetError(ArangoServerError):
+    """Failed to retrieve currently-set server options."""
 
 
 class ServerEncryptionError(ArangoServerError):
@@ -557,6 +573,22 @@ class ServerEncryptionError(ArangoServerError):
 
 class ServerEngineError(ArangoServerError):
     """Failed to retrieve database engine."""
+
+
+class ServerModeError(ArangoServerError):
+    """Failed to retrieve server mode."""
+
+
+class ServerModeSetError(ArangoServerError):
+    """Failed to set server mode."""
+
+
+class ServerLicenseGetError(ArangoServerError):
+    """Failed to retrieve server license."""
+
+
+class ServerLicenseSetError(ArangoServerError):
+    """Failed to set server license."""
 
 
 class ServerStatusError(ArangoServerError):
@@ -569,6 +601,10 @@ class ServerTLSError(ArangoServerError):
 
 class ServerTLSReloadError(ArangoServerError):
     """Failed to reload TLS."""
+
+
+class ServerTimeError(ArangoServerError):
+    """Failed to retrieve server system time."""
 
 
 class ServerVersionError(ArangoServerError):

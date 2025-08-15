@@ -6,6 +6,7 @@ __all__ = [
 ]
 
 
+from datetime import datetime
 from typing import Any, List, Optional, Sequence, TypeVar, cast
 from warnings import warn
 
@@ -30,6 +31,7 @@ from arangoasync.exceptions import (
     DatabaseDeleteError,
     DatabaseListError,
     DatabasePropertiesError,
+    DatabaseSupportInfoError,
     GraphCreateError,
     GraphDeleteError,
     GraphListError,
@@ -39,9 +41,17 @@ from arangoasync.exceptions import (
     PermissionListError,
     PermissionResetError,
     PermissionUpdateError,
+    ServerAvailableOptionsGetError,
+    ServerCheckAvailabilityError,
+    ServerCurrentOptionsGetError,
     ServerEncryptionError,
     ServerEngineError,
+    ServerLicenseGetError,
+    ServerLicenseSetError,
+    ServerModeError,
+    ServerModeSetError,
     ServerStatusError,
+    ServerTimeError,
     ServerTLSError,
     ServerTLSReloadError,
     ServerVersionError,
@@ -2459,6 +2469,227 @@ class Database:
             return result
 
         return await self._executor.execute(request, response_handler)
+
+    async def time(self) -> Result[datetime]:
+        """Return server system time.
+
+        Returns:
+            datetime.datetime: Server system time.
+
+        Raises:
+            ServerTimeError: If the operation fails.
+
+        References:
+            - `get-the-system-time <https://docs.arangodb.com/stable/develop/http-api/administration/#get-the-system-time>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_admin/time")
+
+        def response_handler(resp: Response) -> datetime:
+            if not resp.is_success:
+                raise ServerTimeError(resp, request)
+            return datetime.fromtimestamp(
+                self.deserializer.loads(resp.raw_body)["time"]
+            )
+
+        return await self._executor.execute(request, response_handler)
+
+    async def check_availability(self) -> Result[str]:
+        """Return ArangoDB server availability mode.
+
+        Returns:
+            str: Server availability mode, either "readonly" or "default".
+
+        Raises:
+            ServerCheckAvailabilityError: If the operation fails.
+
+        References:
+            - `check-server-availability <https://docs.arangodb.com/stable/develop/http-api/administration/#check-server-availability>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint="/_admin/server/availability",
+        )
+
+        def response_handler(resp: Response) -> str:
+            if not resp.is_success:
+                raise ServerCheckAvailabilityError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return str(result["mode"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def support_info(self) -> Result[Json]:
+        """Retrieves deployment information for support purposes.
+
+        Note:
+            As this API may reveal sensitive data about the deployment, it can only be accessed from inside the _system database.
+
+        Returns:
+            dict: Deployment information
+
+        Raises:
+            DatabaseSupportInfoError: If the operation fails.
+
+        References:
+            - `get-information-about-the-deployment <https://docs.arangodb.com/stable/develop/http-api/administration/#get-information-about-the-deployment>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_admin/support-info")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise DatabaseSupportInfoError(resp, request)
+
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def options(self) -> Result[Json]:
+        """Return the currently-set server options.
+
+        Returns:
+            dict: Server options.
+
+        Raises:
+            ServerCurrentOptionsGetError: If the operation fails.
+
+        References:
+            - `get-the-startup-option-configuration <https://docs.arangodb.com/stable/develop/http-api/administration/#get-the-startup-option-configuration>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_admin/options")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerCurrentOptionsGetError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def options_available(self) -> Result[Json]:
+        """Return a description of all available server options.
+
+        Returns:
+            dict: Server options description.
+
+        Raises:
+            ServerAvailableOptionsGetError: If the operation fails.
+
+        References:
+           - `get-the-available-startup-options <https://docs.arangodb.com/stable/develop/http-api/administration/#get-the-available-startup-options>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_admin/options-description")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerAvailableOptionsGetError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def mode(self) -> Result[str]:
+        """Return the server mode ("default" or "readonly").
+
+        Returns:
+            str: Server mode, either "default" or "readonly".
+
+        Raises:
+            ServerModeError: If the operation fails.
+
+        References:
+            - `return-whether-or-not-a-server-is-in-read-only-mode <https://docs.arangodb.com/stable/develop/http-api/administration/#return-whether-or-not-a-server-is-in-read-only-mode>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_admin/server/mode")
+
+        def response_handler(resp: Response) -> str:
+            if not resp.is_success:
+                raise ServerModeError(resp, request)
+            return str(self.deserializer.loads(resp.raw_body)["mode"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def set_mode(self, mode: str) -> Result[str]:
+        """Set the server mode to read-only or default.
+
+        Args:
+           mode (str): Server mode. Possible values are "default" or "readonly".
+
+        Returns:
+            str: New server mode.
+
+        Raises:
+            ServerModeSetError: If the operation fails.
+
+        References:
+           - `set-the-server-mode-to-read-only-or-default <https://docs.arangodb.com/stable/develop/http-api/administration/#set-the-server-mode-to-read-only-or-default>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PUT,
+            endpoint="/_admin/server/mode",
+            data=self.serializer.dumps({"mode": mode}),
+        )
+
+        def response_handler(resp: Response) -> str:
+            if not resp.is_success:
+                raise ServerModeSetError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return str(result["mode"])
+
+        return await self._executor.execute(request, response_handler)
+
+    async def license(self) -> Result[Json]:
+        """View the license information and status of an Enterprise Edition instance.
+
+        Returns:
+            dict: Server license information.
+
+        Raises:
+            ServerLicenseGetError: If the operation fails.
+
+        References:
+            - `get-information-about-the-current-license <https://docs.arangodb.com/stable/develop/http-api/administration/#get-information-about-the-current-license>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_admin/license")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerLicenseGetError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def set_license(self, license: str, force: Optional[bool] = False) -> None:
+        """Set a new license for an Enterprise Edition instance.
+
+        Args:
+            license (str) -> Base64-encoded license string, wrapped in double-quotes.
+            force (bool | None) -> Set to `True` to change the license even if it
+                expires sooner than the current one.
+
+        Raises:
+            ServerLicenseSetError: If the operation fails.
+
+        References:
+            - `set-a-new-license <https://docs.arangodb.com/stable/develop/http-api/administration/#set-a-new-license>`__
+        """  # noqa: E501
+        params: Params = {}
+        if force is not None:
+            params["force"] = force
+
+        request = Request(
+            method=Method.PUT,
+            endpoint="/_admin/license",
+            params=params,
+            data=license,
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise ServerLicenseSetError(resp, request)
+
+        await self._executor.execute(request, response_handler)
 
 
 class StandardDatabase(Database):
