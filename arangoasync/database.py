@@ -2861,6 +2861,21 @@ class Database:
 
         return await self._executor.execute(request, response_handler)
 
+    async def request(self, request: Request) -> Result[Response]:
+        """Execute a custom request.
+
+        Args:
+            request (Request): Request object to be executed.
+
+        Returns:
+            Response: Response object containing the result of the request.
+        """
+
+        def response_handler(resp: Response) -> Response:
+            return resp
+
+        return await self._executor.execute(request, response_handler)
+
 
 class StandardDatabase(Database):
     """Standard database API wrapper.
