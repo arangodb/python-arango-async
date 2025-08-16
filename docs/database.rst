@@ -14,6 +14,7 @@ information.
 
     from arangoasync import ArangoClient
     from arangoasync.auth import Auth
+    from arangoasync.request import Method, Request
 
     # Initialize the client for ArangoDB.
     async with ArangoClient(hosts="http://localhost:8529") as client:
@@ -59,5 +60,11 @@ information.
 
         # Delete the database. Note that the new users will remain.
         await sys_db.delete_database("test")
+
+        # Example of a custom request
+        request = Request(
+            method=Method.POST, endpoint="/_admin/execute", data="return 1".encode("utf-8")
+        )
+        response = await sys_db.request(request)
 
 See :class:`arangoasync.client.ArangoClient` and :class:`arangoasync.database.StandardDatabase` for API specification.

@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import json
 
 import pytest
 from packaging import version
@@ -36,6 +37,7 @@ from arangoasync.exceptions import (
     ServerTimeError,
     ServerVersionError,
 )
+from arangoasync.request import Method, Request
 from arangoasync.typings import CollectionType, KeyOptions, UserInfo
 from tests.helpers import generate_col_name, generate_db_name, generate_username
 
@@ -156,6 +158,13 @@ async def test_database_misc_methods(
             sys_db_name, auth_method="superuser", token=token, verify=True
         )
         await db.compact()
+
+    # Custom Request
+    request = Request(
+        method=Method.POST, endpoint="/_admin/execute", data="return 1".encode("utf-8")
+    )
+    response = await sys_db.request(request)
+    assert json.loads(response.raw_body) == 1
 
 
 @pytest.mark.asyncio
