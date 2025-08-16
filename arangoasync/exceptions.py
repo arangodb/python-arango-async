@@ -555,6 +555,10 @@ class SerializationError(ArangoClientError):
     """Failed to serialize the request."""
 
 
+class ServerApiCallsError(ArangoServerError):
+    """Failed to retrieve the list of recent API calls."""
+
+
 class ServerAvailableOptionsGetError(ArangoServerError):
     """Failed to retrieve available server options."""
 
@@ -587,6 +591,10 @@ class ServerExecuteError(ArangoServerError):
     """Failed to execute raw JavaScript command."""
 
 
+class ServerMetricsError(ArangoServerError):
+    """Failed to retrieve server metrics."""
+
+
 class ServerModeError(ArangoServerError):
     """Failed to retrieve server mode."""
 
@@ -601,6 +609,30 @@ class ServerLicenseGetError(ArangoServerError):
 
 class ServerLicenseSetError(ArangoServerError):
     """Failed to set server license."""
+
+
+class ServerLogLevelError(ArangoServerError):
+    """Failed to retrieve server log levels."""
+
+
+class ServerLogLevelResetError(ArangoServerError):
+    """Failed to reset server log levels."""
+
+
+class ServerLogLevelSetError(ArangoServerError):
+    """Failed to set server log levels."""
+
+
+class ServerLogSettingError(ArangoServerError):
+    """Failed to retrieve server log settings."""
+
+
+class ServerLogSettingSetError(ArangoServerError):
+    """Failed to set server log settings."""
+
+
+class ServerReadLogError(ArangoServerError):
+    """Failed to retrieve global log."""
 
 
 class ServerReloadRoutingError(ArangoServerError):

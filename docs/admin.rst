@@ -45,3 +45,6 @@ Most of these operations can only be performed by admin users via the
 
         # Execute Javascript on the server
         result = await sys_db.execute("return 1")
+
+        # Get metrics in Prometheus format
+        metrics = await db.metrics()

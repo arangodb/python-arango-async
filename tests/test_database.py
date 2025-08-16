@@ -20,6 +20,7 @@ from arangoasync.exceptions import (
     DatabaseSupportInfoError,
     JWTSecretListError,
     JWTSecretReloadError,
+    ServerApiCallsError,
     ServerAvailableOptionsGetError,
     ServerCheckAvailabilityError,
     ServerCurrentOptionsGetError,
@@ -28,8 +29,15 @@ from arangoasync.exceptions import (
     ServerExecuteError,
     ServerLicenseGetError,
     ServerLicenseSetError,
+    ServerLogLevelError,
+    ServerLogLevelResetError,
+    ServerLogLevelSetError,
+    ServerLogSettingError,
+    ServerLogSettingSetError,
+    ServerMetricsError,
     ServerModeError,
     ServerModeSetError,
+    ServerReadLogError,
     ServerReloadRoutingError,
     ServerShutdownError,
     ServerShutdownProgressError,
@@ -44,7 +52,7 @@ from tests.helpers import generate_col_name, generate_db_name, generate_username
 
 @pytest.mark.asyncio
 async def test_database_misc_methods(
-    sys_db, db, bad_db, cluster, db_version, url, sys_db_name, token
+    sys_db, db, bad_db, cluster, db_version, url, sys_db_name, token, enterprise
 ):
     # Status
     status = await sys_db.status()
@@ -165,6 +173,50 @@ async def test_database_misc_methods(
     )
     response = await sys_db.request(request)
     assert json.loads(response.raw_body) == 1
+
+    if enterprise and db_version >= version.parse("3.12.0"):
+        # API calls
+        with pytest.raises(ServerApiCallsError):
+            await bad_db.api_calls()
+        result = await sys_db.api_calls()
+        assert isinstance(result, dict)
+
+
+@pytest.mark.asyncio
+async def test_metrics(db, bad_db):
+    with pytest.raises(ServerMetricsError):
+        await bad_db.metrics()
+    metrics = await db.metrics()
+    assert isinstance(metrics, str)
+
+
+@pytest.mark.asyncio
+async def test_logs(sys_db, bad_db):
+    with pytest.raises(ServerReadLogError):
+        await bad_db.read_log_entries()
+    result = await sys_db.read_log_entries()
+    assert isinstance(result, dict)
+    with pytest.raises(ServerLogLevelError):
+        await bad_db.log_levels()
+    result = await sys_db.log_levels()
+    assert isinstance(result, dict)
+    with pytest.raises(ServerLogLevelSetError):
+        await bad_db.set_log_levels()
+    new_levels = {"agency": "DEBUG", "engines": "INFO", "threads": "WARNING"}
+    result = await sys_db.set_log_levels(**new_levels)
+    assert isinstance(result, dict)
+    with pytest.raises(ServerLogLevelResetError):
+        await bad_db.reset_log_levels()
+    result = await sys_db.reset_log_levels()
+    assert isinstance(result, dict)
+    with pytest.raises(ServerLogSettingError):
+        await bad_db.log_settings()
+    result = await sys_db.log_settings()
+    assert isinstance(result, dict)
+    with pytest.raises(ServerLogSettingSetError):
+        await bad_db.set_log_settings()
+    result = await sys_db.set_log_settings()
+    assert isinstance(result, dict)
 
 
 @pytest.mark.asyncio

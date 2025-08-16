@@ -7,7 +7,7 @@ __all__ = [
 
 
 from datetime import datetime
-from typing import Any, List, Optional, Sequence, TypeVar, cast
+from typing import Any, Dict, List, Optional, Sequence, TypeVar, cast
 from warnings import warn
 
 from arangoasync.aql import AQL
@@ -42,6 +42,7 @@ from arangoasync.exceptions import (
     PermissionListError,
     PermissionResetError,
     PermissionUpdateError,
+    ServerApiCallsError,
     ServerAvailableOptionsGetError,
     ServerCheckAvailabilityError,
     ServerCurrentOptionsGetError,
@@ -51,8 +52,15 @@ from arangoasync.exceptions import (
     ServerExecuteError,
     ServerLicenseGetError,
     ServerLicenseSetError,
+    ServerLogLevelError,
+    ServerLogLevelResetError,
+    ServerLogLevelSetError,
+    ServerLogSettingError,
+    ServerLogSettingSetError,
+    ServerMetricsError,
     ServerModeError,
     ServerModeSetError,
+    ServerReadLogError,
     ServerReloadRoutingError,
     ServerShutdownError,
     ServerShutdownProgressError,
@@ -2873,6 +2881,339 @@ class Database:
 
         def response_handler(resp: Response) -> Response:
             return resp
+
+        return await self._executor.execute(request, response_handler)
+
+    async def metrics(self, server_id: Optional[str] = None) -> Result[str]:
+        """Return server metrics in Prometheus format.
+
+        Args:
+            server_id (str | None): Returns metrics of the specified server.
+                If no serverId is given, the asked server will reply.
+
+        Returns:
+            str: Server metrics in Prometheus format.
+
+        Raises:
+            ServerMetricsError: If the operation fails.
+
+        References:
+            - `metrics-api-v2 <https://docs.arangodb.com/stable/develop/http-api/monitoring/metrics/#metrics-api-v2>`__
+        """  # noqa: E501
+        params: Params = {}
+        if server_id is not None:
+            params["serverId"] = server_id
+
+        request = Request(
+            method=Method.GET,
+            endpoint="/_admin/metrics/v2",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> str:
+            if not resp.is_success:
+                raise ServerMetricsError(resp, request)
+            return resp.raw_body.decode("utf-8")
+
+        return await self._executor.execute(request, response_handler)
+
+    async def read_log_entries(
+        self,
+        upto: Optional[int | str] = None,
+        level: Optional[str] = None,
+        start: Optional[int] = None,
+        size: Optional[int] = None,
+        offset: Optional[int] = None,
+        search: Optional[str] = None,
+        sort: Optional[str] = None,
+        server_id: Optional[str] = None,
+    ) -> Result[Json]:
+        """Read the global log from server.
+
+        Args:
+            upto (int | str | None): Return the log entries up to the given level
+                (mutually exclusive with parameter **level**). Allowed values are
+                "fatal", "error", "warning", "info" (default), "debug" and "trace".
+            level (int | str | None): Return the log entries of only the given level
+                (mutually exclusive with **upto**).
+            start (int | None): Return the log entries whose ID is greater or equal to
+                the given value.
+            size (int | None): Restrict the size of the result to the given value.
+                This can be used for pagination.
+            offset (int | None): Number of entries to skip (e.g. for pagination).
+            search (str | None): Return only the log entries containing the given text.
+            sort (str | None): Sort the log entries according to the given fashion,
+                which can be "sort" or "desc".
+            server_id (str | None): Returns all log entries of the specified server.
+                If no serverId is given, the asked server will reply.
+
+        Returns:
+            dict: Server log entries.
+
+        Raises:
+            ServerReadLogError: If the operation fails.
+
+        References:
+            - `get-the-global-server-logs <https://docs.arangodb.com/stable/develop/http-api/monitoring/logs/#get-the-global-server-logs>`__
+        """  # noqa: E501
+        params: Params = {}
+        if upto is not None:
+            params["upto"] = upto
+        if level is not None:
+            params["level"] = level
+        if start is not None:
+            params["start"] = start
+        if size is not None:
+            params["size"] = size
+        if offset is not None:
+            params["offset"] = offset
+        if search is not None:
+            params["search"] = search
+        if sort is not None:
+            params["sort"] = sort
+        if server_id is not None:
+            params["serverId"] = server_id
+
+        request = Request(
+            method=Method.GET,
+            endpoint="/_admin/log/entries",
+            params=params,
+            prefix_needed=False,
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerReadLogError(resp, request)
+
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def log_levels(
+        self, server_id: Optional[str] = None, with_appenders: Optional[bool] = None
+    ) -> Result[Json]:
+        """Return current logging levels.
+
+        Args:
+            server_id (str | None): Forward the request to the specified server.
+            with_appenders (bool | None): Include appenders in the response.
+
+        Returns:
+            dict: Current logging levels.
+
+        Raises:
+            ServerLogLevelError: If the operation fails.
+
+        References:
+            - `get-the-server-log-levels <https://docs.arangodb.com/stable/develop/http-api/monitoring/logs/#get-the-server-log-levels>`__
+        """  # noqa: E501
+        params: Params = {}
+        if server_id is not None:
+            params["serverId"] = server_id
+        if with_appenders is not None:
+            params["withAppenders"] = with_appenders
+
+        request = Request(
+            method=Method.GET,
+            endpoint="/_admin/log/level",
+            params=params,
+            prefix_needed=False,
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerLogLevelError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def set_log_levels(
+        self,
+        server_id: Optional[str] = None,
+        with_appenders: Optional[bool] = None,
+        **kwargs: Dict[str, Any],
+    ) -> Result[Json]:
+        """Set the logging levels.
+
+        This method takes arbitrary keyword arguments where the keys are the
+        logger names and the values are the logging levels. For example:
+
+        .. code-block:: python
+
+            db.set_log_levels(
+                agency='DEBUG',
+                collector='INFO',
+                threads='WARNING'
+            )
+
+        Keys that are not valid logger names are ignored.
+
+        Args:
+            server_id (str | None) -> Forward the request to a specific server.
+            with_appenders (bool | None): Include appenders in the response.
+            kwargs (dict): Logging levels to be set.
+
+        Returns:
+            dict: New logging levels.
+
+        Raises:
+            ServerLogLevelSetError: If the operation fails.
+
+        References:
+            - `set-the-structured-log-settings <https://docs.arangodb.com/stable/develop/http-api/monitoring/logs/#set-the-structured-log-settings>`__
+        """  # noqa: E501
+        params: Params = {}
+        if server_id is not None:
+            params["serverId"] = server_id
+        if with_appenders is not None:
+            params["withAppenders"] = with_appenders
+
+        request = Request(
+            method=Method.PUT,
+            endpoint="/_admin/log/level",
+            params=params,
+            data=self.serializer.dumps(kwargs),
+            prefix_needed=False,
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerLogLevelSetError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def reset_log_levels(self, server_id: Optional[str] = None) -> Result[Json]:
+        """Reset the logging levels.
+
+        Revert the server’s log level settings to the values they had at startup,
+        as determined by the startup options specified on the command-line,
+        a configuration file, and the factory defaults.
+
+        Args:
+            server_id: Forward the request to a specific server.
+
+        Returns:
+            dict: New logging levels.
+
+        Raises:
+            ServerLogLevelResetError: If the operation fails.
+
+        References:
+            - `reset-the-server-log-levels <https://docs.arangodb.com/stable/develop/http-api/monitoring/logs/#reset-the-server-log-levels>`__
+        """  # noqa: E501
+        params: Params = {}
+        if server_id is not None:
+            params["serverId"] = server_id
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint="/_admin/log/level",
+            params=params,
+            prefix_needed=False,
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerLogLevelResetError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def log_settings(self) -> Result[Json]:
+        """Get the structured log settings.
+
+        Returns:
+            dict: Current structured log settings.
+
+        Raises:
+            ServerLogSettingError: If the operation fails.
+
+        References:
+            - `get-the-structured-log-settings <https://docs.arangodb.com/stable/develop/http-api/monitoring/logs/#get-the-structured-log-settings>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint="/_admin/log/structured",
+            prefix_needed=False,
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerLogSettingError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def set_log_settings(self, **kwargs: Dict[str, Any]) -> Result[Json]:
+        """Set the structured log settings.
+
+        This method takes arbitrary keyword arguments where the keys are the
+        structured log parameters and the values are true or false, for either
+        enabling or disabling the parameters.
+
+        .. code-block:: python
+
+            db.set_log_settings(
+                database=True,
+                url=True,
+                username=False,
+            )
+
+        Args:
+            kwargs (dict): Structured log parameters to be set.
+
+        Returns:
+            dict: New structured log settings.
+
+        Raises:
+            ServerLogSettingSetError: If the operation fails.
+
+        References:
+           - `set-the-structured-log-settings <https://docs.arangodb.com/stable/develop/http-api/monitoring/logs/#set-the-structured-log-settings>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.PUT,
+            endpoint="/_admin/log/structured",
+            data=self.serializer.dumps(kwargs),
+            prefix_needed=False,
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerLogSettingSetError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def api_calls(self) -> Result[Json]:
+        """Get a list of the most recent requests with a timestamp and the endpoint.
+
+        Returns:
+            dict: API calls made to the server.
+
+        Raises:
+            ServerApiCallsError: If the operation fails.
+
+        References:
+            - `get-recent-api-calls <https://docs.arangodb.com/stable/develop/http-api/monitoring/api-calls/#get-recent-api-calls>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.GET,
+            endpoint="/_admin/server/api-calls",
+        )
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerApiCallsError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)["result"]
+            return result
 
         return await self._executor.execute(request, response_handler)
 
