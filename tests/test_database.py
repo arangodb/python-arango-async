@@ -174,11 +174,12 @@ async def test_database_misc_methods(
     response = await sys_db.request(request)
     assert json.loads(response.raw_body) == 1
 
-    # API calls
-    with pytest.raises(ServerApiCallsError):
-        await bad_db.api_calls()
-    result = await sys_db.api_calls()
-    assert isinstance(result, dict)
+    if db_version >= version.parse("3.12.0"):
+        # API calls
+        with pytest.raises(ServerApiCallsError):
+            await bad_db.api_calls()
+        result = await sys_db.api_calls()
+        assert isinstance(result, dict)
 
 
 @pytest.mark.asyncio
