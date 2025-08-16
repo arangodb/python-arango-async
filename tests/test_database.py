@@ -52,7 +52,7 @@ from tests.helpers import generate_col_name, generate_db_name, generate_username
 
 @pytest.mark.asyncio
 async def test_database_misc_methods(
-    sys_db, db, bad_db, cluster, db_version, url, sys_db_name, token
+    sys_db, db, bad_db, cluster, db_version, url, sys_db_name, token, enterprise
 ):
     # Status
     status = await sys_db.status()
@@ -174,7 +174,7 @@ async def test_database_misc_methods(
     response = await sys_db.request(request)
     assert json.loads(response.raw_body) == 1
 
-    if db_version >= version.parse("3.12.0"):
+    if enterprise and db_version >= version.parse("3.12.0"):
         # API calls
         with pytest.raises(ServerApiCallsError):
             await bad_db.api_calls()
