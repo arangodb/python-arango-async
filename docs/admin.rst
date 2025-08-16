@@ -39,3 +39,9 @@ Most of these operations can only be performed by admin users via the
 
         # Return whether or not a server is in read-only mode
         mode = await sys_db.mode()
+
+        # Get license information
+        license = await sys_db.license()
+
+        # Execute Javascript on the server
+        result = await sys_db.execute("return 1")

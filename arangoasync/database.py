@@ -27,6 +27,7 @@ from arangoasync.exceptions import (
     CollectionDeleteError,
     CollectionKeyGeneratorsError,
     CollectionListError,
+    DatabaseCompactError,
     DatabaseCreateError,
     DatabaseDeleteError,
     DatabaseListError,
@@ -44,12 +45,17 @@ from arangoasync.exceptions import (
     ServerAvailableOptionsGetError,
     ServerCheckAvailabilityError,
     ServerCurrentOptionsGetError,
+    ServerEchoError,
     ServerEncryptionError,
     ServerEngineError,
+    ServerExecuteError,
     ServerLicenseGetError,
     ServerLicenseSetError,
     ServerModeError,
     ServerModeSetError,
+    ServerReloadRoutingError,
+    ServerShutdownError,
+    ServerShutdownProgressError,
     ServerStatusError,
     ServerTimeError,
     ServerTLSError,
@@ -2690,6 +2696,170 @@ class Database:
                 raise ServerLicenseSetError(resp, request)
 
         await self._executor.execute(request, response_handler)
+
+    async def shutdown(self, soft: Optional[bool] = None) -> None:
+        """Initiate server shutdown sequence.
+
+        Args:
+            soft (bool | None): If set to `True`, this initiates a soft shutdown.
+
+        Raises:
+            ServerShutdownError: If the operation fails.
+
+        References:
+            - `start-the-shutdown-sequence <https://docs.arangodb.com/stable/develop/http-api/administration/#start-the-shutdown-sequence>`__
+        """  # noqa: E501
+        params: Params = {}
+        if soft is not None:
+            params["soft"] = soft
+
+        request = Request(
+            method=Method.DELETE,
+            endpoint="/_admin/shutdown",
+            params=params,
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise ServerShutdownError(resp, request)
+
+        await self._executor.execute(request, response_handler)
+
+    async def shutdown_progress(self) -> Result[Json]:
+        """Query the soft shutdown progress.
+
+        Returns:
+            dict: Information about the shutdown progress.
+
+        Raises:
+            ServerShutdownProgressError: If the operation fails.
+
+        References:
+            - `query-the-soft-shutdown-progress <https://docs.arangodb.com/stable/develop/http-api/administration/#query-the-soft-shutdown-progress>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint="/_admin/shutdown")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerShutdownProgressError(resp, request)
+
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def compact(
+        self,
+        change_level: Optional[bool] = None,
+        compact_bottom_most_level: Optional[bool] = None,
+    ) -> None:
+        """Compact all databases. This method requires superuser access.
+
+        Note:
+            This command can cause a full rewrite of all data in all databases,
+            which may take very long for large databases.
+
+        Args:
+            change_level (bool | None): Whether or not compacted data should be
+                moved to the minimum possible level. Default value is `False`.
+            compact_bottom_most_level (bool | None): Whether or not to compact the bottom-most level of data.
+                Default value is `False`.
+
+        Returns:
+            dict: Information about the compaction process.
+
+        Raises:
+            DatabaseCompactError: If the operation fails.
+
+        References:
+            - `compact-all-databases <https://docs.arangodb.com/stable/develop/http-api/administration/#compact-all-databases>`__
+        """  # noqa: E501
+        data = {}
+        if change_level is not None:
+            data["changeLevel"] = change_level
+        if compact_bottom_most_level is not None:
+            data["compactBottomMostLevel"] = compact_bottom_most_level
+
+        request = Request(
+            method=Method.PUT,
+            endpoint="/_admin/compact",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise DatabaseCompactError(resp, request)
+
+        await self._executor.execute(request, response_handler)
+
+    async def reload_routing(self) -> None:
+        """Reload the routing information.
+
+        Raises:
+            ServerReloadRoutingError: If the operation fails.
+
+        References:
+           - `reload-the-routing-table <https://docs.arangodb.com/stable/develop/http-api/administration/#reload-the-routing-table>`__
+        """  # noqa: E501
+        request = Request(method=Method.POST, endpoint="/_admin/routing/reload")
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise ServerReloadRoutingError(resp, request)
+
+        await self._executor.execute(request, response_handler)
+
+    async def echo(self, body: Optional[Json] = None) -> Result[Json]:
+        """Return an object with the servers request information.
+
+        Args:
+            body (dict | None): Optional body of the request.
+
+        Returns:
+            dict: Details of the request.
+
+        Raises:
+            ServerEchoError: If the operation fails.
+
+        References:
+            - `echo-a-request <https://docs.arangodb.com/stable/develop/http-api/administration/#echo-a-request>`__
+        """  # noqa: E501
+        data = body if body is not None else {}
+        request = Request(method=Method.POST, endpoint="/_admin/echo", data=data)
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise ServerEchoError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return result
+
+        return await self._executor.execute(request, response_handler)
+
+    async def execute(self, command: str) -> Result[Any]:
+        """Execute raw Javascript command on the server.
+
+        Args:
+            command (str): Javascript command to execute.
+
+        Returns:
+            Return value of **command**, if any.
+
+        Raises:
+            ServerExecuteError: If the execution fails.
+
+        References:
+            - `execute-a-script <https://docs.arangodb.com/stable/develop/http-api/administration/#execute-a-script>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.POST, endpoint="/_admin/execute", data=command.encode("utf-8")
+        )
+
+        def response_handler(resp: Response) -> Any:
+            if not resp.is_success:
+                raise ServerExecuteError(resp, request)
+            return self.deserializer.loads(resp.raw_body)
+
+        return await self._executor.execute(request, response_handler)
 
 
 class StandardDatabase(Database):

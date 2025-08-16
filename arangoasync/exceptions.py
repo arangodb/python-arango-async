@@ -319,6 +319,10 @@ class CursorStateError(ArangoClientError):
     """The cursor object was in a bad state."""
 
 
+class DatabaseCompactError(ArangoServerError):
+    """Failed to compact databases."""
+
+
 class DatabaseCreateError(ArangoServerError):
     """Failed to create database."""
 
@@ -567,12 +571,20 @@ class ServerCurrentOptionsGetError(ArangoServerError):
     """Failed to retrieve currently-set server options."""
 
 
+class ServerEchoError(ArangoServerError):
+    """Failed to retrieve details on last request."""
+
+
 class ServerEncryptionError(ArangoServerError):
     """Failed to reload user-defined encryption keys."""
 
 
 class ServerEngineError(ArangoServerError):
     """Failed to retrieve database engine."""
+
+
+class ServerExecuteError(ArangoServerError):
+    """Failed to execute raw JavaScript command."""
 
 
 class ServerModeError(ArangoServerError):
@@ -589,6 +601,18 @@ class ServerLicenseGetError(ArangoServerError):
 
 class ServerLicenseSetError(ArangoServerError):
     """Failed to set server license."""
+
+
+class ServerReloadRoutingError(ArangoServerError):
+    """Failed to reload routing details."""
+
+
+class ServerShutdownError(ArangoServerError):
+    """Failed to initiate shutdown sequence."""
+
+
+class ServerShutdownProgressError(ArangoServerError):
+    """Failed to retrieve soft shutdown progress."""
 
 
 class ServerStatusError(ArangoServerError):

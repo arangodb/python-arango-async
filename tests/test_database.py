@@ -4,12 +4,14 @@ import datetime
 import pytest
 from packaging import version
 
+from arangoasync.client import ArangoClient
 from arangoasync.collection import StandardCollection
 from arangoasync.exceptions import (
     CollectionCreateError,
     CollectionDeleteError,
     CollectionKeyGeneratorsError,
     CollectionListError,
+    DatabaseCompactError,
     DatabaseCreateError,
     DatabaseDeleteError,
     DatabaseListError,
@@ -20,11 +22,16 @@ from arangoasync.exceptions import (
     ServerAvailableOptionsGetError,
     ServerCheckAvailabilityError,
     ServerCurrentOptionsGetError,
+    ServerEchoError,
     ServerEngineError,
+    ServerExecuteError,
     ServerLicenseGetError,
     ServerLicenseSetError,
     ServerModeError,
     ServerModeSetError,
+    ServerReloadRoutingError,
+    ServerShutdownError,
+    ServerShutdownProgressError,
     ServerStatusError,
     ServerTimeError,
     ServerVersionError,
@@ -34,7 +41,9 @@ from tests.helpers import generate_col_name, generate_db_name, generate_username
 
 
 @pytest.mark.asyncio
-async def test_database_misc_methods(sys_db, db, bad_db, cluster, db_version):
+async def test_database_misc_methods(
+    sys_db, db, bad_db, cluster, db_version, url, sys_db_name, token
+):
     # Status
     status = await sys_db.status()
     assert status["server"] == "arango"
@@ -95,14 +104,15 @@ async def test_database_misc_methods(sys_db, db, bad_db, cluster, db_version):
     info = await sys_db.support_info()
     assert isinstance(info, dict)
 
-    with pytest.raises(ServerCurrentOptionsGetError):
-        await bad_db.options()
-    options = await sys_db.options()
-    assert isinstance(options, dict)
-    with pytest.raises(ServerAvailableOptionsGetError):
-        await bad_db.options_available()
-    options_available = await sys_db.options_available()
-    assert isinstance(options_available, dict)
+    if db_version >= version.parse("3.12.0"):
+        with pytest.raises(ServerCurrentOptionsGetError):
+            await bad_db.options()
+        options = await sys_db.options()
+        assert isinstance(options, dict)
+        with pytest.raises(ServerAvailableOptionsGetError):
+            await bad_db.options_available()
+        options_available = await sys_db.options_available()
+        assert isinstance(options_available, dict)
 
     with pytest.raises(ServerModeError):
         await bad_db.mode()
@@ -119,6 +129,33 @@ async def test_database_misc_methods(sys_db, db, bad_db, cluster, db_version):
     assert isinstance(license, dict)
     with pytest.raises(ServerLicenseSetError):
         await sys_db.set_license('"abc"')
+
+    with pytest.raises(ServerShutdownError):
+        await bad_db.shutdown()
+    with pytest.raises(ServerShutdownProgressError):
+        await bad_db.shutdown_progress()
+
+    with pytest.raises(ServerReloadRoutingError):
+        await bad_db.reload_routing()
+    await sys_db.reload_routing()
+
+    with pytest.raises(ServerEchoError):
+        await bad_db.echo()
+    result = await sys_db.echo()
+    assert isinstance(result, dict)
+
+    with pytest.raises(ServerExecuteError):
+        await bad_db.execute("return 1")
+    result = await sys_db.execute("return 1")
+    assert result == 1
+
+    with pytest.raises(DatabaseCompactError):
+        await bad_db.compact()
+    async with ArangoClient(hosts=url) as client:
+        db = await client.db(
+            sys_db_name, auth_method="superuser", token=token, verify=True
+        )
+        await db.compact()
 
 
 @pytest.mark.asyncio
