@@ -61,6 +61,7 @@ Contents
 .. toctree::
     :maxdepth: 1
 
+    admin
     user
 
 **Miscellaneous**

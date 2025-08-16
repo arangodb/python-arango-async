@@ -319,6 +319,10 @@ class CursorStateError(ArangoClientError):
     """The cursor object was in a bad state."""
 
 
+class DatabaseCompactError(ArangoServerError):
+    """Failed to compact databases."""
+
+
 class DatabaseCreateError(ArangoServerError):
     """Failed to create database."""
 
@@ -333,6 +337,10 @@ class DatabaseListError(ArangoServerError):
 
 class DatabasePropertiesError(ArangoServerError):
     """Failed to retrieve database properties."""
+
+
+class DatabaseSupportInfoError(ArangoServerError):
+    """Failed to retrieve support info for deployment."""
 
 
 class DeserializationError(ArangoClientError):
@@ -547,12 +555,64 @@ class SerializationError(ArangoClientError):
     """Failed to serialize the request."""
 
 
-class ServerEncryptionError(ArangoServerError):
-    """Failed to reload user-defined encryption keys."""
+class ServerAvailableOptionsGetError(ArangoServerError):
+    """Failed to retrieve available server options."""
+
+
+class ServerCheckAvailabilityError(ArangoServerError):
+    """Failed to retrieve server availability mode."""
 
 
 class ServerConnectionError(ArangoServerError):
     """Failed to connect to ArangoDB server."""
+
+
+class ServerCurrentOptionsGetError(ArangoServerError):
+    """Failed to retrieve currently-set server options."""
+
+
+class ServerEchoError(ArangoServerError):
+    """Failed to retrieve details on last request."""
+
+
+class ServerEncryptionError(ArangoServerError):
+    """Failed to reload user-defined encryption keys."""
+
+
+class ServerEngineError(ArangoServerError):
+    """Failed to retrieve database engine."""
+
+
+class ServerExecuteError(ArangoServerError):
+    """Failed to execute raw JavaScript command."""
+
+
+class ServerModeError(ArangoServerError):
+    """Failed to retrieve server mode."""
+
+
+class ServerModeSetError(ArangoServerError):
+    """Failed to set server mode."""
+
+
+class ServerLicenseGetError(ArangoServerError):
+    """Failed to retrieve server license."""
+
+
+class ServerLicenseSetError(ArangoServerError):
+    """Failed to set server license."""
+
+
+class ServerReloadRoutingError(ArangoServerError):
+    """Failed to reload routing details."""
+
+
+class ServerShutdownError(ArangoServerError):
+    """Failed to initiate shutdown sequence."""
+
+
+class ServerShutdownProgressError(ArangoServerError):
+    """Failed to retrieve soft shutdown progress."""
 
 
 class ServerStatusError(ArangoServerError):
@@ -565,6 +625,10 @@ class ServerTLSError(ArangoServerError):
 
 class ServerTLSReloadError(ArangoServerError):
     """Failed to reload TLS."""
+
+
+class ServerTimeError(ArangoServerError):
+    """Failed to retrieve server system time."""
 
 
 class ServerVersionError(ArangoServerError):
