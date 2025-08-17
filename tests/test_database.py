@@ -20,6 +20,13 @@ from arangoasync.exceptions import (
     DatabaseSupportInfoError,
     JWTSecretListError,
     JWTSecretReloadError,
+    ReplicationApplierConfigError,
+    ReplicationApplierStateError,
+    ReplicationClusterInventoryError,
+    ReplicationDumpError,
+    ReplicationInventoryError,
+    ReplicationLoggerStateError,
+    ReplicationServerIDError,
     ServerApiCallsError,
     ServerAvailableOptionsGetError,
     ServerCheckAvailabilityError,
@@ -188,6 +195,35 @@ async def test_metrics(db, bad_db):
         await bad_db.metrics()
     metrics = await db.metrics()
     assert isinstance(metrics, str)
+
+
+@pytest.mark.asyncio
+async def test_replication(db, bad_db, cluster):
+    with pytest.raises(ReplicationInventoryError):
+        await bad_db.replication.inventory("id")
+    with pytest.raises(ReplicationDumpError):
+        await bad_db.replication.dump("test_collection")
+    with pytest.raises(ReplicationClusterInventoryError):
+        await bad_db.replication.cluster_inventory()
+    result = await db.replication.cluster_inventory()
+    assert isinstance(result, dict)
+    if not cluster:
+        with pytest.raises(ReplicationLoggerStateError):
+            await bad_db.replication.logger_state()
+        result = await db.replication.logger_state()
+        assert isinstance(result, dict)
+        with pytest.raises(ReplicationApplierConfigError):
+            await bad_db.replication.applier_config()
+        result = await db.replication.applier_config()
+        assert isinstance(result, dict)
+        with pytest.raises(ReplicationApplierStateError):
+            await bad_db.replication.applier_state()
+        result = await db.replication.applier_state()
+        assert isinstance(result, dict)
+    with pytest.raises(ReplicationServerIDError):
+        await bad_db.replication.server_id()
+    result = await db.replication.server_id()
+    assert isinstance(result, str)
 
 
 @pytest.mark.asyncio

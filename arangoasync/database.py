@@ -101,6 +101,7 @@ from arangoasync.executor import (
 )
 from arangoasync.foxx import Foxx
 from arangoasync.graph import Graph
+from arangoasync.replication import Replication
 from arangoasync.request import Method, Request
 from arangoasync.response import Response
 from arangoasync.result import Result
@@ -233,6 +234,15 @@ class Database:
             arangoasync.foxx.Foxx: Foxx API wrapper.
         """
         return Foxx(self._executor)
+
+    @property
+    def replication(self) -> Replication:
+        """Return Replication API wrapper.
+
+        Returns:
+            Replication API wrapper.
+        """
+        return Replication(self._executor)
 
     async def properties(self) -> Result[DatabaseProperties]:
         """Return database properties.

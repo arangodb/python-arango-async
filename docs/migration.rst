@@ -51,7 +51,7 @@ this is not always consistent.
 
 The asynchronous driver, however, tries to stick to a simple rule:
 
-* If the API returns a camel case key, it will be returned as is.
+* If the API returns a camel case key, it will be returned as is. The response is returned from the server as is.
 * Parameters passed from client to server use the snake case equivalent of the camel case keys required by the API
   (e.g. `userName` becomes `user_name`). This is done to ensure PEP8 compatibility.
 
@@ -73,6 +73,13 @@ Serialization
 
 Check out the :ref:`Serialization` section to learn more about how to implement your own serializer/deserializer. The
 current driver makes use of generic types and allows for a higher degree of customization.
+
+Replication
+===========
+
+Although a minimal replication API is available for observability purposes, its use is not recommended.
+Most of these are internal APIs that are not meant to be used by the end user. If you need to make any changes
+to replication, please do so from the cluster web interface.
 
 Mixing sync and async
 =====================

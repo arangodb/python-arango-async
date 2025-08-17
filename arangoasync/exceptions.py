@@ -551,6 +551,34 @@ class PermissionUpdateError(ArangoServerError):
     """Failed to update user permission."""
 
 
+class ReplicationApplierConfigError(ArangoServerError):
+    """Failed to retrieve replication applier configuration."""
+
+
+class ReplicationApplierStateError(ArangoServerError):
+    """Failed to retrieve replication applier state."""
+
+
+class ReplicationClusterInventoryError(ArangoServerError):
+    """Failed to retrieve overview of collection and indexes in a cluster."""
+
+
+class ReplicationDumpError(ArangoServerError):
+    """Failed to retrieve collection content."""
+
+
+class ReplicationInventoryError(ArangoServerError):
+    """Failed to retrieve inventory of collection and indexes."""
+
+
+class ReplicationLoggerStateError(ArangoServerError):
+    """Failed to retrieve logger state."""
+
+
+class ReplicationServerIDError(ArangoServerError):
+    """Failed to retrieve server ID."""
+
+
 class SerializationError(ArangoClientError):
     """Failed to serialize the request."""
 
