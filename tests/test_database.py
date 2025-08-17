@@ -203,10 +203,11 @@ async def test_replication(db, bad_db, cluster):
         await bad_db.replication.inventory("id")
     with pytest.raises(ReplicationDumpError):
         await bad_db.replication.dump("test_collection")
-    with pytest.raises(ReplicationClusterInventoryError):
-        await bad_db.replication.cluster_inventory()
-    result = await db.replication.cluster_inventory()
-    assert isinstance(result, dict)
+    if cluster:
+        with pytest.raises(ReplicationClusterInventoryError):
+            await bad_db.replication.cluster_inventory()
+        result = await db.replication.cluster_inventory()
+        assert isinstance(result, dict)
     if not cluster:
         with pytest.raises(ReplicationLoggerStateError):
             await bad_db.replication.logger_state()
