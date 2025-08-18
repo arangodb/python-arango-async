@@ -31,6 +31,9 @@ python-arango-async.
 .. automodule:: arangoasync.backup
     :members:
 
+.. automodule:: arangoasync.foxx
+    :members:
+
 .. automodule:: arangoasync.cluster
     :members:
 
@@ -56,4 +59,7 @@ python-arango-async.
     :members:
 
 .. automodule:: arangoasync.result
+    :members:
+
+.. automodule:: arangoasync.replication
     :members:
