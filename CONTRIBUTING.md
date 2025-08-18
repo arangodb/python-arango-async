@@ -10,7 +10,7 @@ pre-commit install         # Install git pre-commit hooks
 Run unit tests with coverage:
 
 ```shell
-pytest --cov=arango --cov-report=html  # Open htmlcov/index.html in your browser
+pytest --enterprise --cluster --cov=arango --cov-report=html  # Open htmlcov/index.html in your browser
 ```
 
 To start and ArangoDB instance locally, run:

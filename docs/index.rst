@@ -6,8 +6,7 @@ python-arango-async
 -------------------
 
 Welcome to the documentation for python-arango-async_, a Python driver for ArangoDB_.
-
-**Note: This project is still in active development, features might be added or removed.**
+You can check out a demo app at [python-arango-async-demo](https://github.com/apetenchea/python-arango-async-demo).
 
 Requirements
 =============

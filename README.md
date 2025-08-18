@@ -20,7 +20,7 @@ database natively supporting documents, graphs and search.
 This is the _asyncio_ alternative of the [python-arango](https://github.com/arangodb/python-arango)
 driver.
 
-**Note: This project is still in active development, features might be added or removed.**
+Check out a demo app at [python-arango-async-demo](https://github.com/apetenchea/python-arango-async-demo).
 
 ## Requirements
 
