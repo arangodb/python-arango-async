@@ -21,6 +21,7 @@ from arangoasync.exceptions import (
     AQLQueryClearError,
     AQLQueryExecuteError,
     AQLQueryExplainError,
+    AQLQueryHistoryError,
     AQLQueryKillError,
     AQLQueryListError,
     AQLQueryRulesGetError,
@@ -96,6 +97,8 @@ async def test_list_queries(superuser, db, bad_db):
     _ = await superuser.aql.slow_queries(all_queries=True)
     await aql.clear_slow_queries()
     await superuser.aql.clear_slow_queries(all_queries=True)
+    history = await superuser.aql.history()
+    assert isinstance(history, dict)
 
     with pytest.raises(AQLQueryListError):
         _ = await bad_db.aql.queries()
@@ -109,6 +112,8 @@ async def test_list_queries(superuser, db, bad_db):
         _ = await aql.slow_queries(all_queries=True)
     with pytest.raises(AQLQueryClearError):
         await aql.clear_slow_queries(all_queries=True)
+    with pytest.raises(AQLQueryHistoryError):
+        _ = await bad_db.aql.history()
 
     long_running_task.cancel()
 
