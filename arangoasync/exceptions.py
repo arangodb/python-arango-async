@@ -111,6 +111,10 @@ class AQLQueryExplainError(ArangoServerError):
     """Failed to parse and explain query."""
 
 
+class AQLQueryHistoryError(ArangoServerError):
+    """Failed to retrieve running AQL queries."""
+
+
 class AQLQueryKillError(ArangoServerError):
     """Failed to kill the query."""
 

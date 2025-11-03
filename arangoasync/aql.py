@@ -16,6 +16,7 @@ from arangoasync.exceptions import (
     AQLQueryClearError,
     AQLQueryExecuteError,
     AQLQueryExplainError,
+    AQLQueryHistoryError,
     AQLQueryKillError,
     AQLQueryListError,
     AQLQueryRulesGetError,
@@ -423,6 +424,25 @@ class AQL:
             if not resp.is_success:
                 raise AQLQueryTrackingSetError(resp, request)
             return QueryTrackingConfiguration(self.deserializer.loads(resp.raw_body))
+
+        return await self._executor.execute(request, response_handler)
+
+    async def history(self) -> Result[Json]:
+        """Return recently executed AQL queries (admin only).
+
+        Returns:
+            dict: AQL query history.
+
+        Raises:
+            AQLQueryHistoryError: If retrieval fails.
+        """
+        request = Request(method=Method.GET, endpoint="/_admin/server/aql-queries")
+
+        def response_handler(resp: Response) -> Json:
+            if not resp.is_success:
+                raise AQLQueryHistoryError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return cast(Json, result["result"])
 
         return await self._executor.execute(request, response_handler)
 
