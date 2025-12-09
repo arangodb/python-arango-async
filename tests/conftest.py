@@ -39,7 +39,7 @@ def pytest_addoption(parser):
         "--host", action="store", default="127.0.0.1", help="ArangoDB host address"
     )
     parser.addoption(
-        "--port", action="append", default=["8529"], help="ArangoDB coordinator ports"
+        "--port", action="append", default=None, help="ArangoDB coordinator ports"
     )
     parser.addoption(
         "--root", action="store", default="root", help="ArangoDB root user"
@@ -59,7 +59,7 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    ports = config.getoption("port")
+    ports = config.getoption("port") or ["8529"]
     hosts = [f"http://{config.getoption('host')}:{p}" for p in ports]
     url = hosts[0]
 
