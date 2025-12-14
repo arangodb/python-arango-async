@@ -35,7 +35,10 @@ service_name = "test"
 
 
 @pytest.mark.asyncio
-async def test_foxx(db, bad_db):
+async def test_foxx(db, bad_db, skip_tests):
+    if "foxx" in skip_tests:
+        pytest.skip("Skipping Foxx tests")
+
     # Test errors
     with pytest.raises(FoxxServiceGetError):
         await bad_db.foxx.service(service_name)

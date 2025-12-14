@@ -121,7 +121,7 @@ async def test_client_jwt_auth(url, sys_db_name, basic_auth_root):
 
 @pytest.mark.asyncio
 async def test_client_jwt_superuser_auth(
-    url, sys_db_name, basic_auth_root, token, enterprise
+    url, sys_db_name, basic_auth_root, token, enterprise, skip_tests
 ):
     # successful authentication
     async with ArangoClient(hosts=url) as client:
@@ -130,7 +130,8 @@ async def test_client_jwt_superuser_auth(
         )
         if enterprise:
             await db.jwt_secrets()
-            await db.reload_jwt_secrets()
+            if "jwt-secret-keyfile" not in skip_tests:
+                await db.reload_jwt_secrets()
 
         # Get TLS data
         tls = await db.tls()

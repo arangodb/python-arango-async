@@ -28,7 +28,8 @@ class GlobalData:
     username: str = generate_username()
     cluster: bool = False
     enterprise: bool = False
-    db_version: version = version.parse("0.0.0")
+    skip: list[str] = None
+    db_version: version.Version = version.parse("0.0.0")
 
 
 global_data = GlobalData()
@@ -54,7 +55,23 @@ def pytest_addoption(parser):
         "--cluster", action="store_true", help="Run tests in a cluster setup"
     )
     parser.addoption(
-        "--enterprise", action="store_true", help="Run tests in an enterprise setup"
+        "--enterprise",
+        action="store_true",
+        default=True,
+        help="Run tests in an enterprise setup",
+    )
+    parser.addoption(
+        "--skip",
+        action="store",
+        nargs="*",
+        choices=[
+            "backup",  # backup tests
+            "jwt-secret-keyfile",  # server was not configured with a keyfile
+            "foxx",  # foxx is not supported
+            "js-transactions",  # javascript transactions are not supported
+        ],
+        default=[],
+        help="Skip specific tests",
     )
 
 
@@ -70,6 +87,7 @@ def pytest_configure(config):
     global_data.token = JwtToken.generate_token(global_data.secret)
     global_data.cluster = config.getoption("cluster")
     global_data.enterprise = config.getoption("enterprise")
+    global_data.skip = config.getoption("skip")
     global_data.graph_name = generate_graph_name()
 
     async def get_db_version():
@@ -109,6 +127,11 @@ def basic_auth_root(root, password):
 @pytest.fixture
 def cluster():
     return global_data.cluster
+
+
+@pytest.fixture
+def skip_tests():
+    return global_data.skip
 
 
 @pytest.fixture

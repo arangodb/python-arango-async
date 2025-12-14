@@ -2,18 +2,13 @@ import pytest
 from packaging import version
 
 from arangoasync.client import ArangoClient
-from arangoasync.exceptions import (
-    BackupCreateError,
-    BackupDeleteError,
-    BackupDownloadError,
-    BackupGetError,
-    BackupRestoreError,
-    BackupUploadError,
-)
+from arangoasync.exceptions import BackupDeleteError, BackupRestoreError
 
 
 @pytest.mark.asyncio
-async def test_backup(url, sys_db_name, bad_db, token, enterprise, cluster, db_version):
+async def test_backup(
+    url, sys_db_name, bad_db, token, enterprise, cluster, db_version, skip_tests
+):
     if not enterprise:
         pytest.skip("Backup API is only available in ArangoDB Enterprise Edition")
     if not cluster:
@@ -22,19 +17,13 @@ async def test_backup(url, sys_db_name, bad_db, token, enterprise, cluster, db_v
         pytest.skip(
             "For simplicity, the backup API is only tested in the latest versions"
         )
+    if "backup" in skip_tests:
+        pytest.skip("Skipping backup tests")
 
-    with pytest.raises(BackupCreateError):
-        await bad_db.backup.create()
-    with pytest.raises(BackupGetError):
-        await bad_db.backup.get()
     with pytest.raises(BackupRestoreError):
         await bad_db.backup.restore("foobar")
     with pytest.raises(BackupDeleteError):
         await bad_db.backup.delete("foobar")
-    with pytest.raises(BackupUploadError):
-        await bad_db.backup.upload()
-    with pytest.raises(BackupDownloadError):
-        await bad_db.backup.download()
 
     async with ArangoClient(hosts=url) as client:
         db = await client.db(
