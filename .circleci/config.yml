@@ -86,8 +86,8 @@ jobs:
               args+=("--cluster" "--port=8539" "--port=8549")
             fi
 
-            if [ << parameters.arangodb_license >> = "enterprise" ]; then
-              args+=("--enterprise")
+            if [ << parameters.arangodb_license >> != "enterprise" ]; then
+              args+=("--skip enterprise")
             fi
 
             echo "Running pytest with args: ${args[@]}"
