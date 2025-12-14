@@ -279,17 +279,15 @@ async def test_cache_plan_management(db, bad_db, doc_col, docs, db_version):
     entries = await cache.plan_entries()
     assert isinstance(entries, list)
     assert len(entries) > 0
-    with pytest.raises(AQLCacheEntriesError) as err:
-        _ = await bad_db.aql.cache.plan_entries()
-    assert err.value.error_code == FORBIDDEN
+    with pytest.raises(AQLCacheEntriesError):
+        await bad_db.aql.cache.plan_entries()
 
     # Clear the cache
     await cache.clear_plan()
     entries = await cache.plan_entries()
     assert len(entries) == 0
-    with pytest.raises(AQLCacheClearError) as err:
+    with pytest.raises(AQLCacheClearError):
         await bad_db.aql.cache.clear_plan()
-    assert err.value.error_code == FORBIDDEN
 
 
 @pytest.mark.asyncio

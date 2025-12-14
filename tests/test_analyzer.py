@@ -11,7 +11,7 @@ from tests.helpers import generate_analyzer_name
 
 
 @pytest.mark.asyncio
-async def test_analyzer_management(db, bad_db, enterprise, db_version):
+async def test_analyzer_management(db, bad_db, skip_tests, db_version):
     analyzer_name = generate_analyzer_name()
     full_analyzer_name = db.name + "::" + analyzer_name
     bad_analyzer_name = generate_analyzer_name()
@@ -68,7 +68,7 @@ async def test_analyzer_management(db, bad_db, enterprise, db_version):
     assert await db.delete_analyzer(analyzer_name, ignore_missing=True) is False
 
     # Test create geo_s2 analyzer
-    if enterprise:
+    if "enterprise" not in skip_tests:
         analyzer_name = generate_analyzer_name()
         result = await db.create_analyzer(analyzer_name, "geo_s2", properties={})
         assert result["type"] == "geo_s2"

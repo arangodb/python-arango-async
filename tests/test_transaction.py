@@ -14,7 +14,10 @@ from arangoasync.exceptions import (
 
 
 @pytest.mark.asyncio
-async def test_transaction_execute_raw(db, doc_col, docs):
+async def test_transaction_execute_raw(db, doc_col, docs, skip_tests):
+    if "js-transactions" in skip_tests:
+        pytest.skip("Skipping JS transaction tests")
+
     # Test a valid JS transaction
     doc = docs[0]
     key = doc["_key"]

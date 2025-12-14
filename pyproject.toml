@@ -60,6 +60,7 @@ dev = [
     "pytest-cov>=5.0",
     "sphinx>=7.3",
     "sphinx_rtd_theme>=2.0",
+    "allure-pytest>=2.15",
     "types-setuptools",
 ]
 
