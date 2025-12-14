@@ -56,10 +56,10 @@ async def test_graph_basic(db, bad_db):
 
 
 @pytest.mark.asyncio
-async def test_graph_properties(db, bad_graph, cluster, enterprise):
+async def test_graph_properties(db, bad_graph, cluster, skip_tests):
     # Create a graph
     name = generate_graph_name()
-    is_smart = cluster and enterprise
+    is_smart = cluster and "enterprise" in skip_tests
     options = GraphOptions(number_of_shards=3)
     graph = await db.create_graph(name, is_smart=is_smart, options=options)
 

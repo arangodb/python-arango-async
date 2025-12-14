@@ -6,10 +6,8 @@ from arangoasync.exceptions import BackupDeleteError, BackupRestoreError
 
 
 @pytest.mark.asyncio
-async def test_backup(
-    url, sys_db_name, bad_db, token, enterprise, cluster, db_version, skip_tests
-):
-    if not enterprise:
+async def test_backup(url, sys_db_name, bad_db, token, cluster, db_version, skip_tests):
+    if "enterprise" in skip_tests:
         pytest.skip("Backup API is only available in ArangoDB Enterprise Edition")
     if not cluster:
         pytest.skip("For simplicity, the backup API is only tested in cluster setups")

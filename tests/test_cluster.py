@@ -15,11 +15,11 @@ from arangoasync.exceptions import (
 
 @pytest.mark.asyncio
 async def test_cluster(
-    url, sys_db_name, bad_db, token, enterprise, cluster, db_version
+    url, sys_db_name, bad_db, token, skip_tests, cluster, db_version
 ):
     if not cluster:
         pytest.skip("Cluster API is only tested in cluster setups")
-    if not enterprise or db_version < version.parse("3.12.0"):
+    if "enterprise" in skip_tests or db_version < version.parse("3.12.0"):
         pytest.skip(
             "For simplicity, the cluster API is only tested in the latest versions"
         )
