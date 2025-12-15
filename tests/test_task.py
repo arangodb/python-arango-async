@@ -10,9 +10,12 @@ from tests.helpers import generate_task_id, generate_task_name
 
 
 @pytest.mark.asyncio
-async def test_task_management(sys_db, bad_db):
+async def test_task_management(sys_db, bad_db, skip_tests):
     # This test intentionally uses the system database because cleaning up tasks is
     # easier there.
+
+    if "task" in skip_tests:
+        pytest.skip("Skipping task tests")
 
     test_command = 'require("@arangodb").print(params);'
 
