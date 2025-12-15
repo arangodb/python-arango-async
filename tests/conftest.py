@@ -62,6 +62,7 @@ def pytest_addoption(parser):
             "jwt-secret-keyfile",  # server was not configured with a keyfile
             "foxx",  # foxx is not supported
             "js-transactions",  # javascript transactions are not supported
+            "task",  # tasks API
             "enterprise",  # skip what used to be "enterprise-only" before 3.12
         ],
         default=[],
