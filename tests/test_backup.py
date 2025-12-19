@@ -6,7 +6,9 @@ from arangoasync.exceptions import BackupDeleteError, BackupRestoreError
 
 
 @pytest.mark.asyncio
-async def test_backup(url, sys_db_name, bad_db, token, cluster, db_version, skip_tests):
+async def test_backup(
+    url, sys_db_name, bad_db, token, cluster, db_version, skip_tests, backup_path
+):
     if "enterprise" in skip_tests:
         pytest.skip("Backup API is only available in ArangoDB Enterprise Edition")
     if not cluster:
@@ -35,10 +37,8 @@ async def test_backup(url, sys_db_name, bad_db, token, cluster, db_version, skip
         result = await backup.restore(backup_id)
         assert "previous" in result
         config = {"local": {"type": "local"}}
-        result = await backup.upload(backup_id, repository="local://tmp", config=config)
+        result = await backup.upload(backup_id, repository=backup_path, config=config)
         assert "uploadId" in result
-        result = await backup.download(
-            backup_id, repository="local://tmp", config=config
-        )
+        result = await backup.download(backup_id, repository=backup_path, config=config)
         assert "downloadId" in result
         await backup.delete(backup_id)
