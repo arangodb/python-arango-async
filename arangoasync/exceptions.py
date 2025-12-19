@@ -139,6 +139,18 @@ class AQLQueryValidateError(ArangoServerError):
     """Failed to parse and validate query."""
 
 
+class AccessTokenCreateError(ArangoServerError):
+    """Failed to create an access token."""
+
+
+class AccessTokenDeleteError(ArangoServerError):
+    """Failed to delete an access token."""
+
+
+class AccessTokenListError(ArangoServerError):
+    """Failed to retrieve access tokens."""
+
+
 class AnalyzerCreateError(ArangoServerError):
     """Failed to create analyzer."""
 

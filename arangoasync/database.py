@@ -17,6 +17,9 @@ from arangoasync.collection import Collection, StandardCollection
 from arangoasync.connection import Connection
 from arangoasync.errno import HTTP_FORBIDDEN, HTTP_NOT_FOUND
 from arangoasync.exceptions import (
+    AccessTokenCreateError,
+    AccessTokenDeleteError,
+    AccessTokenListError,
     AnalyzerCreateError,
     AnalyzerDeleteError,
     AnalyzerGetError,
@@ -107,6 +110,7 @@ from arangoasync.response import Response
 from arangoasync.result import Result
 from arangoasync.serialization import Deserializer, Serializer
 from arangoasync.typings import (
+    AccessToken,
     CollectionInfo,
     CollectionType,
     DatabaseProperties,
@@ -2127,6 +2131,96 @@ class Database:
                 raise JWTSecretReloadError(resp, request)
             result: Json = self.deserializer.loads(resp.raw_body)
             return Response.format_body(result)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def create_access_token(
+        self,
+        user: str,
+        name: str,
+        valid_until: int,
+    ) -> Result[AccessToken]:
+        """Create an access token for the given user.
+
+        Args:
+            user (str): The name of the user.
+            name (str): A name for the access token to make identification easier,
+                like a short description.
+            valid_until (int): A Unix timestamp in seconds to set the expiration date and time.
+
+        Returns:
+            AccessToken: Information about the created access token, including the token itself.
+
+        Raises:
+            AccessTokenCreateError: If the operation fails.
+
+        References:
+            - `create-an-access-token <https://docs.arango.ai/arangodb/stable/develop/http-api/authentication/#create-an-access-token>`__
+        """  # noqa: E501
+        data: Json = {
+            "name": name,
+            "valid_until": valid_until,
+        }
+
+        request = Request(
+            method=Method.POST,
+            endpoint=f"/_api/token/{user}",
+            data=self.serializer.dumps(data),
+        )
+
+        def response_handler(resp: Response) -> AccessToken:
+            if not resp.is_success:
+                raise AccessTokenCreateError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return AccessToken(result)
+
+        return await self._executor.execute(request, response_handler)
+
+    async def delete_access_token(self, user: str, token_id: int) -> None:
+        """List all access tokens for the given user.
+
+        Args:
+            user (str): The name of the user.
+            token_id (int): The ID of the access token to delete.
+
+        Raises:
+            AccessTokenDeleteError: If the operation fails.
+
+        References:
+            - `delete-an-access-token <https://docs.arango.ai/arangodb/stable/develop/http-api/authentication/#delete-an-access-token>`__
+        """  # noqa: E501
+        request = Request(
+            method=Method.DELETE, endpoint=f"/_api/token/{user}/{token_id}"
+        )
+
+        def response_handler(resp: Response) -> None:
+            if not resp.is_success:
+                raise AccessTokenDeleteError(resp, request)
+
+        await self._executor.execute(request, response_handler)
+
+    async def list_access_tokens(self, user: str) -> Result[Jsons]:
+        """List all access tokens for the given user.
+
+        Args:
+            user (str): The name of the user.
+
+        Returns:
+            list: List of access tokens for the user.
+
+        Raises:
+            AccessTokenListError: If the operation fails.
+
+        References:
+            - `list-all-access-tokens <https://docs.arango.ai/arangodb/stable/develop/http-api/authentication/#list-all-access-tokens>`__
+        """  # noqa: E501
+        request = Request(method=Method.GET, endpoint=f"/_api/token/{user}")
+
+        def response_handler(resp: Response) -> Jsons:
+            if not resp.is_success:
+                raise AccessTokenListError(resp, request)
+            result: Json = self.deserializer.loads(resp.raw_body)
+            return cast(Jsons, result["tokens"])
 
         return await self._executor.execute(request, response_handler)
 

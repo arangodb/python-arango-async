@@ -147,7 +147,7 @@ class ArangoClient:
         self,
         name: str,
         auth_method: str = "basic",
-        auth: Optional[Auth] = None,
+        auth: Optional[Auth | str] = None,
         token: Optional[JwtToken] = None,
         verify: bool = False,
         compression: Optional[CompressionManager] = None,
@@ -169,7 +169,8 @@ class ArangoClient:
                     and client are synchronized.
                 - "superuser": Superuser JWT authentication.
                     The `token` parameter is required. The `auth` parameter is ignored.
-            auth (Auth | None): Login information.
+            auth (Auth | None): Login information (username and password) or
+                access token.
             token (JwtToken | None): JWT token.
             verify (bool): Verify the connection by sending a test request.
             compression (CompressionManager | None): If set, supersedes the
@@ -187,6 +188,9 @@ class ArangoClient:
             ServerConnectionError: If `verify` is `True` and the connection fails.
         """
         connection: Connection
+
+        if isinstance(auth, str):
+            auth = Auth(password=auth)
 
         if auth_method == "basic":
             if auth is None:
