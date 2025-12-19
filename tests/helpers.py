@@ -89,3 +89,12 @@ def generate_service_mount():
         str: Random service name.
     """
     return f"/test_{uuid4().hex}"
+
+
+def generate_token_name():
+    """Generate and return a random token name.
+
+    Returns:
+        str: Random token name.
+    """
+    return f"test_token_{uuid4().hex}"

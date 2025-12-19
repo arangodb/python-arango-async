@@ -20,8 +20,8 @@ class Auth:
         encoding (str): Encoding for the password (default: utf-8)
     """
 
-    username: str
-    password: str
+    username: str = ""
+    password: str = ""
     encoding: str = "utf-8"
 
 

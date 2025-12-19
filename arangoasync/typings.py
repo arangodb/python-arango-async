@@ -2024,3 +2024,55 @@ class EdgeDefinitionOptions(JsonWrapper):
     @property
     def satellites(self) -> Optional[List[str]]:
         return cast(Optional[List[str]], self._data.get("satellites"))
+
+
+class AccessToken(JsonWrapper):
+    """User access token.
+
+    Example:
+        .. code-block:: json
+
+           {
+             "id" : 1,
+             "name" : "Token for Service A",
+             "valid_until" : 1782864000,
+             "created_at" : 1765543306,
+             "fingerprint" : "v1...71227d",
+             "active" : true,
+             "token" : "v1.7b2265223a3137471227d"
+           }
+
+    References:
+        - `create-an-access-token <https://docs.arango.ai/arangodb/stable/develop/http-api/authentication/#create-an-access-token`__
+    """  # noqa: E501
+
+    def __init__(self, data: Json) -> None:
+        super().__init__(data)
+
+    @property
+    def active(self) -> bool:
+        return cast(bool, self._data["active"])
+
+    @property
+    def created_at(self) -> int:
+        return cast(int, self._data["created_at"])
+
+    @property
+    def fingerprint(self) -> str:
+        return cast(str, self._data["fingerprint"])
+
+    @property
+    def id(self) -> int:
+        return cast(int, self._data["id"])
+
+    @property
+    def name(self) -> str:
+        return cast(str, self._data["name"])
+
+    @property
+    def token(self) -> str:
+        return cast(str, self._data["token"])
+
+    @property
+    def valid_until(self) -> int:
+        return cast(int, self._data["valid_until"])

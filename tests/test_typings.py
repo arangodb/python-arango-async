@@ -1,6 +1,7 @@
 import pytest
 
 from arangoasync.typings import (
+    AccessToken,
     CollectionInfo,
     CollectionStatistics,
     CollectionStatus,
@@ -446,3 +447,28 @@ def test_CollectionStatistics():
     assert stats.key_options["type"] == "traditional"
     assert stats.computed_values is None
     assert stats.object_id == "69124"
+
+
+def test_AccessToken():
+    data = {
+        "active": True,
+        "created_at": 1720000000,
+        "fingerprint": "abc123fingerprint",
+        "id": 42,
+        "name": "ci-token",
+        "token": "v2.local.eyJhbGciOi...",
+        "valid_until": 1720003600,
+    }
+
+    access_token = AccessToken(data)
+
+    assert access_token.active is True
+    assert access_token.created_at == 1720000000
+    assert access_token.fingerprint == "abc123fingerprint"
+    assert access_token.id == 42
+    assert access_token.name == "ci-token"
+    assert access_token.token == "v2.local.eyJhbGciOi..."
+    assert access_token.valid_until == 1720003600
+
+    # JsonWrapper behavior
+    assert access_token.to_dict() == data
