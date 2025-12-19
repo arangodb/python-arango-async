@@ -30,12 +30,11 @@ from arangoasync.exceptions import (
 )
 from tests.helpers import generate_service_mount
 
-service_file = "/tests/static/service.zip"
 service_name = "test"
 
 
 @pytest.mark.asyncio
-async def test_foxx(db, bad_db, skip_tests):
+async def test_foxx(db, bad_db, skip_tests, foxx_path):
     if "foxx" in skip_tests:
         pytest.skip("Skipping Foxx tests")
 
@@ -90,7 +89,7 @@ async def test_foxx(db, bad_db, skip_tests):
     # Service as a path
     mount1 = generate_service_mount()
     service1 = {
-        "source": service_file,
+        "source": foxx_path,
         "configuration": {"LOG_LEVEL": "info"},
         "dependencies": {},
     }
@@ -102,7 +101,7 @@ async def test_foxx(db, bad_db, skip_tests):
     service2 = aiohttp.FormData()
     service2.add_field(
         "source",
-        open(f".{service_file}", "rb"),
+        open(f".{foxx_path}", "rb"),
         filename="service.zip",
         content_type="application/zip",
     )
@@ -115,7 +114,7 @@ async def test_foxx(db, bad_db, skip_tests):
 
     # Service as raw data
     mount3 = generate_service_mount()
-    async with aiofiles.open(f".{service_file}", mode="rb") as f:
+    async with aiofiles.open(f".{foxx_path}", mode="rb") as f:
         service3 = await f.read()
     service_info = await db.foxx.create_service(
         mount=mount3, service=service3, headers={"content-type": "application/zip"}
@@ -127,14 +126,14 @@ async def test_foxx(db, bad_db, skip_tests):
 
     # Replace service
     service4 = {
-        "source": service_file,
+        "source": foxx_path,
         "configuration": {"LOG_LEVEL": "info"},
         "dependencies": {},
     }
     service_info = await db.foxx.replace_service(mount=mount2, service=service4)
     assert service_info["mount"] == mount2
 
-    async with aiofiles.open(f".{service_file}", mode="rb") as f:
+    async with aiofiles.open(f".{foxx_path}", mode="rb") as f:
         service5 = await f.read()
     service_info = await db.foxx.replace_service(
         mount=mount1, service=service5, headers={"content-type": "application/zip"}
@@ -143,7 +142,7 @@ async def test_foxx(db, bad_db, skip_tests):
 
     # Update service
     service6 = {
-        "source": service_file,
+        "source": foxx_path,
         "configuration": {"LOG_LEVEL": "debug"},
         "dependencies": {},
     }

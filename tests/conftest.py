@@ -28,6 +28,8 @@ class GlobalData:
     username: str = generate_username()
     cluster: bool = False
     skip: list[str] = None
+    foxx_path: str = None
+    backup_path: str = None
     db_version: version.Version = version.parse("0.0.0")
 
 
@@ -52,6 +54,18 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--cluster", action="store_true", help="Run tests in a cluster setup"
+    )
+    parser.addoption(
+        "--foxx-path",
+        action="store",
+        default="/tests/static/service.zip",
+        help="Foxx tests service path",
+    )
+    parser.addoption(
+        "--backup-path",
+        action="store",
+        default="local://tmp",
+        help="Backup tests repository path",
     )
     parser.addoption(
         "--skip",
@@ -82,6 +96,8 @@ def pytest_configure(config):
     global_data.token = JwtToken.generate_token(global_data.secret)
     global_data.cluster = config.getoption("cluster")
     global_data.skip = config.getoption("skip")
+    global_data.backup_path = config.getoption("backup_path")
+    global_data.foxx_path = config.getoption("foxx_path")
     global_data.graph_name = generate_graph_name()
 
     async def get_db_version():
@@ -121,6 +137,16 @@ def basic_auth_root(root, password):
 @pytest.fixture
 def cluster():
     return global_data.cluster
+
+
+@pytest.fixture
+def backup_path():
+    return global_data.backup_path
+
+
+@pytest.fixture
+def foxx_path():
+    return global_data.foxx_path
 
 
 @pytest.fixture
