@@ -2043,7 +2043,7 @@ class AccessToken(JsonWrapper):
            }
 
     References:
-        - `create-an-access-token <https://docs.arango.ai/arangodb/stable/develop/http-api/authentication/#create-an-access-token`__
+        - `create-an-access-token <https://docs.arango.ai/arangodb/stable/develop/http-api/authentication/#create-an-access-token>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
