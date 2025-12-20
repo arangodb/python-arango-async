@@ -93,7 +93,7 @@ class Graph(Generic[T, U, V]):
             GraphProperties: If the operation fails.
 
         References:
-            - `get-a-graph <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#get-a-graph>`__
+            - `get-a-graph <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#get-a-graph>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint=f"/_api/gharial/{self._name}")
 
@@ -132,7 +132,7 @@ class Graph(Generic[T, U, V]):
             VertexCollectionListError: If the operation fails.
 
         References:
-            - `list-vertex-collections <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#list-vertex-collections>`__
+            - `list-vertex-collections <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#list-vertex-collections>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -191,7 +191,7 @@ class Graph(Generic[T, U, V]):
             VertexCollectionCreateError: If the operation fails.
 
         References:
-           - `add-a-vertex-collection <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#add-a-vertex-collection>`__
+           - `add-a-vertex-collection <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#add-a-vertex-collection>`__
         """  # noqa: E501
         data: Json = {"collection": name}
 
@@ -228,7 +228,7 @@ class Graph(Generic[T, U, V]):
             VertexCollectionDeleteError: If the operation fails.
 
         References:
-           - `remove-a-vertex-collection <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#remove-a-vertex-collection>`__
+           - `remove-a-vertex-collection <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#remove-a-vertex-collection>`__
         """  # noqa: E501
         request = Request(
             method=Method.DELETE,
@@ -300,7 +300,7 @@ class Graph(Generic[T, U, V]):
             DocumentParseError: If the document is malformed.
 
         References:
-            - `get-a-vertex <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#get-a-vertex>`__
+            - `get-a-vertex <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#get-a-vertex>`__
         """  # noqa: E501
         col = Collection.get_col_name(vertex)
         return await self.vertex_collection(col).get(
@@ -337,7 +337,7 @@ class Graph(Generic[T, U, V]):
             DocumentParseError: If the document is malformed.
 
         References:
-            - `create-a-vertex <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#create-a-vertex>`__
+            - `create-a-vertex <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#create-a-vertex>`__
         """  # noqa: E501
         return await self.vertex_collection(collection).insert(
             vertex,
@@ -379,7 +379,7 @@ class Graph(Generic[T, U, V]):
             DocumentUpdateError: If update fails.
 
         References:
-            - `update-a-vertex <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#update-a-vertex>`__
+            - `update-a-vertex <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#update-a-vertex>`__
         """  # noqa: E501
         col = Collection.get_col_name(cast(Json | str, vertex))
         return await self.vertex_collection(col).update(
@@ -425,7 +425,7 @@ class Graph(Generic[T, U, V]):
             DocumentReplaceError: If replace fails.
 
         References:
-            - `replace-a-vertex <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#replace-a-vertex>`__
+            - `replace-a-vertex <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#replace-a-vertex>`__
         """  # noqa: E501
         col = Collection.get_col_name(cast(Json | str, vertex))
         return await self.vertex_collection(col).replace(
@@ -468,7 +468,7 @@ class Graph(Generic[T, U, V]):
             DocumentDeleteError: If deletion fails.
 
         References:
-            - `remove-a-vertex <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#remove-a-vertex>`__
+            - `remove-a-vertex <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#remove-a-vertex>`__
         """  # noqa: E501
         col = Collection.get_col_name(cast(Json | str, vertex))
         return await self.vertex_collection(col).delete(
@@ -551,7 +551,7 @@ class Graph(Generic[T, U, V]):
             EdgeCollectionListError: If the operation fails.
 
         References:
-            - `list-edge-collections <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#list-edge-collections>`__
+            - `list-edge-collections <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#list-edge-collections>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -602,7 +602,7 @@ class Graph(Generic[T, U, V]):
             EdgeDefinitionCreateError: If the operation fails.
 
         References:
-            - `add-an-edge-definition <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#add-an-edge-definition>`__
+            - `add-an-edge-definition <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#add-an-edge-definition>`__
         """  # noqa: E501
         data: Json = {
             "collection": edge_collection,
@@ -659,7 +659,7 @@ class Graph(Generic[T, U, V]):
             EdgeDefinitionReplaceError: If the operation fails.
 
         References:
-            - `replace-an-edge-definition <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#replace-an-edge-definition>`__
+            - `replace-an-edge-definition <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#replace-an-edge-definition>`__
         """  # noqa: E501
         data: Json = {
             "collection": edge_collection,
@@ -712,7 +712,7 @@ class Graph(Generic[T, U, V]):
             EdgeDefinitionDeleteError: If the operation fails.
 
         References:
-            - `remove-an-edge-definition <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#remove-an-edge-definition>`__
+            - `remove-an-edge-definition <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#remove-an-edge-definition>`__
         """  # noqa: E501
         params: Params = {}
         if drop_collections is not None:
@@ -793,7 +793,7 @@ class Graph(Generic[T, U, V]):
             DocumentParseError: If the document is malformed.
 
         References:
-            - `get-an-edge <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#get-an-edge>`__
+            - `get-an-edge <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#get-an-edge>`__
         """  # noqa: E501
         col = Collection.get_col_name(edge)
         return await self.edge_collection(col).get(
@@ -832,7 +832,7 @@ class Graph(Generic[T, U, V]):
             DocumentParseError: If the document is malformed.
 
         References:
-            - `create-an-edge <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#create-an-edge>`__
+            - `create-an-edge <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#create-an-edge>`__
         """  # noqa: E501
         return await self.edge_collection(collection).insert(
             edge,
@@ -875,7 +875,7 @@ class Graph(Generic[T, U, V]):
             DocumentUpdateError: If update fails.
 
         References:
-            - `update-an-edge <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#update-an-edge>`__
+            - `update-an-edge <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#update-an-edge>`__
         """  # noqa: E501
         col = Collection.get_col_name(cast(Json | str, edge))
         return await self.edge_collection(col).update(
@@ -923,7 +923,7 @@ class Graph(Generic[T, U, V]):
             DocumentReplaceError: If replace fails.
 
         References:
-            - `replace-an-edge <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#replace-an-edge>`__
+            - `replace-an-edge <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#replace-an-edge>`__
         """  # noqa: E501
         col = Collection.get_col_name(cast(Json | str, edge))
         return await self.edge_collection(col).replace(
@@ -967,7 +967,7 @@ class Graph(Generic[T, U, V]):
             DocumentDeleteError: If deletion fails.
 
         References:
-            - `remove-an-edge <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#remove-an-edge>`__
+            - `remove-an-edge <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#remove-an-edge>`__
         """  # noqa: E501
         col = Collection.get_col_name(cast(Json | str, edge))
         return await self.edge_collection(col).delete(
@@ -1001,7 +1001,7 @@ class Graph(Generic[T, U, V]):
             EdgeListError: If retrieval fails.
 
         References:
-            - `get-inbound-and-outbound-edges <https://docs.arango.ai/stable/develop/http-api/graphs/edges/#get-inbound-and-outbound-edges>`__
+            - `get-inbound-and-outbound-edges <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/edges/#get-inbound-and-outbound-edges>`__
         """  # noqa: E501
         return await self.edge_collection(collection).edges(
             vertex,

@@ -64,7 +64,7 @@ You may also use the client without a context manager, but you must ensure to cl
 
 Another example with `graphs`_:
 
-.. _graphs: https://docs.arango.ai/stable/graphs/
+.. _graphs: https://docs.arango.ai/arangodb/stable/graphs/
 
 .. code-block:: python
 

@@ -64,7 +64,7 @@ class Replication:
             ReplicationInventoryError: If retrieval fails.
 
         References:
-            - `get-a-replication-inventory <https://docs.arango.ai/stable/develop/http-api/replication/replication-dump/#get-a-replication-inventory>`__
+            - `get-a-replication-inventory <https://docs.arango.ai/arangodb/stable/develop/http-api/replication/replication-dump/#get-a-replication-inventory>`__
         """  # noqa: E501
         params: Params = dict()
         params["batchId"] = batch_id
@@ -112,7 +112,7 @@ class Replication:
             ReplicationDumpError: If retrieval fails.
 
         References:
-            - `get-a-replication-dump <https://docs.arango.ai/stable/develop/http-api/replication/replication-dump/#get-a-replication-dump>`__
+            - `get-a-replication-dump <https://docs.arango.ai/arangodb/stable/develop/http-api/replication/replication-dump/#get-a-replication-dump>`__
         """  # noqa: E501
         params: Params = dict()
         params["collection"] = collection
@@ -149,7 +149,7 @@ class Replication:
             ReplicationClusterInventoryError: If retrieval fails.
 
         References:
-            - `get-the-cluster-collections-and-indexes <https://docs.arango.ai/stable/develop/http-api/replication/replication-dump/#get-the-cluster-collections-and-indexes>`__
+            - `get-the-cluster-collections-and-indexes <https://docs.arango.ai/arangodb/stable/develop/http-api/replication/replication-dump/#get-the-cluster-collections-and-indexes>`__
         """  # noqa: E501
         params: Params = {}
         if include_system is not None:
@@ -179,7 +179,7 @@ class Replication:
             ReplicationLoggerStateError: If retrieval fails.
 
         References:
-            - `get-the-replication-logger-state <https://docs.arango.ai/stable/develop/http-api/replication/replication-logger/#get-the-replication-logger-state>`__
+            - `get-the-replication-logger-state <https://docs.arango.ai/arangodb/stable/develop/http-api/replication/replication-logger/#get-the-replication-logger-state>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -204,7 +204,7 @@ class Replication:
             ReplicationApplierConfigError: If retrieval fails.
 
         References:
-           - `get-the-replication-applier-configuration <https://docs.arango.ai/stable/develop/http-api/replication/replication-applier/#get-the-replication-applier-configuration>`__
+           - `get-the-replication-applier-configuration <https://docs.arango.ai/arangodb/stable/develop/http-api/replication/replication-applier/#get-the-replication-applier-configuration>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -229,7 +229,7 @@ class Replication:
             ReplicationApplierStateError: If retrieval fails.
 
         References:
-            - `get-the-replication-applier-state <https://docs.arango.ai/stable/develop/http-api/replication/replication-applier/#get-the-replication-applier-state>`__
+            - `get-the-replication-applier-state <https://docs.arango.ai/arangodb/stable/develop/http-api/replication/replication-applier/#get-the-replication-applier-state>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -254,7 +254,7 @@ class Replication:
             ReplicationServerIDError: If retrieval fails.
 
         References:
-            - `get-the-replication-server-id <https://docs.arango.ai/stable/develop/http-api/replication/other-replication-commands/#get-the-replication-server-id>`__
+            - `get-the-replication-server-id <https://docs.arango.ai/arangodb/stable/develop/http-api/replication/other-replication-commands/#get-the-replication-server-id>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,

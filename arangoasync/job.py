@@ -27,7 +27,7 @@ class AsyncJob(Generic[T]):
         response_handler: HTTP response handler
 
     References:
-        - `jobs <https://docs.arango.ai/stable/develop/http-api/jobs/>`__
+        - `jobs <https://docs.arango.ai/arangodb/stable/develop/http-api/jobs/>`__
     """  # noqa: E501
 
     def __init__(
@@ -68,7 +68,7 @@ class AsyncJob(Generic[T]):
             AsyncJobStatusError: If retrieval fails or the job is not found.
 
         References:
-            - `list-async-jobs-by-status-or-get-the-status-of-specific-job <https://docs.arango.ai/stable/develop/http-api/jobs/#list-async-jobs-by-status-or-get-the-status-of-specific-job>`__
+            - `list-async-jobs-by-status-or-get-the-status-of-specific-job <https://docs.arango.ai/arangodb/stable/develop/http-api/jobs/#list-async-jobs-by-status-or-get-the-status-of-specific-job>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint=f"/_api/job/{self._id}")
         response = await self._conn.send_request(request)
@@ -101,7 +101,7 @@ class AsyncJob(Generic[T]):
                 is still pending.
 
         References:
-            - `get-the-results-of-an-async-job <https://docs.arango.ai/stable/develop/http-api/jobs/#get-the-results-of-an-async-job>`__
+            - `get-the-results-of-an-async-job <https://docs.arango.ai/arangodb/stable/develop/http-api/jobs/#get-the-results-of-an-async-job>`__
         """  # noqa: E501
         request = Request(method=Method.PUT, endpoint=f"/_api/job/{self._id}")
         response = await self._conn.send_request(request)
@@ -142,7 +142,7 @@ class AsyncJob(Generic[T]):
             AsyncJobCancelError: If cancellation fails.
 
         References:
-            - `cancel-an-async-job <https://docs.arango.ai/stable/develop/http-api/jobs/#cancel-an-async-job>`__
+            - `cancel-an-async-job <https://docs.arango.ai/arangodb/stable/develop/http-api/jobs/#cancel-an-async-job>`__
         """  # noqa: E501
         request = Request(method=Method.PUT, endpoint=f"/_api/job/{self._id}/cancel")
         response = await self._conn.send_request(request)
@@ -173,7 +173,7 @@ class AsyncJob(Generic[T]):
             AsyncJobClearError: If deletion fails.
 
         References:
-            - `delete-async-job-results <https://docs.arango.ai/stable/develop/http-api/jobs/#delete-async-job-results>`__
+            - `delete-async-job-results <https://docs.arango.ai/arangodb/stable/develop/http-api/jobs/#delete-async-job-results>`__
         """  # noqa: E501
         request = Request(method=Method.DELETE, endpoint=f"/_api/job/{self._id}")
         resp = await self._conn.send_request(request)

@@ -78,7 +78,7 @@ class AQLQueryCache:
             AQLCacheEntriesError: If retrieval fails.
 
         References:
-            - `list-the-entries-of-the-aql-query-results-cache <https://docs.arango.ai/stable/develop/http-api/queries/aql-query-results-cache/#list-the-entries-of-the-aql-query-results-cache>`__
+            - `list-the-entries-of-the-aql-query-results-cache <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-query-results-cache/#list-the-entries-of-the-aql-query-results-cache>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/query-cache/entries")
 
@@ -99,7 +99,7 @@ class AQLQueryCache:
             AQLCacheEntriesError: If retrieval fails.
 
         References:
-            - `list-the-entries-of-the-aql-query-plan-cache <https://docs.arango.ai/stable/develop/http-api/queries/aql-query-plan-cache/#list-the-entries-of-the-aql-query-plan-cache>`__
+            - `list-the-entries-of-the-aql-query-plan-cache <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-query-plan-cache/#list-the-entries-of-the-aql-query-plan-cache>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/query-plan-cache")
 
@@ -117,7 +117,7 @@ class AQLQueryCache:
             AQLCacheClearError: If clearing the cache fails.
 
         References:
-            - `clear-the-aql-query-results-cache <https://docs.arango.ai/stable/develop/http-api/queries/aql-query-results-cache/#clear-the-aql-query-results-cache>`__
+            - `clear-the-aql-query-results-cache <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-query-results-cache/#clear-the-aql-query-results-cache>`__
         """  # noqa: E501
         request = Request(method=Method.DELETE, endpoint="/_api/query-cache")
 
@@ -134,7 +134,7 @@ class AQLQueryCache:
             AQLCacheClearError: If clearing the cache fails.
 
         References:
-            - `clear-the-aql-query-plan-cache <https://docs.arango.ai/stable/develop/http-api/queries/aql-query-plan-cache/#clear-the-aql-query-plan-cache>`__
+            - `clear-the-aql-query-plan-cache <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-query-plan-cache/#clear-the-aql-query-plan-cache>`__
         """  # noqa: E501
         request = Request(method=Method.DELETE, endpoint="/_api/query-plan-cache")
 
@@ -154,7 +154,7 @@ class AQLQueryCache:
             AQLCachePropertiesError: If retrieval fails.
 
         References:
-            - `get-the-aql-query-results-cache-configuration <https://docs.arango.ai/stable/develop/http-api/queries/aql-query-results-cache/#get-the-aql-query-results-cache-configuration>`__
+            - `get-the-aql-query-results-cache-configuration <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-query-results-cache/#get-the-aql-query-results-cache-configuration>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/query-cache/properties")
 
@@ -193,7 +193,7 @@ class AQLQueryCache:
             AQLCacheConfigureError: If setting the configuration fails.
 
         References:
-            - `set-the-aql-query-results-cache-configuration <https://docs.arango.ai/stable/develop/http-api/queries/aql-query-results-cache/#set-the-aql-query-results-cache-configuration>`__
+            - `set-the-aql-query-results-cache-configuration <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-query-results-cache/#set-the-aql-query-results-cache-configuration>`__
         """  # noqa: E501
         data: Json = dict()
         if mode is not None:
@@ -298,7 +298,7 @@ class AQL:
             Cursor: Result cursor.
 
         References:
-            - `create-a-cursor <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#create-a-cursor>`__
+            - `create-a-cursor <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-queries/#create-a-cursor>`__
         """  # noqa: E501
         data: Json = dict(query=query)
         if count is not None:
@@ -353,7 +353,7 @@ class AQL:
             AQLQueryTrackingGetError: If retrieval fails.
 
         References:
-            - `get-the-aql-query-tracking-configuration <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#get-the-aql-query-tracking-configuration>`__
+            - `get-the-aql-query-tracking-configuration <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-queries/#get-the-aql-query-tracking-configuration>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/query/properties")
 
@@ -397,7 +397,7 @@ class AQL:
             AQLQueryTrackingSetError: If setting the configuration fails.
 
         References:
-            - `update-the-aql-query-tracking-configuration <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#update-the-aql-query-tracking-configuration>`__
+            - `update-the-aql-query-tracking-configuration <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-queries/#update-the-aql-query-tracking-configuration>`__
         """  # noqa: E501
         data: Json = dict()
 
@@ -462,7 +462,7 @@ class AQL:
             AQLQueryListError: If retrieval fails.
 
         References:
-            - `list-the-running-queries <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#list-the-running-queries>`__
+            - `list-the-running-queries <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-queries/#list-the-running-queries>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -493,7 +493,7 @@ class AQL:
             AQLQueryListError: If retrieval fails.
 
         References:
-            - `list-the-slow-aql-queries <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#list-the-slow-aql-queries>`__
+            - `list-the-slow-aql-queries <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-queries/#list-the-slow-aql-queries>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -523,7 +523,7 @@ class AQL:
             AQLQueryClearError: If retrieval fails.
 
         References:
-            - `clear-the-list-of-slow-aql-queries <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#clear-the-list-of-slow-aql-queries>`__
+            - `clear-the-list-of-slow-aql-queries <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-queries/#clear-the-list-of-slow-aql-queries>`__
         """  # noqa: E501
         request = Request(
             method=Method.DELETE,
@@ -560,7 +560,7 @@ class AQL:
             AQLQueryKillError: If killing the query fails.
 
         References:
-            - `kill-a-running-aql-query <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#kill-a-running-aql-query>`__
+            - `kill-a-running-aql-query <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-queries/#kill-a-running-aql-query>`__
         """  # noqa: E501
         request = Request(
             method=Method.DELETE,
@@ -598,7 +598,7 @@ class AQL:
             AQLQueryExplainError: If retrieval fails.
 
         References:
-            - `explain-an-aql-query <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#explain-an-aql-query>`__
+            - `explain-an-aql-query <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-queries/#explain-an-aql-query>`__
         """  # noqa: E501
         data: Json = dict(query=query)
         if bind_vars is not None:
@@ -634,7 +634,7 @@ class AQL:
             AQLQueryValidateError: If validation fails.
 
         References:
-            - `parse-an-aql-query <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#parse-an-aql-query>`__
+            - `parse-an-aql-query <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-queries/#parse-an-aql-query>`__
         """  # noqa: E501
         request = Request(
             method=Method.POST,
@@ -659,7 +659,7 @@ class AQL:
             AQLQueryRulesGetError: If retrieval fails.
 
         References:
-            - `list-all-aql-optimizer-rules <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#list-all-aql-optimizer-rules>`__
+            - `list-all-aql-optimizer-rules <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/aql-queries/#list-all-aql-optimizer-rules>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/query/rules")
 
@@ -684,7 +684,7 @@ class AQL:
             AQLFunctionListError: If retrieval fails.
 
         References:
-            - `list-the-registered-user-defined-aql-functions <https://docs.arango.ai/stable/develop/http-api/queries/user-defined-aql-functions/#list-the-registered-user-defined-aql-functions>`__
+            - `list-the-registered-user-defined-aql-functions <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/user-defined-aql-functions/#list-the-registered-user-defined-aql-functions>`__
         """  # noqa: E501
         params: Json = dict()
         if namespace is not None:
@@ -726,7 +726,7 @@ class AQL:
             AQLFunctionCreateError: If registration fails.
 
         References:
-            - `create-a-user-defined-aql-function <https://docs.arango.ai/stable/develop/http-api/queries/user-defined-aql-functions/#create-a-user-defined-aql-function>`__
+            - `create-a-user-defined-aql-function <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/user-defined-aql-functions/#create-a-user-defined-aql-function>`__
         """  # noqa: E501
         request = Request(
             method=Method.POST,
@@ -765,7 +765,7 @@ class AQL:
             AQLFunctionDeleteError: If removal fails.
 
         References:
-            - `remove-a-user-defined-aql-function <https://docs.arango.ai/stable/develop/http-api/queries/user-defined-aql-functions/#remove-a-user-defined-aql-function>`__
+            - `remove-a-user-defined-aql-function <https://docs.arango.ai/arangodb/stable/develop/http-api/queries/user-defined-aql-functions/#remove-a-user-defined-aql-function>`__
         """  # noqa: E501
         params: Json = dict()
         if group is not None:

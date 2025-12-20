@@ -129,4 +129,4 @@ See the `ArangoDB Manual`_ for more information on security features.
         # Reload TLS data
         tls = await db.reload_tls()
 
-.. _ArangoDB Manual: https://docs.arango.ai/stable/develop/http-api/security/
+.. _ArangoDB Manual: https://docs.arango.ai/arangodb/arangodb/stable/develop/http-api/security/

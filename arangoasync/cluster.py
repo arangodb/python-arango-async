@@ -45,7 +45,7 @@ class Cluster:
             ClusterHealthError: If retrieval fails.
 
         References:
-            - `get-the-cluster-health <https://docs.arango.ai/stable/develop/http-api/cluster/#get-the-cluster-health>`__
+            - `get-the-cluster-health <https://docs.arango.ai/arangodb/stable/develop/http-api/cluster/#get-the-cluster-health>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -74,7 +74,7 @@ class Cluster:
             ClusterStatisticsError: If retrieval fails.
 
         References:
-            - `get-the-statistics-of-a-db-server <https://docs.arango.ai/stable/develop/http-api/cluster/#get-the-statistics-of-a-db-server>`__
+            - `get-the-statistics-of-a-db-server <https://docs.arango.ai/arangodb/stable/develop/http-api/cluster/#get-the-statistics-of-a-db-server>`__
         """  # noqa: E501
         params: Params = {"DBserver": db_server}
 
@@ -103,7 +103,7 @@ class Cluster:
             ClusterEndpointsError: If retrieval fails.
 
         References:
-           - `list-all-coordinator-endpoints <https://docs.arango.ai/stable/develop/http-api/cluster/#list-all-coordinator-endpoints>`__
+           - `list-all-coordinator-endpoints <https://docs.arango.ai/arangodb/stable/develop/http-api/cluster/#list-all-coordinator-endpoints>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -129,7 +129,7 @@ class Cluster:
             ClusterServerIDError: If retrieval fails.
 
         References:
-            - `get-the-server-id <https://docs.arango.ai/stable/develop/http-api/cluster/#get-the-server-id>`__
+            - `get-the-server-id <https://docs.arango.ai/arangodb/stable/develop/http-api/cluster/#get-the-server-id>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -154,7 +154,7 @@ class Cluster:
             ClusterServerRoleError: If retrieval fails.
 
         References:
-            - `get-the-server-role <https://docs.arango.ai/stable/develop/http-api/cluster/#get-the-server-role>`__
+            - `get-the-server-role <https://docs.arango.ai/arangodb/stable/develop/http-api/cluster/#get-the-server-role>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -182,7 +182,7 @@ class Cluster:
             ClusterMaintenanceModeError: If the toggle operation fails.
 
         References:
-            - `toggle-cluster-maintenance-mode <https://docs.arango.ai/stable/develop/http-api/cluster/#toggle-cluster-maintenance-mode>`__
+            - `toggle-cluster-maintenance-mode <https://docs.arango.ai/arangodb/stable/develop/http-api/cluster/#toggle-cluster-maintenance-mode>`__
         """  # noqa: E501
         request = Request(
             method=Method.PUT,
@@ -212,7 +212,7 @@ class Cluster:
             ClusterMaintenanceModeError: If retrieval fails.
 
         References:
-           - `get-the-maintenance-status-of-a-db-server <https://docs.arango.ai/stable/develop/http-api/cluster/#get-the-maintenance-status-of-a-db-server>`__
+           - `get-the-maintenance-status-of-a-db-server <https://docs.arango.ai/arangodb/stable/develop/http-api/cluster/#get-the-maintenance-status-of-a-db-server>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -242,7 +242,7 @@ class Cluster:
             ClusterMaintenanceModeError: If the operation fails.
 
         References:
-            - `set-the-maintenance-status-of-a-db-server <https://docs.arango.ai/stable/develop/http-api/cluster/#set-the-maintenance-status-of-a-db-server>`__
+            - `set-the-maintenance-status-of-a-db-server <https://docs.arango.ai/arangodb/stable/develop/http-api/cluster/#set-the-maintenance-status-of-a-db-server>`__
         """  # noqa: E501
         data: Json = {"mode": mode}
         if timeout is not None:
@@ -271,7 +271,7 @@ class Cluster:
             ClusterRebalanceError: If retrieval fails.
 
         References:
-           - `get-the-current-cluster-imbalance <https://docs.arango.ai/stable/develop/http-api/cluster/#get-the-current-cluster-imbalance>`__
+           - `get-the-current-cluster-imbalance <https://docs.arango.ai/arangodb/stable/develop/http-api/cluster/#get-the-current-cluster-imbalance>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_admin/cluster/rebalance")
 
@@ -315,7 +315,7 @@ class Cluster:
             ClusterRebalanceError: If retrieval fails.
 
         References:
-            - `compute-a-set-of-move-shard-operations-to-improve-balance <https://docs.arango.ai/stable/develop/http-api/cluster/#compute-a-set-of-move-shard-operations-to-improve-balance>`__
+            - `compute-a-set-of-move-shard-operations-to-improve-balance <https://docs.arango.ai/arangodb/stable/develop/http-api/cluster/#compute-a-set-of-move-shard-operations-to-improve-balance>`__
         """  # noqa: E501
         data: Json = dict(version=version)
         if databases_excluded is not None:
@@ -380,7 +380,7 @@ class Cluster:
             ClusterRebalanceError: If retrieval fails.
 
         References:
-            - `compute-and-execute-a-set-of-move-shard-operations-to-improve-balance <https://docs.arango.ai/stable/develop/http-api/cluster/#compute-and-execute-a-set-of-move-shard-operations-to-improve-balance>`__
+            - `compute-and-execute-a-set-of-move-shard-operations-to-improve-balance <https://docs.arango.ai/arangodb/stable/develop/http-api/cluster/#compute-and-execute-a-set-of-move-shard-operations-to-improve-balance>`__
         """  # noqa: E501
         data: Json = dict(version=version)
         if databases_excluded is not None:
@@ -431,7 +431,7 @@ class Cluster:
             ClusterRebalanceError: If the execution fails.
 
         References:
-            - `execute-a-set-of-move-shard-operations <https://docs.arango.ai/stable/develop/http-api/cluster/#execute-a-set-of-move-shard-operations>`__
+            - `execute-a-set-of-move-shard-operations <https://docs.arango.ai/arangodb/stable/develop/http-api/cluster/#execute-a-set-of-move-shard-operations>`__
         """  # noqa: E501
         data: Json = dict(version=version, moves=moves)
 

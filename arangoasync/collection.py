@@ -333,7 +333,7 @@ class Collection(Generic[T, U, V]):
             IndexListError: If retrieval fails.
 
         References:
-            - `list-all-indexes-of-a-collection <https://docs.arango.ai/stable/develop/http-api/indexes/#list-all-indexes-of-a-collection>`__
+            - `list-all-indexes-of-a-collection <https://docs.arango.ai/arangodb/stable/develop/http-api/indexes/#list-all-indexes-of-a-collection>`__
         """  # noqa: E501
         params: Params = dict(collection=self._name)
         if with_stats is not None:
@@ -368,7 +368,7 @@ class Collection(Generic[T, U, V]):
             IndexGetError: If retrieval fails.
 
         References:
-            `get-an-index <https://docs.arango.ai/stable/develop/http-api/indexes/#get-an-index>`__
+            `get-an-index <https://docs.arango.ai/arangodb/stable/develop/http-api/indexes/#get-an-index>`__
         """  # noqa: E501
         if isinstance(id, int):
             full_id = f"{self._name}/{id}"
@@ -408,12 +408,12 @@ class Collection(Generic[T, U, V]):
             IndexCreateError: If index creation fails.
 
         References:
-            - `create-an-index <https://docs.arango.ai/stable/develop/http-api/indexes/#create-an-index>`__
-            - `create-a-persistent-index <https://docs.arango.ai/stable/develop/http-api/indexes/persistent/#create-a-persistent-index>`__
-            - `create-an-inverted-index <https://docs.arango.ai/stable/develop/http-api/indexes/inverted/#create-an-inverted-index>`__
-            - `create-a-ttl-index <https://docs.arango.ai/stable/develop/http-api/indexes/ttl/#create-a-ttl-index>`__
-            - `create-a-multi-dimensional-index <https://docs.arango.ai/stable/develop/http-api/indexes/multi-dimensional/#create-a-multi-dimensional-index>`__
-            - `create-a-geo-spatial-index <https://docs.arango.ai/stable/develop/http-api/indexes/geo-spatial/#create-a-geo-spatial-index>`__
+            - `create-an-index <https://docs.arango.ai/arangodb/stable/develop/http-api/indexes/#create-an-index>`__
+            - `create-a-persistent-index <https://docs.arango.ai/arangodb/stable/develop/http-api/indexes/persistent/#create-a-persistent-index>`__
+            - `create-an-inverted-index <https://docs.arango.ai/arangodb/stable/develop/http-api/indexes/inverted/#create-an-inverted-index>`__
+            - `create-a-ttl-index <https://docs.arango.ai/arangodb/stable/develop/http-api/indexes/ttl/#create-a-ttl-index>`__
+            - `create-a-multi-dimensional-index <https://docs.arango.ai/arangodb/stable/develop/http-api/indexes/multi-dimensional/#create-a-multi-dimensional-index>`__
+            - `create-a-geo-spatial-index <https://docs.arango.ai/arangodb/stable/develop/http-api/indexes/geo-spatial/#create-a-geo-spatial-index>`__
         """  # noqa: E501
         options = options or {}
         request = Request(
@@ -447,7 +447,7 @@ class Collection(Generic[T, U, V]):
             IndexDeleteError: If deletion fails.
 
         References:
-            - `delete-an-index <https://docs.arango.ai/stable/develop/http-api/indexes/#delete-an-index>`__
+            - `delete-an-index <https://docs.arango.ai/arangodb/stable/develop/http-api/indexes/#delete-an-index>`__
         """  # noqa: E501
         if isinstance(id, int):
             full_id = f"{self._name}/{id}"
@@ -478,7 +478,7 @@ class Collection(Generic[T, U, V]):
             IndexLoadError: If loading fails.
 
         References:
-            - `load-collection-indexes-into-memory <https://docs.arango.ai/stable/develop/http-api/collections/#load-collection-indexes-into-memory>`__
+            - `load-collection-indexes-into-memory <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#load-collection-indexes-into-memory>`__
         """  # noqa: E501
         request = Request(
             method=Method.PUT,
@@ -499,7 +499,7 @@ class Collection(Generic[T, U, V]):
             CollectionRecalculateCountError: If re-calculation fails.
 
         References:
-            - `recalculate-the-document-count-of-a-collection <https://docs.arango.ai/stable/develop/http-api/collections/#recalculate-the-document-count-of-a-collection>`__
+            - `recalculate-the-document-count-of-a-collection <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#recalculate-the-document-count-of-a-collection>`__
         """  # noqa: E501
         request = Request(
             method=Method.PUT,
@@ -522,7 +522,7 @@ class Collection(Generic[T, U, V]):
             CollectionPropertiesError: If retrieval fails.
 
         References:
-            - `get-the-properties-of-a-collection <https://docs.arango.ai/stable/develop/http-api/collections/#get-the-properties-of-a-collection>`__
+            - `get-the-properties-of-a-collection <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#get-the-properties-of-a-collection>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -572,7 +572,7 @@ class Collection(Generic[T, U, V]):
             CollectionConfigureError: If configuration fails.
 
         References:
-            - `change-the-properties-of-a-collection <https://docs.arango.ai/stable/develop/http-api/collections/#change-the-properties-of-a-collection>`__
+            - `change-the-properties-of-a-collection <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#change-the-properties-of-a-collection>`__
         """  # noqa: E501
         data: Json = {}
         if cache_enabled is not None:
@@ -617,7 +617,7 @@ class Collection(Generic[T, U, V]):
             CollectionRenameError: If rename fails.
 
         References:
-            - `rename-a-collection <https://docs.arango.ai/stable/develop/http-api/collections/#rename-a-collection>`__
+            - `rename-a-collection <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#rename-a-collection>`__
         """  # noqa: E501
         data: Json = {"name": new_name}
         request = Request(
@@ -644,7 +644,7 @@ class Collection(Generic[T, U, V]):
             CollectionCompactError: If compaction fails.
 
         References:
-            - `compact-a-collection <https://docs.arango.ai/stable/develop/http-api/collections/#compact-a-collection>`__
+            - `compact-a-collection <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#compact-a-collection>`__
         """  # noqa: E501
         request = Request(
             method=Method.PUT,
@@ -677,7 +677,7 @@ class Collection(Generic[T, U, V]):
             CollectionTruncateError: If truncation fails.
 
         References:
-            - `truncate-a-collection <https://docs.arango.ai/stable/develop/http-api/collections/#truncate-a-collection>`__
+            - `truncate-a-collection <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#truncate-a-collection>`__
         """  # noqa: E501
         params: Params = {}
         if wait_for_sync is not None:
@@ -707,7 +707,7 @@ class Collection(Generic[T, U, V]):
             DocumentCountError: If retrieval fails.
 
         References:
-            - `get-the-document-count-of-a-collection <https://docs.arango.ai/stable/develop/http-api/collections/#get-the-document-count-of-a-collection>`__
+            - `get-the-document-count-of-a-collection <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#get-the-document-count-of-a-collection>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET, endpoint=f"/_api/collection/{self.name}/count"
@@ -731,7 +731,7 @@ class Collection(Generic[T, U, V]):
             CollectionStatisticsError: If retrieval fails.
 
         References:
-            - `get-the-collection-statistics <https://docs.arango.ai/stable/develop/http-api/collections/#get-the-collection-statistics>`__
+            - `get-the-collection-statistics <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#get-the-collection-statistics>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -761,7 +761,7 @@ class Collection(Generic[T, U, V]):
             CollectionResponsibleShardError: If retrieval fails.
 
         References:
-            - `get-the-responsible-shard-for-a-document <https://docs.arango.ai/stable/develop/http-api/collections/#get-the-responsible-shard-for-a-document>`__
+            - `get-the-responsible-shard-for-a-document <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#get-the-responsible-shard-for-a-document>`__
         """  # noqa: E501
         request = Request(
             method=Method.PUT,
@@ -793,7 +793,7 @@ class Collection(Generic[T, U, V]):
             CollectionShardsError: If retrieval fails.
 
         References:
-            - `get-the-shard-ids-of-a-collection <https://docs.arango.ai/stable/develop/http-api/collections/#get-the-shard-ids-of-a-collection>`__
+            - `get-the-shard-ids-of-a-collection <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#get-the-shard-ids-of-a-collection>`__
         """  # noqa: E501
         params: Params = {}
         if details is not None:
@@ -822,7 +822,7 @@ class Collection(Generic[T, U, V]):
             CollectionRevisionError: If retrieval fails.
 
         References:
-            - `get-the-collection-revision-id <https://docs.arango.ai/stable/develop/http-api/collections/#get-the-collection-revision-id>`__
+            - `get-the-collection-revision-id <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#get-the-collection-revision-id>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -852,7 +852,7 @@ class Collection(Generic[T, U, V]):
             CollectionChecksumError: If retrieval fails.
 
         References:
-            - `get-the-collection-checksum <https://docs.arango.ai/stable/develop/http-api/collections/#get-the-collection-checksum>`__
+            - `get-the-collection-checksum <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#get-the-collection-checksum>`__
         """  # noqa: E501
         params: Params = {}
         if with_rev is not None:
@@ -899,7 +899,7 @@ class Collection(Generic[T, U, V]):
             DocumentGetError: If retrieval fails.
 
         References:
-            - `get-a-document-header <https://docs.arango.ai/stable/develop/http-api/documents/#get-a-document-header>`__
+            - `get-a-document-header <https://docs.arango.ai/arangodb/stable/develop/http-api/documents/#get-a-document-header>`__
         """  # noqa: E501
         handle = self._get_doc_id(document)
 
@@ -956,7 +956,7 @@ class Collection(Generic[T, U, V]):
             DocumentGetError: If retrieval fails.
 
         References:
-            - `get-multiple-documents <https://docs.arango.ai/stable/develop/http-api/documents/#get-multiple-documents>`__
+            - `get-multiple-documents <https://docs.arango.ai/arangodb/stable/develop/http-api/documents/#get-multiple-documents>`__
         """  # noqa: E501
         params: Params = {"onlyget": True}
         if ignore_revs is not None:
@@ -1283,7 +1283,7 @@ class Collection(Generic[T, U, V]):
             DocumentInsertError: If insertion fails.
 
         References:
-            - `create-multiple-documents <https://docs.arango.ai/stable/develop/http-api/documents/#create-multiple-documents>`__
+            - `create-multiple-documents <https://docs.arango.ai/arangodb/stable/develop/http-api/documents/#create-multiple-documents>`__
         """  # noqa: E501
         params: Params = {}
         if wait_for_sync is not None:
@@ -1373,7 +1373,7 @@ class Collection(Generic[T, U, V]):
             DocumentReplaceError: If replacing fails.
 
         References:
-            - `replace-multiple-documents <https://docs.arango.ai/stable/develop/http-api/documents/#replace-multiple-documents>`__
+            - `replace-multiple-documents <https://docs.arango.ai/arangodb/stable/develop/http-api/documents/#replace-multiple-documents>`__
         """  # noqa: E501
         params: Params = {}
         if wait_for_sync is not None:
@@ -1466,7 +1466,7 @@ class Collection(Generic[T, U, V]):
             DocumentUpdateError: If update fails.
 
         References:
-            - `update-multiple-documents <https://docs.arango.ai/stable/develop/http-api/documents/#update-multiple-documents>`__
+            - `update-multiple-documents <https://docs.arango.ai/arangodb/stable/develop/http-api/documents/#update-multiple-documents>`__
         """  # noqa: E501
         params: Params = {}
         if wait_for_sync is not None:
@@ -1548,7 +1548,7 @@ class Collection(Generic[T, U, V]):
             DocumentRemoveError: If removal fails.
 
         References:
-            - `remove-multiple-documents <https://docs.arango.ai/stable/develop/http-api/documents/#remove-multiple-documents>`__
+            - `remove-multiple-documents <https://docs.arango.ai/arangodb/stable/develop/http-api/documents/#remove-multiple-documents>`__
         """  # noqa: E501
         params: Params = {}
         if wait_for_sync is not None:
@@ -1640,7 +1640,7 @@ class Collection(Generic[T, U, V]):
             DocumentInsertError: If import fails.
 
         References:
-            - `import-json-data-as-documents <https://docs.arango.ai/stable/develop/http-api/import/#import-json-data-as-documents>`__
+            - `import-json-data-as-documents <https://docs.arango.ai/arangodb/stable/develop/http-api/import/#import-json-data-as-documents>`__
         """  # noqa: E501
         params: Params = dict()
         params["collection"] = self.name
@@ -1730,7 +1730,7 @@ class StandardCollection(Collection[T, U, V]):
             DocumentParseError: If the document is malformed.
 
         References:
-            - `get-a-document <https://docs.arango.ai/stable/develop/http-api/documents/#get-a-document>`__
+            - `get-a-document <https://docs.arango.ai/arangodb/stable/develop/http-api/documents/#get-a-document>`__
         """  # noqa: E501
         handle = self._get_doc_id(document)
 
@@ -1818,7 +1818,7 @@ class StandardCollection(Collection[T, U, V]):
             DocumentParseError: If the document is malformed.
 
         References:
-            - `create-a-document <https://docs.arango.ai/stable/develop/http-api/documents/#create-a-document>`__
+            - `create-a-document <https://docs.arango.ai/arangodb/stable/develop/http-api/documents/#create-a-document>`__
         """  # noqa: E501
         if isinstance(document, dict):
             document = cast(T, self._ensure_key_from_id(document))
@@ -1923,7 +1923,7 @@ class StandardCollection(Collection[T, U, V]):
             DocumentUpdateError: If update fails.
 
         References:
-            - `update-a-document <https://docs.arango.ai/stable/develop/http-api/documents/#update-a-document>`__
+            - `update-a-document <https://docs.arango.ai/arangodb/stable/develop/http-api/documents/#update-a-document>`__
         """  # noqa: E501
         params: Params = {}
         if ignore_revs is not None:
@@ -2017,7 +2017,7 @@ class StandardCollection(Collection[T, U, V]):
             DocumentReplaceError: If replace fails.
 
         References:
-            - `replace-a-document <https://docs.arango.ai/stable/develop/http-api/documents/#replace-a-document>`__
+            - `replace-a-document <https://docs.arango.ai/arangodb/stable/develop/http-api/documents/#replace-a-document>`__
         """  # noqa: E501
         params: Params = {}
         if ignore_revs is not None:
@@ -2105,7 +2105,7 @@ class StandardCollection(Collection[T, U, V]):
             DocumentDeleteError: If deletion fails.
 
         References:
-            - `remove-a-document <https://docs.arango.ai/stable/develop/http-api/documents/#remove-a-document>`__
+            - `remove-a-document <https://docs.arango.ai/arangodb/stable/develop/http-api/documents/#remove-a-document>`__
         """  # noqa: E501
         handle = self._get_doc_id(cast(str | Json, document))
 
@@ -2232,7 +2232,7 @@ class VertexCollection(Collection[T, U, V]):
             DocumentParseError: If the document is malformed.
 
         References:
-            - `get-a-vertex <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#get-a-vertex>`__
+            - `get-a-vertex <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#get-a-vertex>`__
         """  # noqa: E501
         handle = self._get_doc_id(vertex)
 
@@ -2294,7 +2294,7 @@ class VertexCollection(Collection[T, U, V]):
             DocumentParseError: If the document is malformed.
 
         References:
-            - `create-a-vertex <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#create-a-vertex>`__
+            - `create-a-vertex <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#create-a-vertex>`__
         """  # noqa: E501
         if isinstance(vertex, dict):
             vertex = cast(T, self._ensure_key_from_id(vertex))
@@ -2359,7 +2359,7 @@ class VertexCollection(Collection[T, U, V]):
             DocumentUpdateError: If update fails.
 
         References:
-            - `update-a-vertex <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#update-a-vertex>`__
+            - `update-a-vertex <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#update-a-vertex>`__
         """  # noqa: E501
         params: Params = {}
         if wait_for_sync is not None:
@@ -2434,7 +2434,7 @@ class VertexCollection(Collection[T, U, V]):
             DocumentReplaceError: If replace fails.
 
         References:
-            - `replace-a-vertex <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#replace-a-vertex>`__
+            - `replace-a-vertex <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#replace-a-vertex>`__
         """  # noqa: E501
         params: Params = {}
         if wait_for_sync is not None:
@@ -2506,7 +2506,7 @@ class VertexCollection(Collection[T, U, V]):
             DocumentDeleteError: If deletion fails.
 
         References:
-            - `remove-a-vertex <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#remove-a-vertex>`__
+            - `remove-a-vertex <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#remove-a-vertex>`__
         """  # noqa: E501
         params: Params = {}
         if wait_for_sync is not None:
@@ -2631,7 +2631,7 @@ class EdgeCollection(Collection[T, U, V]):
             DocumentParseError: If the document is malformed.
 
         References:
-            - `get-an-edge <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#get-an-edge>`__
+            - `get-an-edge <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#get-an-edge>`__
         """  # noqa: E501
         handle = self._get_doc_id(edge)
 
@@ -2694,7 +2694,7 @@ class EdgeCollection(Collection[T, U, V]):
             DocumentParseError: If the document is malformed.
 
         References:
-            - `create-an-edge <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#create-an-edge>`__
+            - `create-an-edge <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#create-an-edge>`__
         """  # noqa: E501
         if isinstance(edge, dict):
             edge = cast(T, self._ensure_key_from_id(edge))
@@ -2763,7 +2763,7 @@ class EdgeCollection(Collection[T, U, V]):
             DocumentUpdateError: If update fails.
 
         References:
-            - `update-an-edge <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#update-an-edge>`__
+            - `update-an-edge <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#update-an-edge>`__
         """  # noqa: E501
         params: Params = {}
         if wait_for_sync is not None:
@@ -2842,7 +2842,7 @@ class EdgeCollection(Collection[T, U, V]):
             DocumentReplaceError: If replace fails.
 
         References:
-            - `replace-an-edge <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#replace-an-edge>`__
+            - `replace-an-edge <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#replace-an-edge>`__
         """  # noqa: E501
         params: Params = {}
         if wait_for_sync is not None:
@@ -2917,7 +2917,7 @@ class EdgeCollection(Collection[T, U, V]):
             DocumentDeleteError: If deletion fails.
 
         References:
-            - `remove-an-edge <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#remove-an-edge>`__
+            - `remove-an-edge <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#remove-an-edge>`__
         """  # noqa: E501
         params: Params = {}
         if wait_for_sync is not None:
@@ -2978,7 +2978,7 @@ class EdgeCollection(Collection[T, U, V]):
             EdgeListError: If retrieval fails.
 
         References:
-            - `get-inbound-and-outbound-edges <https://docs.arango.ai/stable/develop/http-api/graphs/edges/#get-inbound-and-outbound-edges>`__
+            - `get-inbound-and-outbound-edges <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/edges/#get-inbound-and-outbound-edges>`__
         """  # noqa: E501
         params: Params = {
             "vertex": self._get_doc_id(vertex, validate=False),
