@@ -87,7 +87,7 @@ jobs:
             fi
 
             if [ << parameters.arangodb_license >> != "enterprise" ]; then
-              args+=("--skip enterprise")
+              args+=("--skip" "enterprise")
             fi
 
             echo "Running pytest with args: ${args[@]}"
