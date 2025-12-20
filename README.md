@@ -75,7 +75,7 @@ async def main():
                 student_names.append(doc["name"])
 ```
 
-Another example with [graphs](https://docs.arangodb.com/stable/graphs/):
+Another example with [graphs](https://docs.arango.ai/stable/graphs/):
 
 ```python
 async def main():

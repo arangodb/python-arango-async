@@ -6,7 +6,7 @@ cluster nodes and the cluster as a whole, as well as monitor and
 administrate cluster deployments. For more information on the design
 and architecture, refer to `ArangoDB Manual`_.
 
-.. _ArangoDB Manual: https://docs.arangodb.com
+.. _ArangoDB Manual: https://docs.arango.ai
 
 .. code-block:: python
 

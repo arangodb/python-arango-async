@@ -5,7 +5,7 @@ Hot Backups are near instantaneous consistent snapshots of an entire ArangoDB de
 This includes all databases, collections, indexes, Views, graphs, and users at any given time.
 For more information, refer to `ArangoDB Manual`_.
 
-.. _ArangoDB Manual: https://docs.arangodb.com
+.. _ArangoDB Manual: https://docs.arango.ai
 
 **Example:**
 

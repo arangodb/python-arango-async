@@ -4,7 +4,7 @@ Views
 All types of views are supported. . For more information on **view**
 management, refer to `ArangoDB Manual`_.
 
-.. _ArangoDB Manual: https://docs.arangodb.com
+.. _ArangoDB Manual: https://docs.arango.ai
 
 **Example:**
 
@@ -63,7 +63,7 @@ management, refer to `ArangoDB Manual`_.
 For more information on the content of view **properties**,
 see `Search Alias Views`_ and `Arangosearch Views`_.
 
-.. _Search Alias Views: https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/
-.. _Arangosearch Views: https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/
+.. _Search Alias Views: https://docs.arango.ai/stable/develop/http-api/views/search-alias-views/
+.. _Arangosearch Views: https://docs.arango.ai/stable/develop/http-api/views/arangosearch-views/
 
 Refer to :class:`arangoasync.database.StandardDatabase` class for API specification.

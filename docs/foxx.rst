@@ -4,7 +4,7 @@ Foxx
 **Foxx** is a microservice framework which lets you define custom HTTP endpoints
 that extend ArangoDB's REST API. For more information, refer to `ArangoDB Manual`_.
 
-.. _ArangoDB Manual: https://docs.arangodb.com
+.. _ArangoDB Manual: https://docs.arango.ai
 
 **Example:**
 

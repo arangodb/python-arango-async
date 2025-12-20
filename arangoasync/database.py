@@ -258,7 +258,7 @@ class Database:
             DatabasePropertiesError: If retrieval fails.
 
         References:
-            - `get-information-about-the-current-database <https://docs.arangodb.com/stable/develop/http-api/databases/#get-information-about-the-current-database>`__
+            - `get-information-about-the-current-database <https://docs.arango.ai/stable/develop/http-api/databases/#get-information-about-the-current-database>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/database/current")
 
@@ -281,7 +281,7 @@ class Database:
             ServerSatusError: If retrieval fails.
 
         References:
-            - `get-server-status-information <https://docs.arangodb.com/stable/develop/http-api/administration/#get-server-status-information>`__
+            - `get-server-status-information <https://docs.arango.ai/stable/develop/http-api/administration/#get-server-status-information>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_admin/status")
 
@@ -305,7 +305,7 @@ class Database:
             DatabaseListError: If retrieval fails.
 
         References:
-            - `list-all-databases <https://docs.arangodb.com/stable/develop/http-api/databases/#list-all-databases>`__
+            - `list-all-databases <https://docs.arango.ai/stable/develop/http-api/databases/#list-all-databases>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/database")
 
@@ -333,7 +333,7 @@ class Database:
             DatabaseListError: If retrieval fails.
 
         References:
-            - `list-the-accessible-databases <https://docs.arangodb.com/stable/develop/http-api/databases/#list-the-accessible-databases>`__
+            - `list-the-accessible-databases <https://docs.arango.ai/stable/develop/http-api/databases/#list-the-accessible-databases>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/database/user")
 
@@ -417,7 +417,7 @@ class Database:
             DatabaseCreateError: If creation fails.
 
         References:
-            - `create-a-database <https://docs.arangodb.com/stable/develop/http-api/databases/#create-a-database>`__
+            - `create-a-database <https://docs.arango.ai/stable/develop/http-api/databases/#create-a-database>`__
         """  # noqa: E501
         data: Json = {"name": name}
 
@@ -478,7 +478,7 @@ class Database:
             DatabaseDeleteError: If deletion fails.
 
         References:
-            - `drop-a-database <https://docs.arangodb.com/stable/develop/http-api/databases/#drop-a-database>`__
+            - `drop-a-database <https://docs.arango.ai/stable/develop/http-api/databases/#drop-a-database>`__
         """  # noqa: E501
         request = Request(method=Method.DELETE, endpoint=f"/_api/database/{name}")
 
@@ -533,7 +533,7 @@ class Database:
             CollectionListError: If retrieval fails.
 
         References:
-           - `list-all-collections <https://docs.arangodb.com/stable/develop/http-api/collections/#list-all-collections>`__
+           - `list-all-collections <https://docs.arango.ai/stable/develop/http-api/collections/#list-all-collections>`__
         """  # noqa: E501
         params: Params = {}
         if exclude_system is not None:
@@ -661,7 +661,7 @@ class Database:
             CollectionCreateError: If the operation fails.
 
         References:
-            - `create-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#create-a-collection>`__
+            - `create-a-collection <https://docs.arango.ai/stable/develop/http-api/collections/#create-a-collection>`__
         """  # noqa: E501
         data: Json = {"name": name}
         if col_type is not None:
@@ -751,7 +751,7 @@ class Database:
             CollectionDeleteError: If the operation fails.
 
         References:
-            - `drop-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#drop-a-collection>`__
+            - `drop-a-collection <https://docs.arango.ai/stable/develop/http-api/collections/#drop-a-collection>`__
         """  # noqa: E501
         params: Params = {}
         if is_system is not None:
@@ -782,7 +782,7 @@ class Database:
             CollectionKeyGeneratorsError: If retrieval fails.
 
         References:
-            - `get-the-available-key-generators <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-available-key-generators>`__
+            - `get-the-available-key-generators <https://docs.arango.ai/stable/develop/http-api/collections/#get-the-available-key-generators>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/key-generators")
 
@@ -821,7 +821,7 @@ class Database:
             DocumentGetError: If retrieval fails.
 
         References:
-            - `get-a-document-header <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document-header>`__
+            - `get-a-document-header <https://docs.arango.ai/stable/develop/http-api/documents/#get-a-document-header>`__
         """  # noqa: E501
         col = Collection.get_col_name(document)
         return await self.collection(col).has(
@@ -858,7 +858,7 @@ class Database:
             DocumentParseError: If the document is malformed.
 
         References:
-            - `get-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#get-a-document>`__
+            - `get-a-document <https://docs.arango.ai/stable/develop/http-api/documents/#get-a-document>`__
         """  # noqa: E501
         col: StandardCollection[Json, Json, Jsons] = self.collection(
             Collection.get_col_name(document)
@@ -927,7 +927,7 @@ class Database:
             DocumentParseError: If the document is malformed.
 
         References:
-            - `create-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#create-a-document>`__
+            - `create-a-document <https://docs.arango.ai/stable/develop/http-api/documents/#create-a-document>`__
         """  # noqa: E501
         col: StandardCollection[Json, Json, Jsons] = self.collection(collection)
         return await col.insert(
@@ -998,7 +998,7 @@ class Database:
             DocumentUpdateError: If update fails.
 
         References:
-            - `update-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#update-a-document>`__
+            - `update-a-document <https://docs.arango.ai/stable/develop/http-api/documents/#update-a-document>`__
         """  # noqa: E501
         col: StandardCollection[Json, Json, Jsons] = self.collection(
             Collection.get_col_name(document)
@@ -1063,7 +1063,7 @@ class Database:
             DocumentReplaceError: If replace fails.
 
         References:
-            - `replace-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#replace-a-document>`__
+            - `replace-a-document <https://docs.arango.ai/stable/develop/http-api/documents/#replace-a-document>`__
         """  # noqa: E501
         col: StandardCollection[Json, Json, Jsons] = self.collection(
             Collection.get_col_name(document)
@@ -1124,7 +1124,7 @@ class Database:
             DocumentDeleteError: If deletion fails.
 
         References:
-            - `remove-a-document <https://docs.arangodb.com/stable/develop/http-api/documents/#remove-a-document>`__
+            - `remove-a-document <https://docs.arango.ai/stable/develop/http-api/documents/#remove-a-document>`__
         """  # noqa: E501
         col: StandardCollection[Json, Json, Jsons] = self.collection(
             Collection.get_col_name(document)
@@ -1198,7 +1198,7 @@ class Database:
             GraphListError: If the operation fails.
 
         References:
-            - `list-all-graphs <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#list-all-graphs>`__
+            - `list-all-graphs <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#list-all-graphs>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/gharial")
 
@@ -1253,7 +1253,7 @@ class Database:
             GraphCreateError: If the operation fails.
 
         References:
-            - `create-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#create-a-graph>`__
+            - `create-a-graph <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#create-a-graph>`__
         """  # noqa: E501
         params: Params = {}
         if wait_for_sync is not None:
@@ -1315,7 +1315,7 @@ class Database:
             GraphDeleteError: If the operation fails.
 
         References:
-            - `drop-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#drop-a-graph>`__
+            - `drop-a-graph <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#drop-a-graph>`__
         """  # noqa: E501
         params: Params = {}
         if drop_collections is not None:
@@ -1347,8 +1347,8 @@ class Database:
             ViewGetError: If the operation fails.
 
         References:
-            - `read-properties-of-a-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#read-properties-of-a-view>`__
-            - `get-the-properties-of-a-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#get-the-properties-of-a-view>`__
+            - `read-properties-of-a-view <https://docs.arango.ai/stable/develop/http-api/views/search-alias-views/#read-properties-of-a-view>`__
+            - `get-the-properties-of-a-view <https://docs.arango.ai/stable/develop/http-api/views/arangosearch-views/#get-the-properties-of-a-view>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint=f"/_api/view/{name}/properties")
 
@@ -1372,8 +1372,8 @@ class Database:
             ViewGetError: If the operation fails.
 
         References:
-            - `get-information-about-a-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#get-information-about-a-view>`_
-            - `get-information-about-a-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#get-information-about-a-view>`__
+            - `get-information-about-a-view <https://docs.arango.ai/stable/develop/http-api/views/search-alias-views/#get-information-about-a-view>`_
+            - `get-information-about-a-view <https://docs.arango.ai/stable/develop/http-api/views/arangosearch-views/#get-information-about-a-view>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint=f"/_api/view/{name}")
 
@@ -1394,8 +1394,8 @@ class Database:
             ViewListError: If the operation fails.
 
         References:
-            - `list-all-views <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#list-all-views>`__
-            - `list-all-views <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#list-all-views>`__
+            - `list-all-views <https://docs.arango.ai/stable/develop/http-api/views/search-alias-views/#list-all-views>`__
+            - `list-all-views <https://docs.arango.ai/stable/develop/http-api/views/arangosearch-views/#list-all-views>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/view")
 
@@ -1427,8 +1427,8 @@ class Database:
             ViewCreateError: If the operation fails.
 
         References:
-            - `create-a-search-alias-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#create-a-search-alias-view>`__
-            - `create-an-arangosearch-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#create-an-arangosearch-view>`__
+            - `create-a-search-alias-view <https://docs.arango.ai/stable/develop/http-api/views/search-alias-views/#create-a-search-alias-view>`__
+            - `create-an-arangosearch-view <https://docs.arango.ai/stable/develop/http-api/views/arangosearch-views/#create-an-arangosearch-view>`__
         """  # noqa: E501
         data: Json = {"name": name, "type": view_type}
         if properties is not None:
@@ -1461,8 +1461,8 @@ class Database:
             ViewReplaceError: If the operation fails.
 
         References:
-            - `replace-the-properties-of-a-search-alias-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#replace-the-properties-of-a-search-alias-view>`__
-            - `replace-the-properties-of-an-arangosearch-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#replace-the-properties-of-an-arangosearch-view>`__
+            - `replace-the-properties-of-a-search-alias-view <https://docs.arango.ai/stable/develop/http-api/views/search-alias-views/#replace-the-properties-of-a-search-alias-view>`__
+            - `replace-the-properties-of-an-arangosearch-view <https://docs.arango.ai/stable/develop/http-api/views/arangosearch-views/#replace-the-properties-of-an-arangosearch-view>`__
         """  # noqa: E501
         request = Request(
             method=Method.PUT,
@@ -1491,8 +1491,8 @@ class Database:
             ViewUpdateError: If the operation fails.
 
         References:
-            - `update-the-properties-of-a-search-alias-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#update-the-properties-of-a-search-alias-view>`__
-            - `update-the-properties-of-an-arangosearch-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#update-the-properties-of-an-arangosearch-view>`__
+            - `update-the-properties-of-a-search-alias-view <https://docs.arango.ai/stable/develop/http-api/views/search-alias-views/#update-the-properties-of-a-search-alias-view>`__
+            - `update-the-properties-of-an-arangosearch-view <https://docs.arango.ai/stable/develop/http-api/views/arangosearch-views/#update-the-properties-of-an-arangosearch-view>`__
         """  # noqa: E501
         request = Request(
             method=Method.PATCH,
@@ -1518,8 +1518,8 @@ class Database:
             ViewRenameError: If the operation fails.
 
         References:
-            - `rename-a-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#rename-a-view>`__
-            - `rename-a-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#rename-a-view>`__
+            - `rename-a-view <https://docs.arango.ai/stable/develop/http-api/views/search-alias-views/#rename-a-view>`__
+            - `rename-a-view <https://docs.arango.ai/stable/develop/http-api/views/arangosearch-views/#rename-a-view>`__
         """  # noqa: E501
         request = Request(
             method=Method.PUT,
@@ -1551,8 +1551,8 @@ class Database:
             ViewDeleteError: If the operation fails.
 
         References:
-            - `drop-a-view <https://docs.arangodb.com/stable/develop/http-api/views/search-alias-views/#drop-a-view>`__
-            - `drop-a-view <https://docs.arangodb.com/stable/develop/http-api/views/arangosearch-views/#drop-a-view>`__
+            - `drop-a-view <https://docs.arango.ai/stable/develop/http-api/views/search-alias-views/#drop-a-view>`__
+            - `drop-a-view <https://docs.arango.ai/stable/develop/http-api/views/arangosearch-views/#drop-a-view>`__
         """  # noqa: E501
         request = Request(method=Method.DELETE, endpoint=f"/_api/view/{name}")
 
@@ -1575,7 +1575,7 @@ class Database:
             AnalyzerListError: If the operation fails.
 
         References:
-            - `list-all-analyzers <https://docs.arangodb.com/stable/develop/http-api/analyzers/#list-all-analyzers>`__
+            - `list-all-analyzers <https://docs.arango.ai/stable/develop/http-api/analyzers/#list-all-analyzers>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/analyzer")
 
@@ -1597,7 +1597,7 @@ class Database:
             dict: Analyzer properties.
 
         References:
-            - `get-an-analyzer-definition <https://docs.arangodb.com/stable/develop/http-api/analyzers/#get-an-analyzer-definition>`__
+            - `get-an-analyzer-definition <https://docs.arango.ai/stable/develop/http-api/analyzers/#get-an-analyzer-definition>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint=f"/_api/analyzer/{name}")
 
@@ -1632,7 +1632,7 @@ class Database:
             AnalyzerCreateError: If the operation fails.
 
         References:
-            - `create-an-analyzer <https://docs.arangodb.com/stable/develop/http-api/analyzers/#create-an-analyzer>`__
+            - `create-an-analyzer <https://docs.arango.ai/stable/develop/http-api/analyzers/#create-an-analyzer>`__
         """  # noqa: E501
         data: Json = {"name": name, "type": analyzer_type}
         if properties is not None:
@@ -1671,7 +1671,7 @@ class Database:
             AnalyzerDeleteError: If the operation fails.
 
         References:
-            - `remove-an-analyzer <https://docs.arangodb.com/stable/develop/http-api/analyzers/#remove-an-analyzer>`__
+            - `remove-an-analyzer <https://docs.arango.ai/stable/develop/http-api/analyzers/#remove-an-analyzer>`__
         """  # noqa: E501
         params: Params = {}
         if force is not None:
@@ -1728,7 +1728,7 @@ class Database:
             UserGetError: If the operation fails.
 
         References:
-            - `get-a-user` <https://docs.arangodb.com/stable/develop/http-api/users/#get-a-user>`__
+            - `get-a-user` <https://docs.arango.ai/stable/develop/http-api/users/#get-a-user>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint=f"/_api/user/{username}")
 
@@ -1757,7 +1757,7 @@ class Database:
             UserListError: If the operation fails.
 
         References:
-            - `list-available-users <https://docs.arangodb.com/stable/develop/http-api/users/#list-available-users>`__
+            - `list-available-users <https://docs.arango.ai/stable/develop/http-api/users/#list-available-users>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/user")
 
@@ -1792,7 +1792,7 @@ class Database:
                 await db.create_user({user="john", password="secret"})
 
         References:
-            - `create-a-user <https://docs.arangodb.com/stable/develop/http-api/users/#create-a-user>`__
+            - `create-a-user <https://docs.arango.ai/stable/develop/http-api/users/#create-a-user>`__
         """  # noqa: E501
         if isinstance(user, dict):
             user = UserInfo(**user)
@@ -1832,7 +1832,7 @@ class Database:
             UserReplaceError: If the operation fails.
 
         References:
-            - `replace-a-user <https://docs.arangodb.com/stable/develop/http-api/users/#replace-a-user>`__
+            - `replace-a-user <https://docs.arango.ai/stable/develop/http-api/users/#replace-a-user>`__
         """  # noqa: E501
         if isinstance(user, dict):
             user = UserInfo(**user)
@@ -1872,7 +1872,7 @@ class Database:
             UserUpdateError: If the operation fails.
 
         References:
-            - `update-a-user <https://docs.arangodb.com/stable/develop/http-api/users/#update-a-user>`__
+            - `update-a-user <https://docs.arango.ai/stable/develop/http-api/users/#update-a-user>`__
         """  # noqa: E501
         if isinstance(user, dict):
             user = UserInfo(**user)
@@ -1917,7 +1917,7 @@ class Database:
             UserDeleteError: If the operation fails.
 
         References:
-            - `remove-a-user <https://docs.arangodb.com/stable/develop/http-api/users/#remove-a-user>`__
+            - `remove-a-user <https://docs.arango.ai/stable/develop/http-api/users/#remove-a-user>`__
         """  # noqa: E501
         request = Request(method=Method.DELETE, endpoint=f"/_api/user/{username}")
 
@@ -1945,7 +1945,7 @@ class Database:
             PermissionListError: If the operation fails.
 
         References:
-            - `list-a-users-accessible-databases <https://docs.arangodb.com/stable/develop/http-api/users/#list-a-users-accessible-databases>`__
+            - `list-a-users-accessible-databases <https://docs.arango.ai/stable/develop/http-api/users/#list-a-users-accessible-databases>`__
         """  # noqa: 501
         request = Request(
             method=Method.GET,
@@ -1981,8 +1981,8 @@ class Database:
             PermissionGetError: If the operation fails.
 
         References:
-            - `get-a-users-database-access-level <https://docs.arangodb.com/stable/develop/http-api/users/#get-a-users-database-access-level>`__
-            - `get-a-users-collection-access-level <https://docs.arangodb.com/stable/develop/http-api/users/#get-a-users-collection-access-level>`__
+            - `get-a-users-database-access-level <https://docs.arango.ai/stable/develop/http-api/users/#get-a-users-database-access-level>`__
+            - `get-a-users-collection-access-level <https://docs.arango.ai/stable/develop/http-api/users/#get-a-users-collection-access-level>`__
         """  # noqa: 501
         endpoint = f"/_api/user/{username}/database/{database}"
         if collection is not None:
@@ -2022,8 +2022,8 @@ class Database:
                 is `False`.
 
         References:
-            - `set-a-users-database-access-level <https://docs.arangodb.com/stable/develop/http-api/users/#set-a-users-database-access-level>`__
-            - `set-a-users-collection-access-level <https://docs.arangodb.com/stable/develop/http-api/users/#set-a-users-collection-access-level>`__
+            - `set-a-users-database-access-level <https://docs.arango.ai/stable/develop/http-api/users/#set-a-users-database-access-level>`__
+            - `set-a-users-collection-access-level <https://docs.arango.ai/stable/develop/http-api/users/#set-a-users-collection-access-level>`__
         """  # noqa: E501
         endpoint = f"/_api/user/{username}/database/{database}"
         if collection is not None:
@@ -2067,8 +2067,8 @@ class Database:
                 is `False`.
 
         References:
-            - `clear-a-users-database-access-level <https://docs.arangodb.com/stable/develop/http-api/users/#clear-a-users-database-access-level>`__
-            - `clear-a-users-collection-access-level <https://docs.arangodb.com/stable/develop/http-api/users/#clear-a-users-collection-access-level>`__
+            - `clear-a-users-database-access-level <https://docs.arango.ai/stable/develop/http-api/users/#clear-a-users-database-access-level>`__
+            - `clear-a-users-collection-access-level <https://docs.arango.ai/stable/develop/http-api/users/#clear-a-users-collection-access-level>`__
         """  # noqa: E501
         endpoint = f"/_api/user/{username}/database/{database}"
         if collection is not None:
@@ -2098,7 +2098,7 @@ class Database:
             JWTSecretListError: If the operation fails.
 
         References:
-            - `get-information-about-the-loaded-jwt-secrets <https://docs.arangodb.com/stable/develop/http-api/authentication/#get-information-about-the-loaded-jwt-secrets>`__
+            - `get-information-about-the-loaded-jwt-secrets <https://docs.arango.ai/stable/develop/http-api/authentication/#get-information-about-the-loaded-jwt-secrets>`__
         """  # noqa: 501
         request = Request(method=Method.GET, endpoint="/_admin/server/jwt")
 
@@ -2120,7 +2120,7 @@ class Database:
             JWTSecretReloadError: If the operation fails.
 
         References:
-            - `hot-reload-the-jwt-secrets-from-disk <https://docs.arangodb.com/stable/develop/http-api/authentication/#hot-reload-the-jwt-secrets-from-disk>`__
+            - `hot-reload-the-jwt-secrets-from-disk <https://docs.arango.ai/stable/develop/http-api/authentication/#hot-reload-the-jwt-secrets-from-disk>`__
         """  # noqa: 501
         request = Request(
             method=Method.POST, endpoint="/_admin/server/jwt", prefix_needed=False
@@ -2238,7 +2238,7 @@ class Database:
             ServerTLSError: If the operation fails.
 
         References:
-            - `get-the-tls-data <https://docs.arangodb.com/stable/develop/http-api/security/#get-the-tls-data>`__
+            - `get-the-tls-data <https://docs.arango.ai/stable/develop/http-api/security/#get-the-tls-data>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_admin/server/tls")
 
@@ -2262,7 +2262,7 @@ class Database:
             ServerTLSReloadError: If the operation fails.
 
         References:
-            - `reload-the-tls-data <https://docs.arangodb.com/stable/develop/http-api/security/#reload-the-tls-data>`__
+            - `reload-the-tls-data <https://docs.arango.ai/stable/develop/http-api/security/#reload-the-tls-data>`__
         """  # noqa: E501
         request = Request(method=Method.POST, endpoint="/_admin/server/tls")
 
@@ -2287,7 +2287,7 @@ class Database:
             ServerEncryptionError: If the operation fails.
 
         References:
-           - `rotate-the-encryption-keys <https://docs.arangodb.com/stable/develop/http-api/security/#rotate-the-encryption-keys>`__
+           - `rotate-the-encryption-keys <https://docs.arango.ai/stable/develop/http-api/security/#rotate-the-encryption-keys>`__
         """  # noqa: E501
         request = Request(method=Method.POST, endpoint="/_admin/server/encryption")
 
@@ -2360,7 +2360,7 @@ class Database:
             TransactionExecuteError: If the operation fails on the server side.
 
         References:
-            - `execute-a-javascript-transaction <https://docs.arangodb.com/stable/develop/http-api/transactions/javascript-transactions/#execute-a-javascript-transaction>`__
+            - `execute-a-javascript-transaction <https://docs.arango.ai/stable/develop/http-api/transactions/javascript-transactions/#execute-a-javascript-transaction>`__
         """  # noqa: 501
         m = "JavaScript Transactions are deprecated from ArangoDB v3.12.0 onward and will be removed in a future version."  # noqa: E501
         warn(m, DeprecationWarning, stacklevel=2)
@@ -2411,7 +2411,7 @@ class Database:
             ServerVersionError: If the operation fails on the server side.
 
         References:
-            - `get-the-server-version <https://docs.arangodb.com/stable/develop/http-api/administration/#get-the-server-version>`__
+            - `get-the-server-version <https://docs.arango.ai/stable/develop/http-api/administration/#get-the-server-version>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET, endpoint="/_api/version", params={"details": details}
@@ -2434,7 +2434,7 @@ class Database:
             TaskListError: If the list cannot be retrieved.
 
         References:
-            - `list-all-tasks <https://docs.arangodb.com/stable/develop/http-api/tasks/#list-all-tasks>`__
+            - `list-all-tasks <https://docs.arango.ai/stable/develop/http-api/tasks/#list-all-tasks>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/tasks")
 
@@ -2459,7 +2459,7 @@ class Database:
             TaskGetError: If the task details cannot be retrieved.
 
         References:
-            - `get-a-task <https://docs.arangodb.com/stable/develop/http-api/tasks/#get-a-task>`__
+            - `get-a-task <https://docs.arango.ai/stable/develop/http-api/tasks/#get-a-task>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint=f"/_api/tasks/{task_id}")
 
@@ -2499,8 +2499,8 @@ class Database:
             TaskCreateError: If the task cannot be created.
 
         References:
-            - `create-a-task <https://docs.arangodb.com/stable/develop/http-api/tasks/#create-a-task>`__
-            - `create-a-task-with-id <https://docs.arangodb.com/stable/develop/http-api/tasks/#create-a-task-with-id>`__
+            - `create-a-task <https://docs.arango.ai/stable/develop/http-api/tasks/#create-a-task>`__
+            - `create-a-task-with-id <https://docs.arango.ai/stable/develop/http-api/tasks/#create-a-task-with-id>`__
         """  # noqa: E501
         data: Json = {"command": command}
         if name is not None:
@@ -2553,7 +2553,7 @@ class Database:
             TaskDeleteError: If the operation fails.
 
         References:
-            - `delete-a-task <https://docs.arangodb.com/stable/develop/http-api/tasks/#delete-a-task>`__
+            - `delete-a-task <https://docs.arango.ai/stable/develop/http-api/tasks/#delete-a-task>`__
         """  # noqa: E501
         request = Request(method=Method.DELETE, endpoint=f"/_api/tasks/{task_id}")
 
@@ -2576,7 +2576,7 @@ class Database:
             ServerEngineError: If the operation fails.
 
         References:
-            - `get-the-storage-engine-type <https://docs.arangodb.com/stable/develop/http-api/administration/#get-the-storage-engine-type>`__
+            - `get-the-storage-engine-type <https://docs.arango.ai/stable/develop/http-api/administration/#get-the-storage-engine-type>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_api/engine")
 
@@ -2598,7 +2598,7 @@ class Database:
             ServerTimeError: If the operation fails.
 
         References:
-            - `get-the-system-time <https://docs.arangodb.com/stable/develop/http-api/administration/#get-the-system-time>`__
+            - `get-the-system-time <https://docs.arango.ai/stable/develop/http-api/administration/#get-the-system-time>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_admin/time")
 
@@ -2621,7 +2621,7 @@ class Database:
             ServerCheckAvailabilityError: If the operation fails.
 
         References:
-            - `check-server-availability <https://docs.arangodb.com/stable/develop/http-api/administration/#check-server-availability>`__
+            - `check-server-availability <https://docs.arango.ai/stable/develop/http-api/administration/#check-server-availability>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -2649,7 +2649,7 @@ class Database:
             DatabaseSupportInfoError: If the operation fails.
 
         References:
-            - `get-information-about-the-deployment <https://docs.arangodb.com/stable/develop/http-api/administration/#get-information-about-the-deployment>`__
+            - `get-information-about-the-deployment <https://docs.arango.ai/stable/develop/http-api/administration/#get-information-about-the-deployment>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_admin/support-info")
 
@@ -2672,7 +2672,7 @@ class Database:
             ServerCurrentOptionsGetError: If the operation fails.
 
         References:
-            - `get-the-startup-option-configuration <https://docs.arangodb.com/stable/develop/http-api/administration/#get-the-startup-option-configuration>`__
+            - `get-the-startup-option-configuration <https://docs.arango.ai/stable/develop/http-api/administration/#get-the-startup-option-configuration>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_admin/options")
 
@@ -2694,7 +2694,7 @@ class Database:
             ServerAvailableOptionsGetError: If the operation fails.
 
         References:
-           - `get-the-available-startup-options <https://docs.arangodb.com/stable/develop/http-api/administration/#get-the-available-startup-options>`__
+           - `get-the-available-startup-options <https://docs.arango.ai/stable/develop/http-api/administration/#get-the-available-startup-options>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_admin/options-description")
 
@@ -2716,7 +2716,7 @@ class Database:
             ServerModeError: If the operation fails.
 
         References:
-            - `return-whether-or-not-a-server-is-in-read-only-mode <https://docs.arangodb.com/stable/develop/http-api/administration/#return-whether-or-not-a-server-is-in-read-only-mode>`__
+            - `return-whether-or-not-a-server-is-in-read-only-mode <https://docs.arango.ai/stable/develop/http-api/administration/#return-whether-or-not-a-server-is-in-read-only-mode>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_admin/server/mode")
 
@@ -2740,7 +2740,7 @@ class Database:
             ServerModeSetError: If the operation fails.
 
         References:
-           - `set-the-server-mode-to-read-only-or-default <https://docs.arangodb.com/stable/develop/http-api/administration/#set-the-server-mode-to-read-only-or-default>`__
+           - `set-the-server-mode-to-read-only-or-default <https://docs.arango.ai/stable/develop/http-api/administration/#set-the-server-mode-to-read-only-or-default>`__
         """  # noqa: E501
         request = Request(
             method=Method.PUT,
@@ -2766,7 +2766,7 @@ class Database:
             ServerLicenseGetError: If the operation fails.
 
         References:
-            - `get-information-about-the-current-license <https://docs.arangodb.com/stable/develop/http-api/administration/#get-information-about-the-current-license>`__
+            - `get-information-about-the-current-license <https://docs.arango.ai/stable/develop/http-api/administration/#get-information-about-the-current-license>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_admin/license")
 
@@ -2790,7 +2790,7 @@ class Database:
             ServerLicenseSetError: If the operation fails.
 
         References:
-            - `set-a-new-license <https://docs.arangodb.com/stable/develop/http-api/administration/#set-a-new-license>`__
+            - `set-a-new-license <https://docs.arango.ai/stable/develop/http-api/administration/#set-a-new-license>`__
         """  # noqa: E501
         params: Params = {}
         if force is not None:
@@ -2819,7 +2819,7 @@ class Database:
             ServerShutdownError: If the operation fails.
 
         References:
-            - `start-the-shutdown-sequence <https://docs.arangodb.com/stable/develop/http-api/administration/#start-the-shutdown-sequence>`__
+            - `start-the-shutdown-sequence <https://docs.arango.ai/stable/develop/http-api/administration/#start-the-shutdown-sequence>`__
         """  # noqa: E501
         params: Params = {}
         if soft is not None:
@@ -2847,7 +2847,7 @@ class Database:
             ServerShutdownProgressError: If the operation fails.
 
         References:
-            - `query-the-soft-shutdown-progress <https://docs.arangodb.com/stable/develop/http-api/administration/#query-the-soft-shutdown-progress>`__
+            - `query-the-soft-shutdown-progress <https://docs.arango.ai/stable/develop/http-api/administration/#query-the-soft-shutdown-progress>`__
         """  # noqa: E501
         request = Request(method=Method.GET, endpoint="/_admin/shutdown")
 
@@ -2884,7 +2884,7 @@ class Database:
             DatabaseCompactError: If the operation fails.
 
         References:
-            - `compact-all-databases <https://docs.arangodb.com/stable/develop/http-api/administration/#compact-all-databases>`__
+            - `compact-all-databases <https://docs.arango.ai/stable/develop/http-api/administration/#compact-all-databases>`__
         """  # noqa: E501
         data = {}
         if change_level is not None:
@@ -2911,7 +2911,7 @@ class Database:
             ServerReloadRoutingError: If the operation fails.
 
         References:
-           - `reload-the-routing-table <https://docs.arangodb.com/stable/develop/http-api/administration/#reload-the-routing-table>`__
+           - `reload-the-routing-table <https://docs.arango.ai/stable/develop/http-api/administration/#reload-the-routing-table>`__
         """  # noqa: E501
         request = Request(method=Method.POST, endpoint="/_admin/routing/reload")
 
@@ -2934,7 +2934,7 @@ class Database:
             ServerEchoError: If the operation fails.
 
         References:
-            - `echo-a-request <https://docs.arangodb.com/stable/develop/http-api/administration/#echo-a-request>`__
+            - `echo-a-request <https://docs.arango.ai/stable/develop/http-api/administration/#echo-a-request>`__
         """  # noqa: E501
         data = body if body is not None else {}
         request = Request(method=Method.POST, endpoint="/_admin/echo", data=data)
@@ -2960,7 +2960,7 @@ class Database:
             ServerExecuteError: If the execution fails.
 
         References:
-            - `execute-a-script <https://docs.arangodb.com/stable/develop/http-api/administration/#execute-a-script>`__
+            - `execute-a-script <https://docs.arango.ai/stable/develop/http-api/administration/#execute-a-script>`__
         """  # noqa: E501
         request = Request(
             method=Method.POST, endpoint="/_admin/execute", data=command.encode("utf-8")
@@ -3002,7 +3002,7 @@ class Database:
             ServerMetricsError: If the operation fails.
 
         References:
-            - `metrics-api-v2 <https://docs.arangodb.com/stable/develop/http-api/monitoring/metrics/#metrics-api-v2>`__
+            - `metrics-api-v2 <https://docs.arango.ai/stable/develop/http-api/monitoring/metrics/#metrics-api-v2>`__
         """  # noqa: E501
         params: Params = {}
         if server_id is not None:
@@ -3058,7 +3058,7 @@ class Database:
             ServerReadLogError: If the operation fails.
 
         References:
-            - `get-the-global-server-logs <https://docs.arangodb.com/stable/develop/http-api/monitoring/logs/#get-the-global-server-logs>`__
+            - `get-the-global-server-logs <https://docs.arango.ai/stable/develop/http-api/monitoring/logs/#get-the-global-server-logs>`__
         """  # noqa: E501
         params: Params = {}
         if upto is not None:
@@ -3110,7 +3110,7 @@ class Database:
             ServerLogLevelError: If the operation fails.
 
         References:
-            - `get-the-server-log-levels <https://docs.arangodb.com/stable/develop/http-api/monitoring/logs/#get-the-server-log-levels>`__
+            - `get-the-server-log-levels <https://docs.arango.ai/stable/develop/http-api/monitoring/logs/#get-the-server-log-levels>`__
         """  # noqa: E501
         params: Params = {}
         if server_id is not None:
@@ -3166,7 +3166,7 @@ class Database:
             ServerLogLevelSetError: If the operation fails.
 
         References:
-            - `set-the-structured-log-settings <https://docs.arangodb.com/stable/develop/http-api/monitoring/logs/#set-the-structured-log-settings>`__
+            - `set-the-structured-log-settings <https://docs.arango.ai/stable/develop/http-api/monitoring/logs/#set-the-structured-log-settings>`__
         """  # noqa: E501
         params: Params = {}
         if server_id is not None:
@@ -3207,7 +3207,7 @@ class Database:
             ServerLogLevelResetError: If the operation fails.
 
         References:
-            - `reset-the-server-log-levels <https://docs.arangodb.com/stable/develop/http-api/monitoring/logs/#reset-the-server-log-levels>`__
+            - `reset-the-server-log-levels <https://docs.arango.ai/stable/develop/http-api/monitoring/logs/#reset-the-server-log-levels>`__
         """  # noqa: E501
         params: Params = {}
         if server_id is not None:
@@ -3238,7 +3238,7 @@ class Database:
             ServerLogSettingError: If the operation fails.
 
         References:
-            - `get-the-structured-log-settings <https://docs.arangodb.com/stable/develop/http-api/monitoring/logs/#get-the-structured-log-settings>`__
+            - `get-the-structured-log-settings <https://docs.arango.ai/stable/develop/http-api/monitoring/logs/#get-the-structured-log-settings>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -3279,7 +3279,7 @@ class Database:
             ServerLogSettingSetError: If the operation fails.
 
         References:
-           - `set-the-structured-log-settings <https://docs.arangodb.com/stable/develop/http-api/monitoring/logs/#set-the-structured-log-settings>`__
+           - `set-the-structured-log-settings <https://docs.arango.ai/stable/develop/http-api/monitoring/logs/#set-the-structured-log-settings>`__
         """  # noqa: E501
         request = Request(
             method=Method.PUT,
@@ -3306,7 +3306,7 @@ class Database:
             ServerApiCallsError: If the operation fails.
 
         References:
-            - `get-recent-api-calls <https://docs.arangodb.com/stable/develop/http-api/monitoring/api-calls/#get-recent-api-calls>`__
+            - `get-recent-api-calls <https://docs.arango.ai/stable/develop/http-api/monitoring/api-calls/#get-recent-api-calls>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -3379,7 +3379,7 @@ class StandardDatabase(Database):
             TransactionInitError: If the operation fails on the server side.
 
         References:
-            - `begin-a-stream-transaction <https://docs.arangodb.com/stable/develop/http-api/transactions/stream-transactions/#begin-a-stream-transaction>`__
+            - `begin-a-stream-transaction <https://docs.arango.ai/stable/develop/http-api/transactions/stream-transactions/#begin-a-stream-transaction>`__
         """  # noqa: E501
         collections = dict()
         if read is not None:
@@ -3463,7 +3463,7 @@ class StandardDatabase(Database):
             AsyncJobListError: If retrieval fails.
 
         References:
-            - `list-async-jobs-by-status-or-get-the-status-of-specific-job <https://docs.arangodb.com/stable/develop/http-api/jobs/#list-async-jobs-by-status-or-get-the-status-of-specific-job>`__
+            - `list-async-jobs-by-status-or-get-the-status-of-specific-job <https://docs.arango.ai/stable/develop/http-api/jobs/#list-async-jobs-by-status-or-get-the-status-of-specific-job>`__
         """  # noqa: E501
         params: Params = {}
         if count is not None:
@@ -3496,7 +3496,7 @@ class StandardDatabase(Database):
             AsyncJobClearError: If the operation fails.
 
         References:
-            - `delete-async-job-results <https://docs.arangodb.com/stable/develop/http-api/jobs/#delete-async-job-results>`__
+            - `delete-async-job-results <https://docs.arango.ai/stable/develop/http-api/jobs/#delete-async-job-results>`__
         """  # noqa: E501
         if threshold is None:
             request = Request(method=Method.DELETE, endpoint="/_api/job/all")
@@ -3516,7 +3516,7 @@ class StandardDatabase(Database):
 
 class TransactionDatabase(Database):
     """Database API tailored specifically for
-    `Stream Transactions <https://docs.arangodb.com/stable/develop/http-api/transactions/stream-transactions/>`__.
+    `Stream Transactions <https://docs.arango.ai/stable/develop/http-api/transactions/stream-transactions/>`__.
 
     It allows you start a transaction, run multiple operations (eg. AQL queries) over a short period of time,
     and then commit or abort the transaction.
@@ -3551,7 +3551,7 @@ class TransactionDatabase(Database):
             TransactionStatusError: If the transaction is not found.
 
         References:
-            - `get-the-status-of-a-stream-transaction <https://docs.arangodb.com/stable/develop/http-api/transactions/stream-transactions/#get-the-status-of-a-stream-transaction>`__
+            - `get-the-status-of-a-stream-transaction <https://docs.arango.ai/stable/develop/http-api/transactions/stream-transactions/#get-the-status-of-a-stream-transaction>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -3573,7 +3573,7 @@ class TransactionDatabase(Database):
             TransactionCommitError: If the operation fails on the server side.
 
         References:
-            - `commit-a-stream-transaction <https://docs.arangodb.com/stable/develop/http-api/transactions/stream-transactions/#commit-a-stream-transaction>`__
+            - `commit-a-stream-transaction <https://docs.arango.ai/stable/develop/http-api/transactions/stream-transactions/#commit-a-stream-transaction>`__
         """  # noqa: E501
         request = Request(
             method=Method.PUT,
@@ -3593,7 +3593,7 @@ class TransactionDatabase(Database):
             TransactionAbortError: If the operation fails on the server side.
 
         References:
-            - `abort-a-stream-transaction <https://docs.arangodb.com/stable/develop/http-api/transactions/stream-transactions/#abort-a-stream-transaction>`__
+            - `abort-a-stream-transaction <https://docs.arango.ai/stable/develop/http-api/transactions/stream-transactions/#abort-a-stream-transaction>`__
         """  # noqa: E501
         request = Request(
             method=Method.DELETE,
@@ -3620,7 +3620,7 @@ class AsyncDatabase(Database):
             and no results are stored on server.
 
     References:
-        - `jobs <https://docs.arangodb.com/stable/develop/http-api/jobs/>`__
+        - `jobs <https://docs.arango.ai/stable/develop/http-api/jobs/>`__
     """  # noqa: E501
 
     def __init__(self, connection: Connection, return_result: bool) -> None:

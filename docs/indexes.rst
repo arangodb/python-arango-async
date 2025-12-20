@@ -7,7 +7,7 @@ cannot be deleted or modified. Every edge collection has additional indexes
 on fields ``_from`` and ``_to``. For more information on indexes, refer to
 `ArangoDB Manual`_.
 
-.. _ArangoDB Manual: https://docs.arangodb.com
+.. _ArangoDB Manual: https://docs.arango.ai
 
 **Example:**
 
