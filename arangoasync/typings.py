@@ -223,7 +223,7 @@ class KeyOptions(JsonWrapper):
             }
 
     References:
-        - `create-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#create-a-collection_body_keyOptions>`__
+        - `create-a-collection <https://docs.arango.ai/stable/develop/http-api/collections/#create-a-collection_body_keyOptions>`__
     """  # noqa: E501
 
     def __init__(
@@ -310,7 +310,7 @@ class CollectionInfo(JsonWrapper):
             }
 
     References:
-        - `get-the-collection-information <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-collection-information>`__
+        - `get-the-collection-information <https://docs.arango.ai/stable/develop/http-api/collections/#get-the-collection-information>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
@@ -384,7 +384,7 @@ class UserInfo(JsonWrapper):
             }
 
     References:
-        - `create-a-user <https://docs.arangodb.com/stable/develop/http-api/users/#create-a-user>`__
+        - `create-a-user <https://docs.arango.ai/stable/develop/http-api/users/#create-a-user>`__
     """  # noqa: E501
 
     def __init__(
@@ -484,7 +484,7 @@ class ServerStatusInformation(JsonWrapper):
             }
 
     References:
-        - `get-server-status-information <https://docs.arangodb.com/stable/develop/http-api/administration/#get-server-status-information>`__
+        - `get-server-status-information <https://docs.arango.ai/stable/develop/http-api/administration/#get-server-status-information>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
@@ -543,7 +543,7 @@ class DatabaseProperties(JsonWrapper):
     """Properties of the database.
 
     References:
-        - `get-information-about-the-current-database <https://docs.arangodb.com/stable/develop/http-api/databases/#get-information-about-the-current-database>`__
+        - `get-information-about-the-current-database <https://docs.arango.ai/stable/develop/http-api/databases/#get-information-about-the-current-database>`__
     """  # noqa: E501
 
     def __init__(self, data: Json, strip_result: bool = False) -> None:
@@ -650,7 +650,7 @@ class CollectionProperties(JsonWrapper):
             }
 
     References:
-        - `get-the-properties-of-a-collection <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-properties-of-a-collection>`__
+        - `get-the-properties-of-a-collection <https://docs.arango.ai/stable/develop/http-api/collections/#get-the-properties-of-a-collection>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
@@ -870,7 +870,7 @@ class CollectionStatistics(JsonWrapper):
            }
 
     References:
-        - `get-the-collection-statistics <https://docs.arangodb.com/stable/develop/http-api/collections/#get-the-collection-statistics>`__
+        - `get-the-collection-statistics <https://docs.arango.ai/stable/develop/http-api/collections/#get-the-collection-statistics>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
@@ -976,7 +976,7 @@ class IndexProperties(JsonWrapper):
             }
 
     References:
-        - `get-an-index <https://docs.arangodb.com/stable/develop/http-api/indexes/#get-an-index>`__
+        - `get-an-index <https://docs.arango.ai/stable/develop/http-api/indexes/#get-an-index>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
@@ -1253,7 +1253,7 @@ class QueryProperties(JsonWrapper):
             }
 
     References:
-        - `create-a-cursor <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_body_options>`__
+        - `create-a-cursor <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#create-a-cursor_body_options>`__
     """  # noqa: E501
 
     def __init__(
@@ -1414,7 +1414,7 @@ class QueryExecutionPlan(JsonWrapper):
     """The execution plan of an AQL query.
 
     References:
-        - `plan <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_plan>`__
+        - `plan <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_plan>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
@@ -1468,7 +1468,7 @@ class QueryExecutionProfile(JsonWrapper):
             }
 
     References:
-        - `profile <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_profile>`__
+        - `profile <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_profile>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
@@ -1536,7 +1536,7 @@ class QueryExecutionStats(JsonWrapper):
             }
 
     References:
-        - `stats <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_stats>`__
+        - `stats <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra_stats>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
@@ -1615,7 +1615,7 @@ class QueryExecutionExtra(JsonWrapper):
     """Extra information about the query result.
 
     References:
-        - `extra <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra>`__
+        - `extra <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#create-a-cursor_res_201_extra>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
@@ -1659,7 +1659,7 @@ class QueryTrackingConfiguration(JsonWrapper):
             }
 
     References:
-        - `get-the-aql-query-tracking-configuration <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#get-the-aql-query-tracking-configuration>`__
+        - `get-the-aql-query-tracking-configuration <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#get-the-aql-query-tracking-configuration>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
@@ -1718,7 +1718,7 @@ class QueryExplainOptions(JsonWrapper):
             }
 
     References:
-        - `explain-an-aql-query <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#explain-an-aql-query>`__
+        - `explain-an-aql-query <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#explain-an-aql-query>`__
     """  # noqa: E501
 
     def __init__(
@@ -1764,8 +1764,8 @@ class QueryCacheProperties(JsonWrapper):
            }
 
     References:
-        - `get-the-aql-query-results-cache-configuration <https://docs.arangodb.com/stable/develop/http-api/queries/aql-query-results-cache/#get-the-aql-query-results-cache-configuration>`__
-        - `set-the-aql-query-results-cache-configuration <https://docs.arangodb.com/stable/develop/http-api/queries/aql-query-results-cache/#set-the-aql-query-results-cache-configuration>`__
+        - `get-the-aql-query-results-cache-configuration <https://docs.arango.ai/stable/develop/http-api/queries/aql-query-results-cache/#get-the-aql-query-results-cache-configuration>`__
+        - `set-the-aql-query-results-cache-configuration <https://docs.arango.ai/stable/develop/http-api/queries/aql-query-results-cache/#set-the-aql-query-results-cache-configuration>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
@@ -1818,9 +1818,9 @@ class GraphProperties(JsonWrapper):
            }
 
     References:
-        - `get-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#get-a-graph>`__
-        - `list-all-graphs <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#list-all-graphs>`__
-        - `create-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#create-a-graph>`__
+        - `get-a-graph <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#get-a-graph>`__
+        - `list-all-graphs <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#list-all-graphs>`__
+        - `create-a-graph <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#create-a-graph>`__
     """  # noqa: E501
 
     def __init__(self, data: Json) -> None:
@@ -1927,7 +1927,7 @@ class GraphOptions(JsonWrapper):
             graph.
 
     References:
-        - `create-a-graph <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#create-a-graph>`__
+        - `create-a-graph <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#create-a-graph>`__
     """  # noqa: E501
 
     def __init__(
@@ -1982,7 +1982,7 @@ class VertexCollectionOptions(JsonWrapper):
             be a string and a valid collection name.
 
     References:
-        - `add-a-vertex-collection <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#add-a-vertex-collection>`__
+        - `add-a-vertex-collection <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#add-a-vertex-collection>`__
     """  # noqa: E501
 
     def __init__(
@@ -2009,7 +2009,7 @@ class EdgeDefinitionOptions(JsonWrapper):
             be a string and a valid collection name.
 
     References:
-        - `add-an-edge-definition <https://docs.arangodb.com/stable/develop/http-api/graphs/named-graphs/#add-an-edge-definition>`__
+        - `add-an-edge-definition <https://docs.arango.ai/stable/develop/http-api/graphs/named-graphs/#add-an-edge-definition>`__
     """  # noqa: E501
 
     def __init__(

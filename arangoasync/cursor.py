@@ -192,8 +192,8 @@ class Cursor:
             CursorStateError: If the cursor ID is not set.
 
         References:
-            - `read-the-next-batch-from-a-cursor <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#read-the-next-batch-from-a-cursor>`__
-            - `read-a-batch-from-the-cursor-again <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#read-a-batch-from-the-cursor-again>`__
+            - `read-the-next-batch-from-a-cursor <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#read-the-next-batch-from-a-cursor>`__
+            - `read-a-batch-from-the-cursor-again <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#read-a-batch-from-the-cursor-again>`__
         """  # noqa: E501
         if self._id is None:
             raise CursorStateError("Cursor ID is not set")
@@ -229,7 +229,7 @@ class Cursor:
             CursorCloseError: If the cursor failed to close.
 
         References:
-            - `delete-a-cursor <https://docs.arangodb.com/stable/develop/http-api/queries/aql-queries/#delete-a-cursor>`__
+            - `delete-a-cursor <https://docs.arango.ai/stable/develop/http-api/queries/aql-queries/#delete-a-cursor>`__
         """  # noqa: E501
         if self._id is None:
             return False

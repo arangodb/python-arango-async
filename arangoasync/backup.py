@@ -49,7 +49,7 @@ class Backup:
             BackupGetError: If the operation fails.
 
         References:
-            - `list-backups <https://docs.arangodb.com/stable/develop/http-api/hot-backups/#list-all-backups>`__
+            - `list-backups <https://docs.arango.ai/stable/develop/http-api/hot-backups/#list-all-backups>`__
         """  # noqa: E501
         data: Json = {}
         if backup_id is not None:
@@ -97,7 +97,7 @@ class Backup:
             BackupCreateError: If the backup creation fails.
 
         References:
-            - `create-backup <https://docs.arangodb.com/stable/develop/http-api/hot-backups/#create-a-backup>`__
+            - `create-backup <https://docs.arango.ai/stable/develop/http-api/hot-backups/#create-a-backup>`__
         """  # noqa: E501
         data: Json = {}
         if label is not None:
@@ -137,7 +137,7 @@ class Backup:
             BackupRestoreError: If the restore operation fails.
 
         References:
-            - `restore-backup <https://docs.arangodb.com/stable/develop/http-api/hot-backups/#restore-a-backup>`__
+            - `restore-backup <https://docs.arango.ai/stable/develop/http-api/hot-backups/#restore-a-backup>`__
         """  # noqa: E501
         data: Json = {"id": backup_id}
         request = Request(
@@ -165,7 +165,7 @@ class Backup:
             BackupDeleteError: If the delete operation fails.
 
         References:
-            - `delete-backup <https://docs.arangodb.com/stable/develop/http-api/hot-backups/#delete-a-backup>`__
+            - `delete-backup <https://docs.arango.ai/stable/develop/http-api/hot-backups/#delete-a-backup>`__
         """  # noqa: E501
         data: Json = {"id": backup_id}
         request = Request(
@@ -209,7 +209,7 @@ class Backup:
             BackupUploadError: If upload operation fails.
 
         References:
-            - `upload-a-backup-to-a-remote-repository <https://docs.arangodb.com/stable/develop/http-api/hot-backups/#upload-a-backup-to-a-remote-repository>`__
+            - `upload-a-backup-to-a-remote-repository <https://docs.arango.ai/stable/develop/http-api/hot-backups/#upload-a-backup-to-a-remote-repository>`__
         """  # noqa: E501
         data: Json = {}
         if upload_id is not None:
@@ -265,7 +265,7 @@ class Backup:
             BackupDownloadError: If the download operation fails.
 
         References:
-            - `download-a-backup-from-a-remote-repository <https://docs.arangodb.com/stable/develop/http-api/hot-backups/#download-a-backup-from-a-remote-repository>`__
+            - `download-a-backup-from-a-remote-repository <https://docs.arango.ai/stable/develop/http-api/hot-backups/#download-a-backup-from-a-remote-repository>`__
         """  # noqa: E501
         data: Json = {}
         if download_id is not None:

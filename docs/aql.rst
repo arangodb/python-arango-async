@@ -7,7 +7,7 @@ operations such as creating or deleting :doc:`databases <database>`,
 :doc:`collections <collection>` or :doc:`indexes <indexes>`. For more
 information, refer to `ArangoDB Manual`_.
 
-.. _ArangoDB Manual: https://docs.arangodb.com
+.. _ArangoDB Manual: https://docs.arango.ai
 
 AQL Queries
 ===========

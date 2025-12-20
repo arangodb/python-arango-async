@@ -7,7 +7,7 @@ A **graph** consists of vertices and edges. Vertices are stored as documents in
 their relations are specified with :ref:`edge definitions <edge-definitions>`.
 For more information, refer to `ArangoDB Manual`_.
 
-.. _ArangoDB Manual: https://docs.arangodb.com
+.. _ArangoDB Manual: https://docs.arango.ai
 
 **Example:**
 

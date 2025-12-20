@@ -23,7 +23,7 @@ For more information on documents and associated terminologies, refer to
 `ArangoDB Manual`_. Here is an example of a valid document in "students"
 collection:
 
-.. _ArangoDB Manual: https://docs.arangodb.com
+.. _ArangoDB Manual: https://docs.arango.ai
 
 .. code-block:: json
 

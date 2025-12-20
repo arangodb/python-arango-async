@@ -65,7 +65,7 @@ class Foxx:
             FoxxServiceListError: If retrieval fails.
 
         References:
-            - `list-the-installed-services <https://docs.arangodb.com/stable/develop/http-api/foxx/#list-the-installed-services>`__
+            - `list-the-installed-services <https://docs.arango.ai/stable/develop/http-api/foxx/#list-the-installed-services>`__
         """  # noqa: E501
         params: Params = {}
         if exclude_system is not None:
@@ -98,7 +98,7 @@ class Foxx:
             FoxxServiceGetError: If retrieval fails.
 
         References:
-            - `get-the-service-description <https://docs.arangodb.com/stable/develop/http-api/foxx/#get-the-service-description>`__
+            - `get-the-service-description <https://docs.arango.ai/stable/develop/http-api/foxx/#get-the-service-description>`__
         """  # noqa: E501
         params: Params = {"mount": mount}
         request = Request(
@@ -142,7 +142,7 @@ class Foxx:
             FoxxServiceCreateError: If installation fails.
 
         References:
-           - `install-a-new-service-mode <https://docs.arangodb.com/stable/develop/http-api/foxx/#install-a-new-service>`__
+           - `install-a-new-service-mode <https://docs.arango.ai/stable/develop/http-api/foxx/#install-a-new-service>`__
         """  # noqa: E501
         params: Params = dict()
         params["mount"] = mount
@@ -189,7 +189,7 @@ class Foxx:
             FoxxServiceDeleteError: If operations fails.
 
         References:
-            - `uninstall-a-service <https://docs.arangodb.com/stable/develop/http-api/foxx/#uninstall-a-service>`__
+            - `uninstall-a-service <https://docs.arango.ai/stable/develop/http-api/foxx/#uninstall-a-service>`__
         """  # noqa: E501
         params: Params = dict()
         params["mount"] = mount
@@ -236,7 +236,7 @@ class Foxx:
             FoxxServiceReplaceError: If replacement fails.
 
         References:
-            - `replace-a-service <https://docs.arangodb.com/stable/develop/http-api/foxx/#replace-a-service>`__
+            - `replace-a-service <https://docs.arango.ai/stable/develop/http-api/foxx/#replace-a-service>`__
         """  # noqa: E501
         params: Params = dict()
         params["mount"] = mount
@@ -298,7 +298,7 @@ class Foxx:
             FoxxServiceUpdateError: If upgrade fails.
 
         References:
-            - `upgrade-a-service <https://docs.arangodb.com/stable/develop/http-api/foxx/#upgrade-a-service>`__
+            - `upgrade-a-service <https://docs.arango.ai/stable/develop/http-api/foxx/#upgrade-a-service>`__
         """  # noqa: E501
         params: Params = dict()
         params["mount"] = mount
@@ -345,7 +345,7 @@ class Foxx:
             FoxxConfigGetError: If retrieval fails.
 
         References:
-            - `get-the-configuration-options <https://docs.arangodb.com/stable/develop/http-api/foxx/#get-the-configuration-options>`__
+            - `get-the-configuration-options <https://docs.arango.ai/stable/develop/http-api/foxx/#get-the-configuration-options>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -375,7 +375,7 @@ class Foxx:
             FoxxConfigUpdateError: If update fails.
 
         References:
-            - `update-the-configuration-options <https://docs.arangodb.com/stable/develop/http-api/foxx/#update-the-configuration-options>`__
+            - `update-the-configuration-options <https://docs.arango.ai/stable/develop/http-api/foxx/#update-the-configuration-options>`__
         """  # noqa: E501
         request = Request(
             method=Method.PATCH,
@@ -407,7 +407,7 @@ class Foxx:
             FoxxConfigReplaceError: If replace fails.
 
         References:
-            - `replace-the-configuration-options <https://docs.arangodb.com/stable/develop/http-api/foxx/#replace-the-configuration-options>`__
+            - `replace-the-configuration-options <https://docs.arango.ai/stable/develop/http-api/foxx/#replace-the-configuration-options>`__
         """  # noqa: E501
         request = Request(
             method=Method.PUT,
@@ -437,7 +437,7 @@ class Foxx:
             FoxxDependencyGetError: If retrieval fails.
 
         References:
-           - `get-the-dependency-options <https://docs.arangodb.com/stable/develop/http-api/foxx/#get-the-dependency-options>`__
+           - `get-the-dependency-options <https://docs.arango.ai/stable/develop/http-api/foxx/#get-the-dependency-options>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -467,7 +467,7 @@ class Foxx:
             FoxxDependencyUpdateError: If update fails.
 
         References:
-            - `update-the-dependency-options <https://docs.arangodb.com/stable/develop/http-api/foxx/#update-the-dependency-options>`__
+            - `update-the-dependency-options <https://docs.arango.ai/stable/develop/http-api/foxx/#update-the-dependency-options>`__
         """  # noqa: E501
         request = Request(
             method=Method.PATCH,
@@ -498,7 +498,7 @@ class Foxx:
             FoxxDependencyReplaceError: If replace fails.
 
         References:
-            - `replace-the-dependency-options <https://docs.arangodb.com/stable/develop/http-api/foxx/#replace-the-dependency-options>`__
+            - `replace-the-dependency-options <https://docs.arango.ai/stable/develop/http-api/foxx/#replace-the-dependency-options>`__
         """  # noqa: E501
         request = Request(
             method=Method.PUT,
@@ -528,7 +528,7 @@ class Foxx:
             FoxxScriptListError: If retrieval fails.
 
         References:
-            - `list-the-service-scripts <https://docs.arangodb.com/stable/develop/http-api/foxx/#list-the-service-scripts>`__
+            - `list-the-service-scripts <https://docs.arango.ai/stable/develop/http-api/foxx/#list-the-service-scripts>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -561,7 +561,7 @@ class Foxx:
             FoxxScriptRunError: If script fails.
 
         References:
-           - `run-a-service-script <https://docs.arangodb.com/stable/develop/http-api/foxx/#run-a-service-script>`__
+           - `run-a-service-script <https://docs.arango.ai/stable/develop/http-api/foxx/#run-a-service-script>`__
         """  # noqa: E501
         request = Request(
             method=Method.POST,
@@ -612,7 +612,7 @@ class Foxx:
             FoxxTestRunError: If test fails.
 
         References:
-           - `run-the-service-tests <https://docs.arangodb.com/stable/develop/http-api/foxx/#run-the-service-tests>`__
+           - `run-the-service-tests <https://docs.arango.ai/stable/develop/http-api/foxx/#run-the-service-tests>`__
         """  # noqa: E501
         params: Params = dict()
         params["mount"] = mount
@@ -665,7 +665,7 @@ class Foxx:
             FoxxDevModeEnableError: If the operation fails.
 
         References:
-           - `enable-the-development-mode <https://docs.arangodb.com/stable/develop/http-api/foxx/#enable-the-development-mode>`__
+           - `enable-the-development-mode <https://docs.arango.ai/stable/develop/http-api/foxx/#enable-the-development-mode>`__
         """  # noqa: E501
         request = Request(
             method=Method.POST,
@@ -697,7 +697,7 @@ class Foxx:
             FoxxDevModeDisableError: If the operation fails.
 
         References:
-            - `disable-the-development-mode <https://docs.arangodb.com/stable/develop/http-api/foxx/#disable-the-development-mode>`__
+            - `disable-the-development-mode <https://docs.arango.ai/stable/develop/http-api/foxx/#disable-the-development-mode>`__
         """  # noqa: E501
         request = Request(
             method=Method.DELETE,
@@ -726,7 +726,7 @@ class Foxx:
             FoxxReadmeGetError: If retrieval fails.
 
         References:
-            - `get-the-service-readme <https://docs.arangodb.com/stable/develop/http-api/foxx/#get-the-service-readme>`__
+            - `get-the-service-readme <https://docs.arango.ai/stable/develop/http-api/foxx/#get-the-service-readme>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET,
@@ -754,7 +754,7 @@ class Foxx:
             FoxxSwaggerGetError: If retrieval fails.
 
         References:
-           - `get-the-swagger-description <https://docs.arangodb.com/stable/develop/http-api/foxx/#get-the-swagger-description>`__
+           - `get-the-swagger-description <https://docs.arango.ai/stable/develop/http-api/foxx/#get-the-swagger-description>`__
         """  # noqa: E501
         request = Request(
             method=Method.GET, endpoint="/_api/foxx/swagger", params={"mount": mount}
@@ -785,7 +785,7 @@ class Foxx:
             FoxxDownloadError: If download fails.
 
         References:
-           - `download-a-service-bundle <https://docs.arangodb.com/stable/develop/http-api/foxx/#download-a-service-bundle>`__
+           - `download-a-service-bundle <https://docs.arango.ai/stable/develop/http-api/foxx/#download-a-service-bundle>`__
         """  # noqa: E501
         request = Request(
             method=Method.POST, endpoint="/_api/foxx/download", params={"mount": mount}
@@ -812,7 +812,7 @@ class Foxx:
             FoxxCommitError: If commit fails.
 
         References:
-            - `commit-the-local-service-state <https://docs.arangodb.com/stable/develop/http-api/foxx/#commit-the-local-service-state>`__
+            - `commit-the-local-service-state <https://docs.arango.ai/stable/develop/http-api/foxx/#commit-the-local-service-state>`__
         """  # noqa: E501
         params: Params = {}
         if replace is not None:
