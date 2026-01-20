@@ -131,9 +131,7 @@ async def test_cursor_write_query(db, doc_col, docs):
         SORT d.val
         UPDATE {{_key: d._key, _val: @val }} IN {col}
         RETURN NEW
-        """.format(
-            col=doc_col.name
-        ),
+        """.format(col=doc_col.name),
         bind_vars={"first": 1, "second": 2, "val": 42},
         count=True,
         batch_size=1,
