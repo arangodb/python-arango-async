@@ -9,28 +9,29 @@ from typing import (
     MutableMapping,
     Optional,
     Tuple,
+    TypeAlias,
     cast,
 )
 
 from multidict import CIMultiDictProxy, MultiDict
 
-Json = Dict[str, Any]
-Json.__doc__ = """Type definition for request/response body"""
+Json: TypeAlias = Dict[str, Any]
+"""Type definition for request/response body"""
 
-Jsons = List[Json]
-Jsons.__doc__ = """Type definition for a list of JSON objects"""
+Jsons: TypeAlias = List[Json]
+"""Type definition for a list of JSON objects"""
 
-RequestHeaders = MutableMapping[str, str] | MultiDict[str]
-RequestHeaders.__doc__ = """Type definition for request HTTP headers"""
+RequestHeaders: TypeAlias = MutableMapping[str, str] | MultiDict[str]
+"""Type definition for request HTTP headers"""
 
-ResponseHeaders = MutableMapping[str, str] | MultiDict[str] | CIMultiDictProxy[str]
-ResponseHeaders.__doc__ = """Type definition for response HTTP headers"""
+ResponseHeaders: TypeAlias = MutableMapping[str, str] | MultiDict[str] | CIMultiDictProxy[str]
+"""Type definition for response HTTP headers"""
 
-Params = MutableMapping[str, bool | int | str | float]
-Params.__doc__ = """Type definition for URL (query) parameters"""
+Params: TypeAlias = MutableMapping[str, bool | int | str | float]
+"""Type definition for URL (query) parameters"""
 
-Formatter = Callable[[Json], Json]
-Formatter.__doc__ = """Type definition for a JSON formatter"""
+Formatter: TypeAlias = Callable[[Json], Json]
+"""Type definition for a JSON formatter"""
 
 
 class CollectionType(Enum):
