@@ -24,7 +24,9 @@ Jsons: TypeAlias = List[Json]
 RequestHeaders: TypeAlias = MutableMapping[str, str] | MultiDict[str]
 """Type definition for request HTTP headers"""
 
-ResponseHeaders: TypeAlias = MutableMapping[str, str] | MultiDict[str] | CIMultiDictProxy[str]
+ResponseHeaders: TypeAlias = (
+    MutableMapping[str, str] | MultiDict[str] | CIMultiDictProxy[str]
+)
 """Type definition for response HTTP headers"""
 
 Params: TypeAlias = MutableMapping[str, bool | int | str | float]
