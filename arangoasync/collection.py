@@ -934,7 +934,7 @@ class Collection(Generic[T, U, V]):
         documents: Sequence[str | T],
         allow_dirty_read: Optional[bool] = None,
         ignore_revs: Optional[bool] = None,
-    ) -> Result[V]:
+    ) -> Result[Jsons]:
         """Return multiple documents ignoring any missing ones.
 
         Args:
@@ -977,10 +977,14 @@ class Collection(Generic[T, U, V]):
             data=self._doc_serializer.dumps(documents),
         )
 
-        def response_handler(resp: Response) -> V:
+        def response_handler(resp: Response) -> Jsons:
             if not resp.is_success:
                 raise DocumentGetError(resp, request)
-            return self._doc_deserializer.loads_many(resp.raw_body)
+            return [
+                doc
+                for doc in self.deserializer.loads_many(resp.raw_body)
+                if "_id" in doc
+            ]
 
         return await self._executor.execute(request, response_handler)
 

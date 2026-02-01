@@ -223,8 +223,8 @@ async def test_document_get_many(doc_col, bad_col, docs):
     keys = [doc["_key"] for doc in docs]
     keys.append("invalid_key")
     many = await doc_col.get_many(keys)
-    assert len(many) == len(keys)
-    assert "error" in many[-1]
+    assert len(many) == len(keys) - 1
+    assert "error" not in many[-1]
 
     # Test with full documents
     many = await doc_col.get_many(docs)
@@ -237,8 +237,7 @@ async def test_document_get_many(doc_col, bad_col, docs):
     assert len(many) == 1
     assert "error" not in many[0]
     many = await doc_col.get_many([bad_rev[0]], ignore_revs=False)
-    assert len(many) == 1
-    assert "error" in many[0]
+    assert len(many) == 0
 
     # Empty list
     many = await doc_col.get_many([])
