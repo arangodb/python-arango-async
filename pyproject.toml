@@ -40,7 +40,7 @@ dependencies = [
     "packaging>=23.1",
     "aiohttp>=3.9",
     "multidict>=6.0",
-    "pyjwt>=2.8.0",
+    "pyjwt>=2.10.0",
 ]
 
 [tool.setuptools.dynamic]
@@ -51,8 +51,8 @@ dev = [
     "aiofiles>=24.1.0",
     "black==26.1.0",
     "flake8==7.3.0",
-    "isort>=5.10",
-    "mypy>=1.10",
+    "isort>=5.10.1",
+    "mypy==1.15.0",
     "pre-commit>=3.7",
     "pytest>=8.2",
     "pytest-asyncio>=0.23.8",
@@ -92,5 +92,6 @@ profile = "black"
 [tool.mypy]
 warn_return_any = true
 warn_unused_configs = true
+warn_unused_ignores = false
 ignore_missing_imports = true
 strict = true

@@ -115,7 +115,7 @@ class JwtToken:
                 "verify_iat": True,
                 "verify_exp": True,
                 "verify_signature": False,
-            },
+            },  # type: ignore[arg-type]
         )
 
         self._token_exp = jwt_payload["exp"]
