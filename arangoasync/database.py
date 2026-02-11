@@ -694,6 +694,8 @@ class Database:
             key_options.validate()
             data["keyOptions"] = key_options.to_dict()
         if schema is not None:
+            if not isinstance(schema, dict) or len(schema) == 0:
+                raise ValueError("schema parameter must be a non-empty dict")
             data["schema"] = schema
         if shard_keys is not None:
             data["shardKeys"] = shard_keys

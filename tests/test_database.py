@@ -352,6 +352,8 @@ async def test_create_drop_collection(db, bad_db, cluster):
         await db.create_collection(generate_col_name(), col_type=db)
     with pytest.raises(ValueError):
         await db.create_collection(generate_col_name(), key_options={})
+    with pytest.raises(ValueError):
+        await db.create_collection(generate_col_name(), schema={})
 
     # Drop the newly created collection
     assert await db.delete_collection(col_name) is True

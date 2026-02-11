@@ -570,6 +570,7 @@ class Collection(Generic[T, U, V]):
 
         Raises:
             CollectionConfigureError: If configuration fails.
+            ValueError: If parameters are invalid.
 
         References:
             - `change-the-properties-of-a-collection <https://docs.arango.ai/arangodb/stable/develop/http-api/collections/#change-the-properties-of-a-collection>`__
@@ -582,6 +583,8 @@ class Collection(Generic[T, U, V]):
         if replication_factor is not None:
             data["replicationFactor"] = replication_factor
         if schema is not None:
+            if not isinstance(schema, dict) or len(schema) == 0:
+                raise ValueError("schema parameter must be a non-empty dict")
             data["schema"] = schema
         if wait_for_sync is not None:
             data["waitForSync"] = wait_for_sync
