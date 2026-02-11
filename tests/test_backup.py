@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from packaging import version
 
@@ -36,6 +38,10 @@ async def test_backup(
         assert "list" in result
         result = await backup.restore(backup_id)
         assert "previous" in result
+
+        # Wait for restore to complete
+        await asyncio.sleep(10)
+
         config = {"local": {"type": "local"}}
         result = await backup.upload(backup_id, repository=backup_path, config=config)
         assert "uploadId" in result

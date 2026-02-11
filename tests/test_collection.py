@@ -50,6 +50,8 @@ async def test_collection_misc_methods(doc_col, bad_col, docs, cluster):
     assert new_properties.wait_for_sync == wfs
     with pytest.raises(CollectionConfigureError):
         await bad_col.configure(wait_for_sync=wfs)
+    with pytest.raises(ValueError):
+        await doc_col.configure(schema={})
 
     # Statistics
     statistics = await doc_col.statistics()
