@@ -40,7 +40,7 @@ async def test_backup(
         assert "previous" in result
 
         # Wait for restore to complete
-        asyncio.sleep(10)
+        await asyncio.sleep(10)
 
         config = {"local": {"type": "local"}}
         result = await backup.upload(backup_id, repository=backup_path, config=config)
