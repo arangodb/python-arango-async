@@ -64,9 +64,16 @@ async def test_query_tracking(db, bad_db):
     assert tracking.enabled is False
 
     # Re-enable.
-    tracking = await aql.set_tracking(enabled=True, max_slow_queries=5)
+    tracking = await aql.set_tracking(
+        enabled=True,
+        max_slow_queries=5,
+        slow_streaming_query_threshold=20,
+        slow_query_threshold=15,
+    )
     assert tracking.enabled is True
     assert tracking.max_slow_queries == 5
+    assert tracking.slow_streaming_query_threshold == 20
+    assert tracking.slow_query_threshold == 15
 
     # Exceptions with bad database
     with pytest.raises(AQLQueryTrackingGetError):

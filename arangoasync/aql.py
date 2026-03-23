@@ -369,6 +369,7 @@ class AQL:
         enabled: Optional[bool] = None,
         max_slow_queries: Optional[int] = None,
         slow_query_threshold: Optional[int] = None,
+        slow_streaming_query_threshold: Optional[int] = None,
         max_query_string_length: Optional[int] = None,
         track_bind_vars: Optional[bool] = None,
         track_slow_queries: Optional[int] = None,
@@ -382,6 +383,8 @@ class AQL:
                 entries are discarded first.
             slow_query_threshold (int | None): Runtime threshold (in seconds) for treating a
                 query as slow.
+            slow_streaming_query_threshold (int | None): Runtime threshold (in seconds) for
+                treating a streaming query as slow.
             max_query_string_length (int | None): The maximum query string length (in bytes)
                 to keep in the list of queries.
             track_bind_vars (bool | None): If set to `True`, track bind variables used in
@@ -409,6 +412,8 @@ class AQL:
             data["maxQueryStringLength"] = max_query_string_length
         if slow_query_threshold is not None:
             data["slowQueryThreshold"] = slow_query_threshold
+        if slow_streaming_query_threshold is not None:
+            data["slowStreamingQueryThreshold"] = slow_streaming_query_threshold
         if track_bind_vars is not None:
             data["trackBindVars"] = track_bind_vars
         if track_slow_queries is not None:
