@@ -228,15 +228,36 @@ async def test_collection_index(doc_col, bad_col, cluster):
         await bad_col.load_indexes()
     assert err.value.error_code == DATA_SOURCE_NOT_FOUND
 
+    # Create a vector index
+    docs = []
+    for key in range(100):
+        docs.append({"_key": f"key_{key}", "embedding": [1] * 128})
+    await doc_col.insert_many(docs)
+    idx4 = await doc_col.add_index(
+        "vector",
+        ["embedding"],
+        {
+            "name": "vector_index",
+            "params": {
+                "metric": "cosine",
+                "dimension": 128,
+                "nLists": 2,
+            },
+        },
+    )
+    assert idx4.name == "vector_index"
+
     # Delete indexes
-    del1, del2, del3 = await asyncio.gather(
+    del1, del2, del3, del4 = await asyncio.gather(
         doc_col.delete_index(idx1.id),
         doc_col.delete_index(idx2.numeric_id),
         doc_col.delete_index(str(idx3.numeric_id)),
+        doc_col.delete_index(idx4.id),
     )
     assert del1 is True
     assert del2 is True
     assert del3 is True
+    assert del4 is True
 
     # Now, the indexes should be gone
     with pytest.raises(IndexDeleteError) as err:
