@@ -397,7 +397,7 @@ class Collection(Generic[T, U, V]):
 
         Args:
             type (str): Type attribute (ex. "persistent", "inverted", "ttl", "mdi",
-                "geo").
+                "geo", "vector").
             fields (dict | list): Fields to index.
             options (dict | None): Additional index options.
 

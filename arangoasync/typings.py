@@ -728,6 +728,10 @@ class CollectionProperties(JsonWrapper):
         return self._data.get("computedValues")
 
     @property
+    def supportsRBAC(self) -> Optional[bool]:
+        return self._data.get("supportsRBAC")
+
+    @property
     def object_id(self) -> str:
         return self._data["objectId"]  # type: ignore[no-any-return]
 
@@ -808,6 +812,8 @@ class CollectionProperties(JsonWrapper):
             result["computedValues"] = data["computedValues"]
         if "internalValidatorType" in data:
             result["internal_validator_type"] = data["internalValidatorType"]
+        if "supportsRBAC" in data:
+            result["supportsRBAC"] = data["supportsRBAC"]
         return result
 
     def format(self, formatter: Optional[Formatter] = None) -> Json:
@@ -1121,6 +1127,14 @@ class IndexProperties(JsonWrapper):
     def features(self) -> Optional[List[str]]:
         return self._data.get("features")
 
+    @property
+    def error_message(self) -> Optional[str]:
+        return self._data.get("errorMessage")
+
+    @property
+    def training_state(self) -> Optional[str]:
+        return self._data.get("trainingState")
+
     @staticmethod
     def compatibility_formatter(data: Json) -> Json:
         """python-arango compatibility formatter."""
@@ -1179,6 +1193,10 @@ class IndexProperties(JsonWrapper):
             result["writebuffer_max_size"] = data["writebufferSizeMax"]
         if "optimizeTopK" in data:
             result["optimizeTopK"] = data["optimizeTopK"]
+        if "errorMessage" in data:
+            result["error_message"] = data["errorMessage"]
+        if "trainingState" in data:
+            result["training_state"] = data["trainingState"]
         return result
 
     def format(self, formatter: Optional[Formatter] = None) -> Json:
