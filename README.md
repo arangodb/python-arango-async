@@ -127,7 +127,7 @@ async def main():
         # Traverse the graph in outbound direction, breath-first.
         query = """
             FOR v, e, p IN 1..3 OUTBOUND 'students/01' GRAPH 'school'
-            OPTIONS { bfs: true, uniqueVertices: 'global' }
+            OPTIONS { order: 'bfs', uniqueVertices: 'global' }
             RETURN {vertex: v, edge: e, path: p}
             """
 
