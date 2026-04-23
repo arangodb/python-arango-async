@@ -1,4 +1,5 @@
 import pytest
+from packaging import version
 
 from arangoasync.exceptions import (
     TaskCreateError,
@@ -10,9 +11,12 @@ from tests.helpers import generate_task_id, generate_task_name
 
 
 @pytest.mark.asyncio
-async def test_task_management(sys_db, bad_db, skip_tests):
+async def test_task_management(db_version, sys_db, bad_db, skip_tests):
     # This test intentionally uses the system database because cleaning up tasks is
     # easier there.
+
+    if db_version >= version.parse("4.0.0"):
+        pytest.skip("The tasks feature is deprecated and removed in ArangoDB v4.0")
 
     if "task" in skip_tests:
         pytest.skip("Skipping task tests")

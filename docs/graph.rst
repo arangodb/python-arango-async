@@ -405,7 +405,7 @@ over edges and vertices using various algorithms.
         # Traverse 1 to 3 hops from the vertex "teachers/jon",
         query = """
         FOR v, e, p IN 1..3 OUTBOUND 'teachers/jon' GRAPH 'school'
-        OPTIONS { bfs: true, uniqueVertices: 'global' }
+        OPTIONS { order: 'bfs', uniqueVertices: 'global' }
         RETURN {vertex: v, edge: e, path: p}
         """
 

@@ -4,6 +4,7 @@ import json
 import aiofiles
 import aiohttp
 import pytest
+from packaging import version
 
 from arangoasync.exceptions import (
     FoxxCommitError,
@@ -34,7 +35,10 @@ service_name = "test"
 
 
 @pytest.mark.asyncio
-async def test_foxx(db, bad_db, skip_tests, foxx_path):
+async def test_foxx(db_version, db, bad_db, skip_tests, foxx_path):
+    if db_version >= version.parse("4.0.0"):
+        pytest.skip("Foxx API has been removed in ArangoDB v4.0")
+
     if "foxx" in skip_tests:
         pytest.skip("Skipping Foxx tests")
 

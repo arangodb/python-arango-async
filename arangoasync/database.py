@@ -3004,7 +3004,7 @@ class Database:
             ServerMetricsError: If the operation fails.
 
         References:
-            - `metrics-api-v2 <https://docs.arango.ai/arangodb/stable/develop/http-api/monitoring/metrics/#metrics-api-v2>`__
+            - `metrics-api <https://docs.arango.ai/arangodb/stable/develop/http-api/monitoring/metrics/#metrics-api>`__
         """  # noqa: E501
         params: Params = {}
         if server_id is not None:
@@ -3012,7 +3012,7 @@ class Database:
 
         request = Request(
             method=Method.GET,
-            endpoint="/_admin/metrics/v2",
+            endpoint="/_admin/metrics",
             params=params,
         )
 
