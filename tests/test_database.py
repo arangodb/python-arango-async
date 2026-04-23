@@ -90,7 +90,7 @@ async def test_database_misc_methods(
 
     # Version
     v = await sys_db.version()
-    assert v["version"].startswith("3.")
+    assert isinstance(v["version"], str)
     with pytest.raises(ServerVersionError):
         await bad_db.version()
 
@@ -152,19 +152,20 @@ async def test_database_misc_methods(
     with pytest.raises(ServerShutdownProgressError):
         await bad_db.shutdown_progress()
 
-    with pytest.raises(ServerReloadRoutingError):
-        await bad_db.reload_routing()
-    await sys_db.reload_routing()
+    if db_version < version.parse("4.0.0"):
+        with pytest.raises(ServerReloadRoutingError):
+            await bad_db.reload_routing()
+        await sys_db.reload_routing()
 
-    with pytest.raises(ServerEchoError):
-        await bad_db.echo()
-    result = await sys_db.echo()
-    assert isinstance(result, dict)
+        with pytest.raises(ServerEchoError):
+            await bad_db.echo()
+        result = await sys_db.echo()
+        assert isinstance(result, dict)
 
-    with pytest.raises(ServerExecuteError):
-        await bad_db.execute("return 1")
-    result = await sys_db.execute("return 1")
-    assert result == 1
+        with pytest.raises(ServerExecuteError):
+            await bad_db.execute("return 1")
+        result = await sys_db.execute("return 1")
+        assert result == 1
 
     with pytest.raises(DatabaseCompactError):
         await bad_db.compact()
@@ -176,10 +177,11 @@ async def test_database_misc_methods(
 
     # Custom Request
     request = Request(
-        method=Method.POST, endpoint="/_admin/execute", data="return 1".encode("utf-8")
+        method=Method.GET,
+        endpoint="/_api/version",
     )
     response = await sys_db.request(request)
-    assert json.loads(response.raw_body) == 1
+    assert "version" in json.loads(response.raw_body)
 
     if "enterprise" not in skip_tests and db_version >= version.parse("3.12.0"):
         # API calls
