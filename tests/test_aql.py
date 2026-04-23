@@ -304,7 +304,10 @@ async def test_cache_plan_management(db, bad_db, doc_col, docs, db_version):
 
 
 @pytest.mark.asyncio
-async def test_aql_function_management(db, bad_db):
+async def test_aql_function_management(db_version, db, bad_db):
+    if db_version >= version.parse("4.0.0"):
+        pytest.skip("Javascript is not available in ArangoDB v4.0")
+
     fn_group = "functions::temperature"
     fn_name_1 = "functions::temperature::celsius_to_fahrenheit"
     fn_body_1 = "function (celsius) { return celsius * 1.8 + 32; }"
