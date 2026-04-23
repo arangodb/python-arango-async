@@ -60,15 +60,17 @@ async def test_cluster(
         health = await cluster.health()
         assert "Health" in health
 
-        # DB-Server statistics
         db_server = None
         for server in health["Health"]:
             if server.startswith("PRMR"):
                 db_server = server
                 break
-        assert db_server is not None, f"No DB server found in {health}"
-        stats = await cluster.statistics(db_server)
-        assert "enabled" in stats
+
+        if db_version < version.parse("4.0.0"):
+            # DB-Server statistics
+            assert db_server is not None, f"No DB server found in {health}"
+            stats = await cluster.statistics(db_server)
+            assert "enabled" in stats
 
         # Cluster endpoints
         endpoints = await cluster.endpoints()
