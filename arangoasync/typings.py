@@ -12,6 +12,7 @@ from typing import (
     TypeAlias,
     cast,
 )
+from warnings import warn
 
 from multidict import CIMultiDictProxy, MultiDict
 
@@ -677,6 +678,8 @@ class CollectionProperties(JsonWrapper):
 
     @property
     def status_string(self) -> Optional[str]:
+        m = "statusString attribute has been removed in ArangoDB 4.0"
+        warn(m, DeprecationWarning, stacklevel=2)
         return self._data.get("statusString")
 
     @property
@@ -701,6 +704,8 @@ class CollectionProperties(JsonWrapper):
 
     @property
     def status(self) -> CollectionStatus:
+        m = "status attribute has been removed in ArangoDB 4.0"
+        warn(m, DeprecationWarning, stacklevel=2)
         return CollectionStatus.from_int(self._data["status"])
 
     @property
