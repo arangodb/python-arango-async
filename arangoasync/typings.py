@@ -565,7 +565,7 @@ class DatabaseProperties(JsonWrapper):
 
     @property
     def path(self) -> Optional[str]:
-        """The filesystem path of the current database."""
+        """The filesystem path of the current database. Removed in ArangoDB 4.0."""
         return self._data.get("path")
 
     @property
