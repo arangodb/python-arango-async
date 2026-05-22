@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+from packaging import version
 
 from arangoasync.database import TransactionDatabase
 from arangoasync.errno import BAD_PARAMETER, FORBIDDEN, TRANSACTION_NOT_FOUND
@@ -14,9 +15,12 @@ from arangoasync.exceptions import (
 
 
 @pytest.mark.asyncio
-async def test_transaction_execute_raw(db, doc_col, docs, skip_tests):
+async def test_transaction_execute_raw(db, doc_col, docs, skip_tests, db_version):
     if "js-transactions" in skip_tests:
         pytest.skip("Skipping JS transaction tests")
+
+    if db_version >= version.parse("4.0"):
+        pytest.skip("Javascript transactions are no longer supported in ArangoDB 4.0")
 
     # Test a valid JS transaction
     doc = docs[0]
