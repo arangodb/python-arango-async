@@ -69,6 +69,11 @@ docker run -d \
   "$image_ref" \
   /bin/sh -c "arangodb --configuration=/tests/static/$conf_file.conf"
 
+if [ $? -ne 0 ]; then
+    echo "ERROR starter failed to start container"
+    exit 1
+fi
+
 wget --quiet --waitretry=1 --tries=120 -O - http://localhost:8528/version | jq
 if [ $? -eq 0 ]; then
     echo "OK starter ready"
