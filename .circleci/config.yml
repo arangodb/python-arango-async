@@ -15,18 +15,21 @@ workflows:
     jobs:
       - lint
       - test:
-          name:  Python (<< matrix.python_version >>) - ArangoDB (<< matrix.arangodb_license >>, << matrix.arangodb_version >> << matrix.arangodb_config >>)
+          name: Python (<< matrix.python_version >>) - ArangoDB (enterprise, << matrix.arangodb_version >> << matrix.arangodb_config >>)
           matrix:
             parameters:
               python_version: ["3.13"]
               arangodb_config: ["single", "cluster"]
-              arangodb_license: ["enterprise", "enterprise-preview"]
-              arangodb_version: ["3.12", "4.0-nightly"]
-            exclude:
-              - arangodb_license: "enterprise"
-                arangodb_version: "4.0-nightly"
-              - arangodb_license: "enterprise-preview"
-                arangodb_version: "3.12"
+              arangodb_license: ["enterprise"]
+              arangodb_version: ["3.12"]
+      - test:
+          name: Python (<< matrix.python_version >>) - ArangoDB (enterprise-preview, << matrix.arangodb_version >> << matrix.arangodb_config >>)
+          matrix:
+            parameters:
+              python_version: ["3.13"]
+              arangodb_config: ["single", "cluster"]
+              arangodb_license: ["enterprise-preview"]
+              arangodb_version: ["4.0-nightly"]
       - test:
           name: Python (<< matrix.python_version >>) - ArangoDB (enterprise, 3.12 cluster)
           matrix:
