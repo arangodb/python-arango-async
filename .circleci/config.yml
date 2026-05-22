@@ -20,8 +20,13 @@ workflows:
             parameters:
               python_version: ["3.10", "3.11", "3.12"]
               arangodb_config: ["single", "cluster"]
-              arangodb_license: ["enterprise"]
-              arangodb_version: ["3.12"]
+              arangodb_license: ["enterprise", "enterprise-preview"]
+              arangodb_version: ["3.12", "4.0-nightly"]
+            exclude:
+              - arangodb_license: "enterprise"
+                arangodb_version: "4.0-nightly"
+              - arangodb_license: "enterprise-preview"
+                arangodb_version: "3.12"
 
 jobs:
   lint:
