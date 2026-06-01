@@ -2944,6 +2944,9 @@ class Database:
     async def echo(self, body: Optional[Json] = None) -> Result[Json]:
         """Return an object with the servers request information.
 
+        Warning:
+            Request echoing is no longer available in ArangoDB 4.0.
+
         Args:
             body (dict | None): Optional body of the request.
 
@@ -2969,6 +2972,9 @@ class Database:
 
     async def execute(self, command: str) -> Result[Any]:
         """Execute raw Javascript command on the server.
+
+        Warning:
+            Javascript command execution is no longer available in ArangoDB 4.0.
 
         Args:
             command (str): Javascript command to execute.
