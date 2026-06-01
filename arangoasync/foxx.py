@@ -34,7 +34,11 @@ from arangoasync.typings import Json, Jsons, Params, RequestHeaders
 
 
 class Foxx:
-    """Foxx API wrapper."""
+    """Foxx API wrapper.
+
+    Warning:
+        Foxx microservice features are no longer available in ArangoDB 4.0.
+    """
 
     def __init__(self, executor: ApiExecutor) -> None:
         self._executor = executor

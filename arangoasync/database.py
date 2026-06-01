@@ -234,6 +234,9 @@ class Database:
     def foxx(self) -> Foxx:
         """Return Foxx API wrapper.
 
+        Warning:
+            Foxx microservice features are no longer available in ArangoDB 4.0.
+
         Returns:
             arangoasync.foxx.Foxx: Foxx API wrapper.
         """
