@@ -2429,6 +2429,9 @@ class Database:
     async def tasks(self) -> Result[Jsons]:
         """Fetches all existing tasks from the server.
 
+        Warning:
+            Tasks are no longer available in ArangoDB 4.0.
+
         Returns:
             list: List of currently active server tasks.
 
@@ -2450,6 +2453,9 @@ class Database:
 
     async def task(self, task_id: str) -> Result[Json]:
         """Return the details of an active server task.
+
+        Warning:
+            Tasks are no longer available in ArangoDB 4.0.
 
         Args:
             task_id (str) -> Server task ID.
