@@ -2484,6 +2484,9 @@ class Database:
     ) -> Result[Json]:
         """Create a new task.
 
+        Warning:
+            Tasks are no longer available in ArangoDB 4.0.
+
         Args:
             command (str): The JavaScript code to be executed.
             task_id (str | None): Optional task ID. If not provided, the server will
@@ -2541,6 +2544,9 @@ class Database:
         ignore_missing: bool = False,
     ) -> Result[bool]:
         """Delete a server task.
+
+        Warning:
+            Tasks are no longer available in ArangoDB 4.0.
 
         Args:
             task_id (str): Task ID.
