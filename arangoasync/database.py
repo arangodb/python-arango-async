@@ -2921,6 +2921,9 @@ class Database:
     async def reload_routing(self) -> None:
         """Reload the routing information.
 
+        Warning:
+            Route reloading is no longer available in ArangoDB 4.0.
+
         Raises:
             ServerReloadRoutingError: If the operation fails.
 
