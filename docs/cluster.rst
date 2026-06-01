@@ -24,10 +24,6 @@ and architecture, refer to `ArangoDB Manual`_.
         # Cluster health
         health = await cluster.health()
 
-        # DB-Server statistics
-        db_server = "PRMR-2716c9d0-4b22-4c66-ba3d-f9cd3143e52b"
-        stats = await cluster.statistics(db_server)
-
         # Cluster endpoints
         endpoints = await cluster.endpoints()
 

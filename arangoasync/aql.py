@@ -678,6 +678,9 @@ class AQL:
     async def functions(self, namespace: Optional[str] = None) -> Result[Jsons]:
         """List the registered used-defined AQL functions.
 
+        Warning:
+            AQL User Functions are no longer available in ArangoDB 4.0.
+
         Args:
             namespace (str | None): Returns all registered AQL user functions from
                 the specified namespace.
@@ -718,6 +721,9 @@ class AQL:
     ) -> Result[Json]:
         """Registers a user-defined AQL function (UDF) written in JavaScript.
 
+        Warning:
+            AQL User Functions are no longer available in ArangoDB 4.0.
+
         Args:
             name (str): Name of the function.
             code (str): JavaScript code of the function.
@@ -755,6 +761,9 @@ class AQL:
         ignore_missing: bool = False,
     ) -> Result[Json]:
         """Remove a user-defined AQL function.
+
+        Warning:
+            AQL User Functions are no longer available in ArangoDB 4.0.
 
         Args:
             name (str): Name of the function.

@@ -64,6 +64,10 @@ class Cluster:
     async def statistics(self, db_server: str) -> Result[Json]:
         """Queries the statistics of the given DB-Server.
 
+        Warning:
+            DB-Server statistics are no longer available in ArangoDB 4.0.
+            Use :meth:`arangoasync.database.Database.metrics` instead.
+
         Args:
             db_server (str): The ID of the DB-Server.
 

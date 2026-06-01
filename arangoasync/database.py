@@ -234,6 +234,9 @@ class Database:
     def foxx(self) -> Foxx:
         """Return Foxx API wrapper.
 
+        Warning:
+            Foxx microservice features are no longer available in ArangoDB 4.0.
+
         Returns:
             arangoasync.foxx.Foxx: Foxx API wrapper.
         """
@@ -2429,6 +2432,9 @@ class Database:
     async def tasks(self) -> Result[Jsons]:
         """Fetches all existing tasks from the server.
 
+        Warning:
+            Tasks are no longer available in ArangoDB 4.0.
+
         Returns:
             list: List of currently active server tasks.
 
@@ -2450,6 +2456,9 @@ class Database:
 
     async def task(self, task_id: str) -> Result[Json]:
         """Return the details of an active server task.
+
+        Warning:
+            Tasks are no longer available in ArangoDB 4.0.
 
         Args:
             task_id (str) -> Server task ID.
@@ -2483,6 +2492,9 @@ class Database:
         period: Optional[int] = None,
     ) -> Result[Json]:
         """Create a new task.
+
+        Warning:
+            Tasks are no longer available in ArangoDB 4.0.
 
         Args:
             command (str): The JavaScript code to be executed.
@@ -2541,6 +2553,9 @@ class Database:
         ignore_missing: bool = False,
     ) -> Result[bool]:
         """Delete a server task.
+
+        Warning:
+            Tasks are no longer available in ArangoDB 4.0.
 
         Args:
             task_id (str): Task ID.
@@ -2909,6 +2924,9 @@ class Database:
     async def reload_routing(self) -> None:
         """Reload the routing information.
 
+        Warning:
+            Route reloading is no longer available in ArangoDB 4.0.
+
         Raises:
             ServerReloadRoutingError: If the operation fails.
 
@@ -2925,6 +2943,9 @@ class Database:
 
     async def echo(self, body: Optional[Json] = None) -> Result[Json]:
         """Return an object with the servers request information.
+
+        Warning:
+            Request echoing is no longer available in ArangoDB 4.0.
 
         Args:
             body (dict | None): Optional body of the request.
@@ -2951,6 +2972,9 @@ class Database:
 
     async def execute(self, command: str) -> Result[Any]:
         """Execute raw Javascript command on the server.
+
+        Warning:
+            Javascript command execution is no longer available in ArangoDB 4.0.
 
         Args:
             command (str): Javascript command to execute.
