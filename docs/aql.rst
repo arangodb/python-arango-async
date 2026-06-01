@@ -90,6 +90,10 @@ See :class:`arangoasync.aql.AQL` for API specification.
 AQL User Functions
 ==================
 
+.. warning::
+    AQL User Functions are no longer available in ArangoDB 4.0.
+
+
 **AQL User Functions** are custom functions you define in Javascript to extend
 AQL functionality. They are somewhat similar to SQL procedures.
 
