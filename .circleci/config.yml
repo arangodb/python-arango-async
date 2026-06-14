@@ -9,6 +9,16 @@ executors:
     docker:
       - image: cimg/python:<< parameters.python_version >>
     resource_class: arangodb/medium-amd64
+  arangodb-container:
+    parameters:
+      arangodb_image:
+        type: string
+    docker:
+      - image: << parameters.arangodb_image >>
+        entrypoint: /bin/sh
+        command: -c "while true; do sleep 10; done"
+        user: root
+    resource_class: arangodb/medium-amd64
   python-vm:
     machine:
       image: ubuntu-2404:current
@@ -19,29 +29,21 @@ workflows:
     jobs:
       - lint
       - test:
-          name: Python (<< matrix.python_version >>) - ArangoDB (enterprise, << matrix.arangodb_version >> << matrix.arangodb_config >>)
+          name: ArangoDB (enterprise, 3.12 << matrix.arangodb_config >>)
           matrix:
             parameters:
-              python_version: ["3.13"]
               arangodb_config: ["single", "cluster"]
               arangodb_license: ["enterprise"]
-              arangodb_version: ["3.12"]
+              arangodb_image: ["arangodb/enterprise:3.12"]
+              arangodb_conf_version: ["3.12"]
       - test:
-          name: Python (<< matrix.python_version >>) - ArangoDB (enterprise-preview, << matrix.arangodb_version >> << matrix.arangodb_config >>)
+          name: ArangoDB (enterprise-preview, 4.0-nightly << matrix.arangodb_config >>)
           matrix:
             parameters:
-              python_version: ["3.13"]
               arangodb_config: ["single", "cluster"]
               arangodb_license: ["enterprise-preview"]
-              arangodb_version: ["4.0-nightly"]
-      - test:
-          name: Python (<< matrix.python_version >>) - ArangoDB (enterprise, 3.12 cluster)
-          matrix:
-            parameters:
-              python_version: ["3.10", "3.11", "3.12"]
-              arangodb_config: ["cluster"]
-              arangodb_license: ["enterprise"]
-              arangodb_version: ["3.12"]
+              arangodb_image: ["arangodb/enterprise-preview:4.0-nightly"]
+              arangodb_conf_version: ["4.0"]
 
 jobs:
   lint:
@@ -65,70 +67,86 @@ jobs:
           command: mypy ./arangoasync
   test:
     parameters:
-        python_version:
-            type: string
         arangodb_config:
             type: string
         arangodb_license:
             type: string
-        arangodb_version:
+        arangodb_image:
+            type: string
+        arangodb_conf_version:
             type: string
     executor:
-      name: python-container
-      python_version: << parameters.python_version >>
+      name: arangodb-container
+      arangodb_image: << parameters.arangodb_image >>
     steps:
-      - checkout
-      - setup_remote_docker
       - run:
-          name: Resolve ArangoDB Host
+          name: Bootstrap CI Tools
           command: |
-            if [ -z "${ARANGO_HOST:-}" ]; then
-              if [ -n "${DOCKER_HOST:-}" ]; then
-                ARANGO_HOST="${DOCKER_HOST#tcp://}"
-                ARANGO_HOST="${ARANGO_HOST%%:*}"
-              elif getent hosts host.docker.internal >/dev/null 2>&1; then
-                ARANGO_HOST=host.docker.internal
-              elif command -v ip >/dev/null 2>&1; then
-                ARANGO_HOST="$(ip route show default | awk '{print $3; exit}')"
-              else
-                ARANGO_HOST=localhost
-              fi
-            fi
-
-            if [ -z "$ARANGO_HOST" ]; then
-              echo "Could not determine ARANGO_HOST"
-              exit 1
-            fi
-
-            echo "export ARANGO_HOST=$ARANGO_HOST" >> "$BASH_ENV"
-            echo "Using ARANGO_HOST=$ARANGO_HOST"
-      - run:
-          name: Check Docker
-          command: docker version
+            apk add --no-cache \
+              bash \
+              build-base \
+              ca-certificates \
+              curl \
+              git \
+              jq \
+              openssh-client \
+              openssl-dev \
+              py3-pip \
+              py3-virtualenv \
+              python3 \
+              python3-dev \
+              wget
+      - checkout
       - run:
           name: Setup ArangoDB
           command: |
-            chmod +x starter.sh
-            ./starter.sh << parameters.arangodb_config >> << parameters.arangodb_license >> << parameters.arangodb_version >>
+            mkdir -p /tests
+            if [ ! -e /tests/static ]; then
+              ln -s "$PWD/tests/static" /tests/static
+            fi
+
+            conf_file="/tests/static/<< parameters.arangodb_config >>-<< parameters.arangodb_conf_version >>.conf"
+            if [ ! -f "$conf_file" ]; then
+              echo "Missing configuration file: $conf_file"
+              exit 1
+            fi
+
+            arangodb --configuration="$conf_file" > arangodb.log 2>&1 &
+            echo "$!" > arangodb.pid
+
+            echo "Waiting for ArangoDB at http://localhost:8528/version"
+            wget --quiet --waitretry=1 --tries=120 -O - http://localhost:8528/version | jq
       - restore_cache:
           key: pip-and-local-cache
       - run:
           name: Setup Python
+          shell: /bin/bash -eo pipefail
           command: |
+            python3 --version
+            python3 -m virtualenv .venv
+            source .venv/bin/activate
             python --version
-            pip --version
+            python -m pip --version
       - run:
           name: Install Dependencies
-          command: pip install -e .[dev]
-      - run: docker ps -a
-      - run: docker logs arango
+          shell: /bin/bash -eo pipefail
+          command: |
+            source .venv/bin/activate
+            python -m pip install -e .[dev]
+      - run:
+          name: Show ArangoDB Logs
+          command: tail -n 200 arangodb.log
+          when: always
       - run:
           name: Run pytest
+          shell: /bin/bash -eo pipefail
           command: |
             mkdir test-results
             mkdir htmlcov
 
-            args=("--junitxml=test-results/junit.xml" "--log-cli-level=DEBUG" "--host" "$ARANGO_HOST" "--port=8529")
+            source .venv/bin/activate
+
+            args=("--junitxml=test-results/junit.xml" "--log-cli-level=DEBUG" "--host" "localhost" "--port=8529")
             if [ << parameters.arangodb_config >> = "cluster" ]; then
               args+=("--cluster" "--port=8539" "--port=8549")
             fi
