@@ -114,10 +114,39 @@ jobs:
             arangodb --configuration="$conf_file" > arangodb.log 2>&1 &
             echo "$!" > arangodb.pid
 
-            echo "Waiting for ArangoDB at http://localhost:8528/version"
-            wget --quiet --waitretry=1 --tries=120 -O - http://localhost:8528/version | jq
+            ports="8529"
+            if [ << parameters.arangodb_config >> = "cluster" ]; then
+              ports="$ports 8539 8549"
+            fi
+
+            for port in $ports; do
+              echo "Waiting for ArangoDB at http://localhost:$port/_api/version"
+              for attempt in $(seq 1 120); do
+                if curl --fail --silent --show-error \
+                    --user root:passwd \
+                    "http://localhost:$port/_api/version" | jq; then
+                  break
+                fi
+
+                if ! kill -0 "$(cat arangodb.pid)" 2>/dev/null; then
+                  echo "ArangoDB process exited before port $port became ready"
+                  exit 1
+                fi
+
+                if [ "$attempt" -eq 120 ]; then
+                  echo "Timed out waiting for ArangoDB on port $port"
+                  exit 1
+                fi
+
+                sleep 1
+              done
+            done
       - restore_cache:
           key: pip-and-local-cache
+      - run:
+          name: Show ArangoDB Logs
+          command: tail -n 200 arangodb.log
+          when: always
       - run:
           name: Setup Python
           shell: /bin/bash -eo pipefail
@@ -133,10 +162,6 @@ jobs:
           command: |
             source .venv/bin/activate
             python -m pip install -e .[dev]
-      - run:
-          name: Show ArangoDB Logs
-          command: tail -n 200 arangodb.log
-          when: always
       - run:
           name: Run pytest
           shell: /bin/bash -eo pipefail
