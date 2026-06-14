@@ -181,7 +181,7 @@ jobs:
             fi
 
             echo "Running pytest with args: ${args[@]}"
-            pytest --cov=arangoasync --cov-report=html:htmlcov --color=yes --code-highlight=yes "${args[@]}"
+            pytest tests --cov=arangoasync --cov-report=html:htmlcov --color=yes --code-highlight=yes "${args[@]}"
       - store_artifacts:
           path: htmlcov
           destination: coverage-report
