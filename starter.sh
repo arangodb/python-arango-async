@@ -6,6 +6,10 @@
 # Usage:
 #   ./starter.sh [single|cluster] [community|enterprise|enterprise-preview] [version]
 #   ./starter.sh [single|cluster] [image[:tag]]
+#
+# Environment:
+#   ARANGO_HOST: host used by this script's readiness check. Defaults to localhost.
+#
 # Example:
 #   ./starter.sh cluster enterprise 3.12.4
 #   ./starter.sh single enterprise-preview 4.0-nightly
@@ -14,6 +18,7 @@
 setup="${1:-single}"
 image="${2:-community}"
 version="${3:-latest}"
+arango_host="${ARANGO_HOST:-localhost}"
 
 extra_ports=""
 if [ "$setup" == "single" ]; then
@@ -74,7 +79,8 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-wget --quiet --waitretry=1 --tries=120 -O - http://localhost:8528/version | jq
+echo "Waiting for ArangoDB at http://$arango_host:8528/version"
+wget --quiet --waitretry=1 --tries=120 -O - "http://$arango_host:8528/version" | jq
 if [ $? -eq 0 ]; then
     echo "OK starter ready"
     exit 0

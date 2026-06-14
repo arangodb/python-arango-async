@@ -2,9 +2,13 @@ version: 2.1
 
 executors:
   python-container:
+    parameters:
+      python_version:
+        type: string
+        default: "3.12"
     docker:
-      - image: cimg/python:3.12
-    resource_class: arangodb/small-amd64
+      - image: cimg/python:<< parameters.python_version >>
+    resource_class: arangodb/medium-amd64
   python-vm:
     machine:
       image: ubuntu-2404:current
@@ -42,7 +46,6 @@ workflows:
 jobs:
   lint:
     executor: python-container
-    resource_class: arangodb/small-amd64
     steps:
       - checkout
       - run:
@@ -70,9 +73,31 @@ jobs:
             type: string
         arangodb_version:
             type: string
-    executor: python-vm
+    executor:
+      name: python-container
+      python_version: << parameters.python_version >>
     steps:
       - checkout
+      - run:
+          name: Resolve ArangoDB Host
+          command: |
+            if [ -z "${ARANGO_HOST:-}" ]; then
+              if getent hosts host.docker.internal >/dev/null 2>&1; then
+                ARANGO_HOST=host.docker.internal
+              elif command -v ip >/dev/null 2>&1; then
+                ARANGO_HOST="$(ip route show default | awk '{print $3; exit}')"
+              else
+                ARANGO_HOST=localhost
+              fi
+            fi
+
+            if [ -z "$ARANGO_HOST" ]; then
+              echo "Could not determine ARANGO_HOST"
+              exit 1
+            fi
+
+            echo "export ARANGO_HOST=$ARANGO_HOST" >> "$BASH_ENV"
+            echo "Using ARANGO_HOST=$ARANGO_HOST"
       - run:
           name: Setup ArangoDB
           command: |
@@ -83,9 +108,8 @@ jobs:
       - run:
           name: Setup Python
           command: |
-            pyenv --version
-            pyenv install -f << parameters.python_version >>
-            pyenv global << parameters.python_version >>
+            python --version
+            pip --version
       - run:
           name: Install Dependencies
           command: pip install -e .[dev]
@@ -97,7 +121,7 @@ jobs:
             mkdir test-results
             mkdir htmlcov
 
-            args=("--junitxml=test-results/junit.xml" "--log-cli-level=DEBUG" "--host" "localhost" "--port=8529")
+            args=("--junitxml=test-results/junit.xml" "--log-cli-level=DEBUG" "--host" "$ARANGO_HOST" "--port=8529")
             if [ << parameters.arangodb_config >> = "cluster" ]; then
               args+=("--cluster" "--port=8539" "--port=8549")
             fi
