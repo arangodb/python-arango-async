@@ -78,11 +78,15 @@ jobs:
       python_version: << parameters.python_version >>
     steps:
       - checkout
+      - setup_remote_docker
       - run:
           name: Resolve ArangoDB Host
           command: |
             if [ -z "${ARANGO_HOST:-}" ]; then
-              if getent hosts host.docker.internal >/dev/null 2>&1; then
+              if [ -n "${DOCKER_HOST:-}" ]; then
+                ARANGO_HOST="${DOCKER_HOST#tcp://}"
+                ARANGO_HOST="${ARANGO_HOST%%:*}"
+              elif getent hosts host.docker.internal >/dev/null 2>&1; then
                 ARANGO_HOST=host.docker.internal
               elif command -v ip >/dev/null 2>&1; then
                 ARANGO_HOST="$(ip route show default | awk '{print $3; exit}')"
@@ -98,6 +102,9 @@ jobs:
 
             echo "export ARANGO_HOST=$ARANGO_HOST" >> "$BASH_ENV"
             echo "Using ARANGO_HOST=$ARANGO_HOST"
+      - run:
+          name: Check Docker
+          command: docker version
       - run:
           name: Setup ArangoDB
           command: |
