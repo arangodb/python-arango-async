@@ -156,7 +156,7 @@ jobs:
             done
       - run:
           name: Show ArangoDB Logs
-          command: tail -n 200 arangodb.log
+          command: tail -n 1000 arangodb.log
           when: always
       - run:
           name: Setup Python
@@ -194,5 +194,7 @@ jobs:
           destination: coverage-report
       - store_artifacts:
           path: test-results
+      - store_artifacts:
+          path: arangodb.log
       - store_test_results:
           path: test-results
