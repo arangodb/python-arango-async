@@ -31,6 +31,7 @@ class GlobalData:
     foxx_path: str = None
     backup_path: str = None
     db_version: version.Version = version.parse("0.0.0")
+    skip_arango_setup: bool = False
 
 
 global_data = GlobalData()
@@ -82,9 +83,18 @@ def pytest_addoption(parser):
         default=[],
         help="Skip specific tests",
     )
+    parser.addoption(
+        "--skip-arango-setup",
+        action="store_true",
+        help="Skip the ArangoDB connection check during pytest configuration",
+    )
 
 
 def pytest_configure(config):
+    if config.getoption("skip_arango_setup"):
+        global_data.skip_arango_setup = True
+        return
+
     ports = config.getoption("port") or ["8529"]
     hosts = [f"http://{config.getoption('host')}:{p}" for p in ports]
     url = hosts[0]
@@ -286,6 +296,9 @@ def db_version():
 @pytest_asyncio.fixture(autouse=True)
 async def teardown():
     yield
+    if global_data.skip_arango_setup:
+        return
+
     async with ArangoClient(hosts=global_data.url) as client:
         sys_db = await client.db(
             global_data.sys_db_name,
