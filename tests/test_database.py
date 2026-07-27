@@ -20,8 +20,6 @@ from arangoasync.exceptions import (
     DatabaseSupportInfoError,
     JWTSecretListError,
     JWTSecretReloadError,
-    ReplicationApplierConfigError,
-    ReplicationApplierStateError,
     ReplicationClusterInventoryError,
     ReplicationDumpError,
     ReplicationInventoryError,
@@ -214,14 +212,6 @@ async def test_replication(db, bad_db, cluster):
         with pytest.raises(ReplicationLoggerStateError):
             await bad_db.replication.logger_state()
         result = await db.replication.logger_state()
-        assert isinstance(result, dict)
-        with pytest.raises(ReplicationApplierConfigError):
-            await bad_db.replication.applier_config()
-        result = await db.replication.applier_config()
-        assert isinstance(result, dict)
-        with pytest.raises(ReplicationApplierStateError):
-            await bad_db.replication.applier_state()
-        result = await db.replication.applier_state()
         assert isinstance(result, dict)
     with pytest.raises(ReplicationServerIDError):
         await bad_db.replication.server_id()

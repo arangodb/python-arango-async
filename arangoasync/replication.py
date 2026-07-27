@@ -2,6 +2,7 @@ __all__ = ["Replication"]
 
 
 from typing import Optional
+from warnings import warn
 
 from arangoasync.exceptions import (
     ReplicationApplierConfigError,
@@ -195,7 +196,9 @@ class Replication:
         return await self._executor.execute(request, response_handler)
 
     async def applier_config(self) -> Result[Json]:
-        """Return the configuration of the replication applier.
+        """**Removed** in ArangoDB v3.12.10.
+
+        Return the configuration of the replication applier.
 
         Returns:
             dict: Configuration of the replication applier.
@@ -206,6 +209,9 @@ class Replication:
         References:
            - `get-the-replication-applier-configuration <https://docs.arango.ai/arangodb/stable/develop/http-api/replication/replication-applier/#get-the-replication-applier-configuration>`__
         """  # noqa: E501
+        m = "/_api/replication/applier-config was removed in ArangoDB v3.12.10."
+        warn(m, DeprecationWarning, stacklevel=2)
+
         request = Request(
             method=Method.GET,
             endpoint="/_api/replication/applier-config",
@@ -220,7 +226,9 @@ class Replication:
         return await self._executor.execute(request, response_handler)
 
     async def applier_state(self) -> Result[Json]:
-        """Return the state of the replication applier.
+        """**Removed** in ArangoDB v3.12.10.
+
+        Return the state of the replication applier.
 
         Returns:
             dict: State of the replication applier.
@@ -231,6 +239,9 @@ class Replication:
         References:
             - `get-the-replication-applier-state <https://docs.arango.ai/arangodb/stable/develop/http-api/replication/replication-applier/#get-the-replication-applier-state>`__
         """  # noqa: E501
+        m = "/_api/replication/applier-state was removed in ArangoDB v3.12.10."
+        warn(m, DeprecationWarning, stacklevel=2)
+
         request = Request(
             method=Method.GET,
             endpoint="/_api/replication/applier-state",
