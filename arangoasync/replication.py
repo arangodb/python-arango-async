@@ -256,7 +256,9 @@ class Replication:
         return await self._executor.execute(request, response_handler)
 
     async def server_id(self) -> Result[str]:
-        """Return the current server's ID.
+        """**Removed** in ArangoDB v3.12.10.
+
+        Return the current server's ID.
 
         Returns:
             str: Server ID.
@@ -267,6 +269,9 @@ class Replication:
         References:
             - `get-the-replication-server-id <https://docs.arango.ai/arangodb/stable/develop/http-api/replication/other-replication-commands/#get-the-replication-server-id>`__
         """  # noqa: E501
+        m = "/_api/replication/server-id was removed in ArangoDB v3.12.10."
+        warn(m, DeprecationWarning, stacklevel=2)
+
         request = Request(
             method=Method.GET,
             endpoint="/_api/replication/server-id",

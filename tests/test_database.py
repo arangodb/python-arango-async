@@ -24,7 +24,6 @@ from arangoasync.exceptions import (
     ReplicationDumpError,
     ReplicationInventoryError,
     ReplicationLoggerStateError,
-    ReplicationServerIDError,
     ServerApiCallsError,
     ServerAvailableOptionsGetError,
     ServerCheckAvailabilityError,
@@ -213,10 +212,6 @@ async def test_replication(db, bad_db, cluster):
             await bad_db.replication.logger_state()
         result = await db.replication.logger_state()
         assert isinstance(result, dict)
-    with pytest.raises(ReplicationServerIDError):
-        await bad_db.replication.server_id()
-    result = await db.replication.server_id()
-    assert isinstance(result, str)
 
 
 @pytest.mark.asyncio
