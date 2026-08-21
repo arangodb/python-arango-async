@@ -229,12 +229,13 @@ async def test_query_rules(db, bad_db):
 
 
 @pytest.mark.asyncio
-async def test_cache_results_management(db, bad_db, doc_col, docs, cluster):
+async def test_cache_results_management(db, sys_db, bad_db, doc_col, docs, cluster):
     if cluster:
         pytest.skip("Cluster mode does not support query result cache management")
 
     aql = db.aql
     cache = aql.cache
+    sys_cache = sys_db.aql.cache
 
     # Sanity check, just see if the response is OK.
     _ = await cache.properties()
@@ -243,7 +244,7 @@ async def test_cache_results_management(db, bad_db, doc_col, docs, cluster):
     assert err.value.error_code == FORBIDDEN
 
     # Turn on caching
-    result = await cache.configure(mode="on")
+    result = await sys_cache.configure(mode="on")
     assert result.mode == "on"
     result = await cache.properties()
     assert result.mode == "on"
@@ -269,8 +270,8 @@ async def test_cache_results_management(db, bad_db, doc_col, docs, cluster):
     assert err.value.error_code == FORBIDDEN
 
     # Clear the cache
-    await cache.clear()
-    entries = await cache.entries()
+    await sys_cache.clear()
+    entries = await sys_cache.entries()
     assert len(entries) == 0
     with pytest.raises(AQLCacheClearError) as err:
         await bad_db.aql.cache.clear()
