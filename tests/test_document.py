@@ -306,6 +306,74 @@ async def test_document_find(doc_col, bad_col, docs):
 
 
 @pytest.mark.asyncio
+async def test_document_match_with_invalid_field_name(doc_col):
+    field = "foo`bar"
+    dotted_field = "foo.bar"
+    complex_field = "foo.bar`baz.qux`quux"
+
+    await doc_col.insert_many(
+        [
+            {
+                "_key": "find",
+                field: "find",
+                dotted_field: "find",
+                complex_field: "find",
+            },
+            {
+                "_key": "update",
+                field: "update",
+                dotted_field: "update",
+                complex_field: "update",
+            },
+            {
+                "_key": "replace",
+                field: "replace",
+                dotted_field: "replace",
+                complex_field: "replace",
+            },
+            {
+                "_key": "delete",
+                field: "delete",
+                dotted_field: "delete",
+                complex_field: "delete",
+            },
+            {
+                "_key": "nested",
+                "foo": {"bar`baz": {"qux`quux": "nested"}},
+            },
+        ]
+    )
+
+    assert [doc["_key"] async for doc in await doc_col.find({field: "find"})] == [
+        "find"
+    ]
+    assert [
+        doc["_key"] async for doc in await doc_col.find({dotted_field: "find"})
+    ] == ["find"]
+    assert [
+        doc["_key"] async for doc in await doc_col.find({complex_field: "find"})
+    ] == ["find"]
+    assert [
+        doc["_key"] async for doc in await doc_col.find({complex_field: "nested"})
+    ] == ["nested"]
+    assert [
+        doc["_key"]
+        async for doc in await doc_col.find(
+            {}, sort=[{"sort_by": complex_field, "sort_order": "ASC"}]
+        )
+    ] == ["delete", "find", "nested", "replace", "update"]
+
+    assert await doc_col.update_match({field: "update"}, {"updated": True}) == 1
+    assert (await doc_col.get("update"))["updated"] is True
+
+    assert await doc_col.replace_match({field: "replace"}, {"replaced": True}) == 1
+    assert (await doc_col.get("replace"))["replaced"] is True
+
+    assert await doc_col.delete_match({field: "delete"}) == 1
+    assert not await doc_col.has("delete")
+
+
+@pytest.mark.asyncio
 async def test_document_insert_many(cluster, db_version, doc_col, bad_col, docs):
     # Check errors
     with pytest.raises(DocumentInsertError):
