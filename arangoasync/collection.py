@@ -194,24 +194,49 @@ class Collection(Generic[T, U, V]):
 
         return doc_id
 
-    def _build_filter_conditions(self, filters: Optional[Json]) -> str:
+    @staticmethod
+    def _build_attribute_expression(field: str, prefix: str, bind_vars: Json) -> str:
+        """Build a bind-safe AQL document attribute expression."""
+        bind_vars[prefix] = field
+        field_access = f"doc[@{prefix}]"
+
+        if "." not in field:
+            return field_access
+
+        nested_access = "doc"
+        for field_index, field_part in enumerate(field.split(".")):
+            field_var = f"{prefix}_{field_index}"
+            bind_vars[field_var] = field_part
+            nested_access += f"[@{field_var}]"
+
+        return f"(HAS(doc, @{prefix}) ? {field_access} : {nested_access})"
+
+    def _build_filter_conditions(self, filters: Optional[Json]) -> tuple[str, Json]:
         """Build filter conditions for an AQL query.
 
         Args:
             filters (dict | None): Document filters.
 
         Returns:
-            str: The complete AQL filter condition.
+            tuple: The complete AQL filter condition and its bind variables.
         """
         if not filters:
-            return ""
+            return "", {}
 
         conditions = []
-        for k, v in filters.items():
-            field = k if "." in k else f"`{k}`"
-            conditions.append(f"doc.{field} == {self.serializer.dumps(v)}")
+        bind_vars: Json = {}
+        for filter_index, (field, value) in enumerate(filters.items()):
+            field_access = self._build_attribute_expression(
+                field,
+                f"filter_field_{filter_index}",
+                bind_vars,
+            )
 
-        return "FILTER " + " AND ".join(conditions)
+            value_var = f"filter_value_{filter_index}"
+            bind_vars[value_var] = value
+            conditions.append(f"{field_access} == @{value_var}")
+
+        return "FILTER " + " AND ".join(conditions), bind_vars
 
     @staticmethod
     def _is_none_or_int(obj: Any) -> bool:
@@ -259,24 +284,30 @@ class Collection(Generic[T, U, V]):
                 raise SortValidationError("'sort_order' must be either 'ASC' or 'DESC'")
 
     @staticmethod
-    def _build_sort_expression(sort: Optional[Jsons]) -> str:
+    def _build_sort_expression(sort: Optional[Jsons]) -> tuple[str, Json]:
         """Build a sort condition for an AQL query.
 
         Args:
             sort (list | None): Document sort parameters.
 
         Returns:
-            str: The complete AQL sort condition.
+            tuple: The complete AQL sort condition and its bind variables.
         """
         if not sort:
-            return ""
+            return "", {}
 
         sort_chunks = []
-        for sort_param in sort:
-            chunk = f"doc.{sort_param['sort_by']} {sort_param['sort_order']}"
+        bind_vars: Json = {}
+        for sort_index, sort_param in enumerate(sort):
+            field_access = Collection._build_attribute_expression(
+                sort_param["sort_by"],
+                f"sort_field_{sort_index}",
+                bind_vars,
+            )
+            chunk = f"{field_access} {sort_param['sort_order'].upper()}"
             sort_chunks.append(chunk)
 
-        return "SORT " + ", ".join(sort_chunks)
+        return "SORT " + ", ".join(sort_chunks), bind_vars
 
     @property
     def name(self) -> str:
@@ -1025,14 +1056,20 @@ class Collection(Generic[T, U, V]):
 
         skip = skip if skip is not None else 0
         limit = limit if limit is not None else "null"
+        filter_conditions, filter_bind_vars = self._build_filter_conditions(filters)
+        sort_expression, sort_bind_vars = self._build_sort_expression(sort)
         query = f"""
             FOR doc IN @@collection
-                {self._build_filter_conditions(filters)}
+                {filter_conditions}
                 LIMIT {skip}, {limit}
-                {self._build_sort_expression(sort)}
+                {sort_expression}
                 RETURN doc
         """
-        bind_vars = {"@collection": self.name}
+        bind_vars = {
+            "@collection": self.name,
+            **filter_bind_vars,
+            **sort_bind_vars,
+        }
         data: Json = {"query": query, "bindVars": bind_vars, "count": True}
         headers: RequestHeaders = {}
         if allow_dirty_read is not None:
@@ -1095,9 +1132,10 @@ class Collection(Generic[T, U, V]):
             raise ValueError("limit parameter must be a non-negative int")
 
         sync = f", waitForSync: {wait_for_sync}" if wait_for_sync is not None else ""
+        filter_conditions, filter_bind_vars = self._build_filter_conditions(filters)
         query = f"""
             FOR doc IN @@collection
-                {self._build_filter_conditions(filters)}
+                {filter_conditions}
                 {f"LIMIT {limit}" if limit is not None else ""}
                 UPDATE doc WITH @body IN @@collection
                 OPTIONS {{ keepNull: @keep_none, mergeObjects: @merge {sync} }}
@@ -1107,6 +1145,7 @@ class Collection(Generic[T, U, V]):
             "body": body,
             "keep_none": keep_none,
             "merge": merge_objects,
+            **filter_bind_vars,
         }
         data = {"query": query, "bindVars": bind_vars}
 
@@ -1151,9 +1190,10 @@ class Collection(Generic[T, U, V]):
             raise ValueError("limit parameter must be a non-negative int")
 
         sync = f"waitForSync: {wait_for_sync}" if wait_for_sync is not None else ""
+        filter_conditions, filter_bind_vars = self._build_filter_conditions(filters)
         query = f"""
             FOR doc IN @@collection
-                {self._build_filter_conditions(filters)}
+                {filter_conditions}
                 {f"LIMIT {limit}" if limit is not None else ""}
                 REPLACE doc WITH @body IN @@collection
                 {f"OPTIONS {{ {sync} }}" if sync else ""}
@@ -1161,6 +1201,7 @@ class Collection(Generic[T, U, V]):
         bind_vars = {
             "@collection": self.name,
             "body": body,
+            **filter_bind_vars,
         }
         data = {"query": query, "bindVars": bind_vars}
 
@@ -1203,14 +1244,15 @@ class Collection(Generic[T, U, V]):
             raise ValueError("limit parameter must be a non-negative int")
 
         sync = f"waitForSync: {wait_for_sync}" if wait_for_sync is not None else ""
+        filter_conditions, filter_bind_vars = self._build_filter_conditions(filters)
         query = f"""
             FOR doc IN @@collection
-                {self._build_filter_conditions(filters)}
+                {filter_conditions}
                 {f"LIMIT {limit}" if limit is not None else ""}
                 REMOVE doc IN @@collection
                 {f"OPTIONS {{ {sync} }}" if sync else ""}
         """  # noqa: E201 E202
-        bind_vars = {"@collection": self.name}
+        bind_vars = {"@collection": self.name, **filter_bind_vars}
         data = {"query": query, "bindVars": bind_vars}
 
         request = Request(
