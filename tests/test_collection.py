@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+from packaging import version
 
 from arangoasync.errno import DATA_SOURCE_NOT_FOUND, INDEX_NOT_FOUND
 from arangoasync.exceptions import (
@@ -113,11 +114,11 @@ async def test_collection_rename(cluster, db, bad_col, docs):
         doc = await col.insert(docs[0])
         assert col.get_col_name(doc) == new_name
     finally:
-        db.delete_collection(new_name, ignore_missing=True)
+        await db.delete_collection(new_name, ignore_missing=True)
 
 
 @pytest.mark.asyncio
-async def test_collection_index(doc_col, bad_col, cluster):
+async def test_collection_index(doc_col, bad_col, cluster, db_version):
     # Create indexes
     idx1 = await doc_col.add_index(
         type="persistent",
@@ -228,16 +229,22 @@ async def test_collection_index(doc_col, bad_col, cluster):
         await bad_col.load_indexes()
     assert err.value.error_code == DATA_SOURCE_NOT_FOUND
 
-    # Create a vector index
+    # Create vector indexes using the fixed nLists format supported by older servers.
     docs = []
     for key in range(100):
-        docs.append({"_key": f"key_{key}", "embedding": [1] * 128})
+        docs.append(
+            {
+                "_key": f"key_{key}",
+                "embedding1": [1] * 128,
+                "embedding2": [1] * 128,
+            }
+        )
     await doc_col.insert_many(docs)
     idx4 = await doc_col.add_index(
         "vector",
-        ["embedding"],
+        ["embedding1"],
         {
-            "name": "vector_index",
+            "name": "vector_index_1",
             "params": {
                 "metric": "cosine",
                 "dimension": 128,
@@ -245,19 +252,124 @@ async def test_collection_index(doc_col, bad_col, cluster):
             },
         },
     )
-    assert idx4.name == "vector_index"
+    idx5 = await doc_col.add_index(
+        "vector",
+        ["embedding2"],
+        {
+            "name": "vector_index_2",
+            "params": {
+                "metric": "cosine",
+                "dimension": 128,
+                "nLists": 3,
+            },
+        },
+    )
+    assert idx4.name == "vector_index_1"
+    assert idx5.name == "vector_index_2"
+
+    if db_version >= version.parse("3.12.10"):
+        # Hidden listing details expose resolved vector-index settings per shard.
+        indexes = {idx.id: idx for idx in await doc_col.indexes(with_hidden=True)}
+        for index in (idx4, idx5):
+            shards = indexes[index.id].shards
+            assert shards is not None
+            for status in shards.values():
+                assert {
+                    "trainingState",
+                    "error",
+                    "resolvedNLists",
+                } <= status.keys()
+                assert isinstance(status["resolvedNLists"], int)
 
     # Delete indexes
-    del1, del2, del3, del4 = await asyncio.gather(
+    del1, del2, del3, del4, del5 = await asyncio.gather(
         doc_col.delete_index(idx1.id),
         doc_col.delete_index(idx2.numeric_id),
         doc_col.delete_index(str(idx3.numeric_id)),
         doc_col.delete_index(idx4.id),
+        doc_col.delete_index(idx5.id),
     )
     assert del1 is True
     assert del2 is True
     assert del3 is True
     assert del4 is True
+    assert del5 is True
+
+    if db_version >= version.parse("3.12.10"):
+        # Let the server choose nLists, then supply an explicit scaling object.
+        scaling_n_lists = {
+            "strategy": "autoSqrt",
+            "multiplier": 1,
+            "minNLists": 2,
+            "tiers": [],
+        }
+        default_index = await doc_col.add_index(
+            "vector",
+            ["embedding1"],
+            {
+                "name": "vector_index_default",
+                "params": {"metric": "cosine", "dimension": 128},
+            },
+        )
+        scaling_index = await doc_col.add_index(
+            "vector",
+            ["embedding2"],
+            {
+                "name": "vector_index_scaling",
+                "params": {
+                    "metric": "cosine",
+                    "dimension": 128,
+                    "nLists": scaling_n_lists,
+                    "numberOfDocsPerCentroid": 10,
+                    "factory": "IVF{},Flat",
+                },
+            },
+        )
+
+        default_n_lists = default_index["params"]["nLists"]
+        assert default_n_lists["strategy"] == "autoSqrt"
+        assert default_n_lists["multiplier"] == 4
+        assert default_n_lists["minNLists"] == 2
+        assert scaling_index["params"]["nLists"] == scaling_n_lists
+        assert scaling_index["params"]["numberOfDocsPerCentroid"] == 10
+        assert scaling_index["params"]["factory"] == "IVF{},Flat"
+
+        await doc_col.delete_index(default_index.id)
+        await doc_col.delete_index(scaling_index.id)
+
+        # A permanent training failure still creates an unusable index.
+        unusable_index = await doc_col.add_index(
+            "vector",
+            ["embedding1"],
+            {
+                "name": "vector_index_unusable",
+                "params": {
+                    "metric": "cosine",
+                    "dimension": 128,
+                    "nLists": 2,
+                    "factory": "IVF3,Flat",
+                },
+            },
+        )
+        assert unusable_index.training_state == "unusable"
+        assert unusable_index.error_message
+        await doc_col.delete_index(unusable_index.id)
+
+        # Invalid requests continue to fail at the HTTP layer.
+        with pytest.raises(IndexCreateError) as err:
+            await doc_col.add_index(
+                "vector",
+                ["embedding1"],
+                {
+                    "name": "vector_index_invalid",
+                    "params": {
+                        "metric": "cosine",
+                        "dimension": 128,
+                        "nLists": 0,
+                    },
+                },
+            )
+        assert err.value.http_code == 400
 
     # Now, the indexes should be gone
     with pytest.raises(IndexDeleteError) as err:

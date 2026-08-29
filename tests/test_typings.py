@@ -9,6 +9,7 @@ from arangoasync.typings import (
     EdgeDefinitionOptions,
     GraphOptions,
     GraphProperties,
+    IndexProperties,
     JsonWrapper,
     KeyOptions,
     QueryCacheProperties,
@@ -447,6 +448,31 @@ def test_CollectionStatistics():
     assert stats.key_options["type"] == "traditional"
     assert stats.computed_values is None
     assert stats.object_id == "69124"
+
+
+def test_IndexProperties_hidden_details():
+    shards = {
+        "s1001": {
+            "trainingState": "ready",
+            "error": False,
+            "resolvedNLists": 4,
+        }
+    }
+    figures = {"memory": 4096}
+    properties = IndexProperties(
+        {
+            "id": "products/123",
+            "fields": ["embedding"],
+            "type": "vector",
+            "figures": figures,
+            "shards": shards,
+        }
+    )
+
+    assert properties.figures == figures
+    assert properties.shards == shards
+    assert properties.format()["figures"] == figures
+    assert properties.format()["shards"] == shards
 
 
 def test_AccessToken():
