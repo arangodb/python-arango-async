@@ -1061,6 +1061,10 @@ class IndexProperties(JsonWrapper):
         return self._data.get("legacyPolygons")
 
     @property
+    def figures(self) -> Optional[Json]:
+        return self._data.get("figures")
+
+    @property
     def estimates(self) -> Optional[bool]:
         return self._data.get("estimates")
 
@@ -1140,6 +1144,10 @@ class IndexProperties(JsonWrapper):
     def training_state(self) -> Optional[str]:
         return self._data.get("trainingState")
 
+    @property
+    def shards(self) -> Optional[Json]:
+        return self._data.get("shards")
+
     @staticmethod
     def compatibility_formatter(data: Json) -> Json:
         """python-arango compatibility formatter."""
@@ -1170,6 +1178,8 @@ class IndexProperties(JsonWrapper):
             result["storedValues"] = data["storedValues"]
         if "legacyPolygons" in data:
             result["legacyPolygons"] = data["legacyPolygons"]
+        if "figures" in data:
+            result["figures"] = data["figures"]
         if "estimates" in data:
             result["estimates"] = data["estimates"]
         if "analyzer" in data:
@@ -1202,6 +1212,8 @@ class IndexProperties(JsonWrapper):
             result["error_message"] = data["errorMessage"]
         if "trainingState" in data:
             result["training_state"] = data["trainingState"]
+        if "shards" in data:
+            result["shards"] = data["shards"]
         return result
 
     def format(self, formatter: Optional[Formatter] = None) -> Json:
