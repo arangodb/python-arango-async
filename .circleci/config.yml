@@ -30,11 +30,18 @@ workflows:
             parameters:
               python_version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
       - integration-test:
-          name: ArangoDB (enterprise, 3.12 << matrix.arangodb_config >>)
+          name: ArangoDB (enterprise, 3.12.10 << matrix.arangodb_config >>)
           matrix:
             parameters:
               arangodb_config: ["single", "cluster"]
-              arangodb_image: ["arangodb/enterprise:3.12"]
+              arangodb_image: ["arangodb/enterprise:3.12.10"]
+              arangodb_conf_version: ["3.12"]
+      - integration-test:
+          name: ArangoDB (enterprise, 3.12.9 << matrix.arangodb_config >>)
+          matrix:
+            parameters:
+              arangodb_config: ["single", "cluster"]
+              arangodb_image: ["arangodb/enterprise:3.12.9"]
               arangodb_conf_version: ["3.12"]
       - integration-test:
           name: ArangoDB (core-preview, 4.0-nightly << matrix.arangodb_config >>)
@@ -60,8 +67,8 @@ jobs:
           name: Install Dependencies
           command: python -m pip install .[dev]
       - run:
-            name: Run black
-            command: black --check --verbose --diff --color --config=pyproject.toml ./arangoasync ./tests/
+          name: Run black
+          command: black --check --verbose --diff --color --config=pyproject.toml ./arangoasync ./tests/
       - run:
           name: Run flake8
           command: flake8 ./arangoasync ./tests
@@ -90,12 +97,12 @@ jobs:
           command: python -m pytest tests/test_imports.py --skip-arango-setup --color=yes --code-highlight=yes
   integration-test:
     parameters:
-        arangodb_config:
-            type: string
-        arangodb_image:
-            type: string
-        arangodb_conf_version:
-            type: string
+      arangodb_config:
+        type: string
+      arangodb_image:
+        type: string
+      arangodb_conf_version:
+        type: string
     executor:
       name: arangodb-container
       arangodb_image: << parameters.arangodb_image >>
