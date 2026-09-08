@@ -4,6 +4,7 @@ from arangoasync.auth import Auth
 from arangoasync.errno import USER_NOT_FOUND
 from arangoasync.exceptions import (
     CollectionCreateError,
+    CollectionListError,
     DocumentInsertError,
     PermissionResetError,
     PermissionUpdateError,
@@ -176,6 +177,14 @@ async def test_user_change_permissions(sys_db, arango_client, db):
     with pytest.raises(PermissionResetError):
         await db.reset_permission(username, db.name)
     await sys_db.reset_permission(username, db.name)
+    assert await sys_db.permission(username, db.name) == "none"
+    # ArangoDB 4.0 returns 403 where earlier versions returned 401.
+    with pytest.raises(CollectionCreateError) as err:
+        await db2.create_collection(generate_col_name())
+    assert err.value.http_code in {401, 403}
+    with pytest.raises(CollectionListError) as err:
+        await db2.collections()
+    assert err.value.http_code in {401, 403}
     with pytest.raises(DocumentInsertError):
         await col.insert({"_key": "test"})
 
