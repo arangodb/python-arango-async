@@ -337,24 +337,6 @@ async def test_collection_index(doc_col, bad_col, cluster, db_version):
         await doc_col.delete_index(default_index.id)
         await doc_col.delete_index(scaling_index.id)
 
-        # A permanent training failure still creates an unusable index.
-        unusable_index = await doc_col.add_index(
-            "vector",
-            ["embedding1"],
-            {
-                "name": "vector_index_unusable",
-                "params": {
-                    "metric": "cosine",
-                    "dimension": 128,
-                    "nLists": 2,
-                    "factory": "IVF3,Flat",
-                },
-            },
-        )
-        assert unusable_index.training_state == "unusable"
-        assert unusable_index.error_message
-        await doc_col.delete_index(unusable_index.id)
-
         # Invalid requests continue to fail at the HTTP layer.
         with pytest.raises(IndexCreateError) as err:
             await doc_col.add_index(
@@ -376,6 +358,30 @@ async def test_collection_index(doc_col, bad_col, cluster, db_version):
         await doc_col.delete_index(idx1.id)
     assert err.value.error_code == INDEX_NOT_FOUND
     assert await doc_col.delete_index(idx2.id, ignore_missing=True) is False
+
+
+@pytest.mark.asyncio
+async def test_unusable_vector_index(doc_col, db_version):
+    if db_version < version.parse("3.12.10"):
+        pytest.skip("Unusable vector index test requires ArangoDB 3.12.10+")
+
+    # One training vector is insufficient for two centroids.
+    await doc_col.insert({"embedding": [1.0, 1.0]})
+    index = await doc_col.add_index(
+        "vector",
+        ["embedding"],
+        {
+            "name": "vector_index_unusable",
+            "params": {
+                "metric": "cosine",
+                "dimension": 2,
+                "nLists": 2,
+            },
+        },
+    )
+    assert index.training_state == "unusable"
+    assert index.error_message
+    await doc_col.delete_index(index.id)
 
 
 @pytest.mark.asyncio
