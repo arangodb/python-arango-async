@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Starts a local ArangoDB server or cluster (community or enterprise).
-# Useful for testing the python-arango driver against a local ArangoDB setup.
+# Useful for testing the python-arango-async driver against a local ArangoDB setup.
 
 # Usage:
 #   ./starter.sh [single|cluster] [community|enterprise|enterprise-preview] [version]
@@ -10,9 +10,10 @@
 #   ./starter.sh cluster enterprise 3.12.4
 #   ./starter.sh single enterprise-preview 4.0-nightly
 #   ./starter.sh single arangodb/enterprise-preview:4.0-nightly
+# Defaults: single server, enterprise image, latest version.
 
 setup="${1:-single}"
-image="${2:-community}"
+image="${2:-enterprise}"
 version="${3:-latest}"
 
 extra_ports=""
