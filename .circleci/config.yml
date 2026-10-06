@@ -55,7 +55,7 @@ workflows:
           matrix:
             parameters:
               arangodb_config: ["single", "cluster"]
-              arangodb_image: ["arangodb/enterprise-preview:3.12-nightly"]
+              arangodb_image: ["arangodb/enterprise:3.12"]
               arangodb_conf_version: ["3.12"]
 
 jobs:
