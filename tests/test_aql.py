@@ -52,8 +52,8 @@ async def test_simple_query(db, bad_db, doc_col, docs):
 
 
 @pytest.mark.asyncio
-async def test_query_tracking(db, bad_db):
-    aql = db.aql
+async def test_query_tracking(sys_db, bad_db):
+    aql = sys_db.aql
 
     # Get the current tracking properties.
     tracking = await aql.tracking()
