@@ -42,6 +42,45 @@ For more information, refer to `ArangoDB Manual`_.
         # Delete the graph.
         await db.delete_graph("school")
 
+Graph creation options
+======================
+
+Pass ``GraphOptions(is_smart=True)`` as ``options`` to create an EnterpriseGraph
+without a user-defined sharding attribute. Set ``GraphOptions.smart_graph_attribute``
+to create a SmartGraph; ``is_smart=True`` is then optional. Every vertex must
+contain the named attribute.
+
+Set ``is_disjoint=True`` in ``GraphOptions`` with a smart graph attribute to create
+a Disjoint SmartGraph, which rejects edges between vertices with different
+attribute values.
+For example, on an Enterprise cluster:
+
+.. code-block:: python
+
+    from arangoasync.typings import GraphOptions
+
+    regional = await db.create_graph(
+        "regional",
+        edge_definitions=[{
+            "collection": "routes",
+            "from": ["places"],
+            "to": ["places"],
+        }],
+        options=GraphOptions(
+            number_of_shards=3,
+            smart_graph_attribute="region",
+            is_disjoint=True,
+        ),
+    )
+    properties = await regional.properties()
+    assert properties.is_disjoint is True
+    assert properties.smart_graph_attribute == "region"
+
+The separate ``create_graph(is_smart=..., is_disjoint=...)`` arguments are
+deprecated. Pass these flags through ``GraphOptions`` or a raw ``options``
+dictionary instead. Existing separate arguments still take precedence over
+matching entries in ``options``, including explicit ``False`` values.
+
 .. _edge-definitions:
 
 Edge Definitions

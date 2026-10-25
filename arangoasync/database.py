@@ -1240,11 +1240,18 @@ class Database:
                 edge collection), "from" (list of vertex collection names) and "to"
                 (list of vertex collection names).
             is_disjoint (bool | None): Whether to create a Disjoint SmartGraph
-                instead of a regular SmartGraph (Enterprise Edition only).
-            is_smart (bool | None): Define if the created graph should be smart
-                (Enterprise Edition only).
+                instead of a regular SmartGraph. Only has an effect with
+                `smart_graph_attribute` or `is_smart` (Enterprise Edition only).
+                Deprecated: use `GraphOptions.is_disjoint` instead.
+            is_smart (bool | None): If `True`, create a SmartGraph when
+                `options.smart_graph_attribute` is set, or an EnterpriseGraph
+                otherwise. Ignored for SatelliteGraphs (Enterprise Edition only).
+                Deprecated: use `GraphOptions.is_smart` instead.
             options (GraphOptions | dict | None): Options for creating collections
-                within this graph.
+                within this graph. Setting `smart_graph_attribute` creates a
+                SmartGraph even if `is_smart` is omitted or `False`. Explicit
+                `is_smart` and `is_disjoint` arguments override the corresponding
+                entries in these options.
             orphan_collections (list | None): An array of additional vertex
                 collections. Documents in these collections do not have edges
                 within this graph.
@@ -1260,6 +1267,15 @@ class Database:
         References:
             - `create-a-graph <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#create-a-graph>`__
         """  # noqa: E501
+        if is_smart is not None or is_disjoint is not None:
+            warn(
+                "The separate is_smart and is_disjoint arguments are deprecated; "
+                "pass these flags through GraphOptions or the options "
+                "dictionary instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         params: Params = {}
         if wait_for_sync is not None:
             params["waitForSync"] = wait_for_sync
@@ -1267,15 +1283,15 @@ class Database:
         data: Json = {"name": name}
         if edge_definitions is not None:
             data["edgeDefinitions"] = edge_definitions
-        if is_disjoint is not None:
-            data["isDisjoint"] = is_disjoint
-        if is_smart is not None:
-            data["isSmart"] = is_smart
         if options is not None:
             if isinstance(options, GraphOptions):
-                data["options"] = options.to_dict()
+                data["options"] = options.to_dict().copy()
             else:
-                data["options"] = options
+                data["options"] = options.copy()
+        if is_disjoint is not None:
+            data.setdefault("options", {})["isDisjoint"] = is_disjoint
+        if is_smart is not None:
+            data.setdefault("options", {})["isSmart"] = is_smart
         if orphan_collections is not None:
             data["orphanCollections"] = orphan_collections
 

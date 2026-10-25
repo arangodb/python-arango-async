@@ -385,6 +385,18 @@ def test_GraphOptions():
     assert graph_options.smart_graph_attribute == "region"
     assert graph_options.write_concern == 1
 
+    for flag in (False, True):
+        options = GraphOptions(is_smart=flag, is_disjoint=flag)
+        assert options.is_smart is flag
+        assert options.is_disjoint is flag
+        assert options.to_dict() == {"isSmart": flag, "isDisjoint": flag}
+
+    options = GraphOptions()
+    assert options.is_smart is None
+    assert options.is_disjoint is None
+    assert "isSmart" not in options
+    assert "isDisjoint" not in options
+
 
 def test_VertexCollectionOptions():
     options = VertexCollectionOptions(

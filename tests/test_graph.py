@@ -22,13 +22,14 @@ from tests.helpers import generate_col_name, generate_graph_name
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("creation_api", ["options", "legacy"])
 @pytest.mark.parametrize(
     "smart_field,disjoint",
     [(None, False), ("region", False), ("region", True)],
     ids=["enterprise", "smart", "disjoint-smart"],
 )
 async def test_graph_create_smart_options(
-    db, cluster, skip_tests, smart_field, disjoint
+    db, cluster, skip_tests, smart_field, disjoint, creation_api
 ):
     if "enterprise" in skip_tests:
         pytest.skip("Only for ArangoDB enterprise edition")
@@ -39,14 +40,30 @@ async def test_graph_create_smart_options(
     graph_name = generate_graph_name()
     vertices = generate_col_name()
     edges = generate_col_name()
+    options = GraphOptions(
+        number_of_shards=3,
+        smart_graph_attribute=smart_field,
+        is_smart=True,
+        is_disjoint=disjoint,
+    )
+    kwargs = {}
+    if creation_api == "legacy":
+        options = GraphOptions(
+            number_of_shards=3,
+            smart_graph_attribute=smart_field,
+            is_smart=False,
+            is_disjoint=not disjoint,
+        )
+        kwargs = {"is_smart": True, "is_disjoint": disjoint}
+    original_options = options.to_dict().copy()
     graph = await db.create_graph(
         graph_name,
         edge_definitions=[{"collection": edges, "from": [vertices], "to": [vertices]}],
-        is_smart=True,
-        is_disjoint=disjoint,
-        options=GraphOptions(number_of_shards=3, smart_graph_attribute=smart_field),
+        options=options,
+        **kwargs,
     )
     try:
+        assert options.to_dict() == original_options
         # Check that the server honored the graph creation options.
         properties = await graph.properties()
         assert properties.is_smart is True
@@ -119,8 +136,8 @@ async def test_graph_properties(db, bad_graph, cluster, skip_tests):
     # Create a graph
     name = generate_graph_name()
     is_smart = cluster and "enterprise" not in skip_tests
-    options = GraphOptions(number_of_shards=3)
-    graph = await db.create_graph(name, is_smart=is_smart, options=options)
+    options = GraphOptions(number_of_shards=3, is_smart=is_smart)
+    graph = await db.create_graph(name, options=options)
 
     with pytest.raises(GraphPropertiesError):
         await bad_graph.properties()
