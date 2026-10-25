@@ -87,10 +87,11 @@ class Graph(Generic[T, U, V]):
         """Get the properties of the graph.
 
         Returns:
-            GraphProperties: Properties of the graph.
+            GraphProperties: Properties of the graph, including `is_smart`,
+                `is_disjoint`, and `smart_graph_attribute`.
 
         Raises:
-            GraphProperties: If the operation fails.
+            GraphPropertiesError: If the operation fails.
 
         References:
             - `get-a-graph <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#get-a-graph>`__

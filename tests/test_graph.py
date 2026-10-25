@@ -1,7 +1,9 @@
 import pytest
 
+from arangoasync.errno import INVALID_DISJOINT_SMART_EDGE
 from arangoasync.exceptions import (
     DocumentDeleteError,
+    DocumentInsertError,
     EdgeCollectionListError,
     EdgeDefinitionDeleteError,
     EdgeDefinitionListError,
@@ -17,6 +19,80 @@ from arangoasync.exceptions import (
 )
 from arangoasync.typings import GraphOptions
 from tests.helpers import generate_col_name, generate_graph_name
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("creation_api", ["options", "legacy"])
+@pytest.mark.parametrize(
+    "smart_field,disjoint",
+    [(None, False), ("region", False), ("region", True)],
+    ids=["enterprise", "smart", "disjoint-smart"],
+)
+async def test_graph_create_smart_options(
+    db, cluster, skip_tests, smart_field, disjoint, creation_api
+):
+    if "enterprise" in skip_tests:
+        pytest.skip("Only for ArangoDB enterprise edition")
+    if not cluster:
+        pytest.skip("Only for ArangoDB clusters")
+
+    # Create an EnterpriseGraph, SmartGraph, or Disjoint SmartGraph.
+    graph_name = generate_graph_name()
+    vertices = generate_col_name()
+    edges = generate_col_name()
+    options = GraphOptions(
+        number_of_shards=3,
+        smart_graph_attribute=smart_field,
+        is_smart=True,
+        is_disjoint=disjoint,
+    )
+    kwargs = {}
+    if creation_api == "legacy":
+        options = GraphOptions(
+            number_of_shards=3,
+            smart_graph_attribute=smart_field,
+            is_smart=False,
+            is_disjoint=not disjoint,
+        )
+        kwargs = {"is_smart": True, "is_disjoint": disjoint}
+    original_options = options.to_dict().copy()
+    graph = await db.create_graph(
+        graph_name,
+        edge_definitions=[{"collection": edges, "from": [vertices], "to": [vertices]}],
+        options=options,
+        **kwargs,
+    )
+    try:
+        assert options.to_dict() == original_options
+        # Check that the server honored the graph creation options.
+        properties = await graph.properties()
+        assert properties.is_smart is True
+        assert properties.is_disjoint is disjoint
+        assert (properties.smart_graph_attribute or "") == (smart_field or "")
+        assert properties.number_of_shards == 3
+
+        # Add two vertices in one region and a third in another.
+        first = await graph.insert_vertex(vertices, {"region": "eu"})
+        second = await graph.insert_vertex(vertices, {"region": "eu"})
+        third = await graph.insert_vertex(vertices, {"region": "us"})
+        # All three graph types must allow edges within a region.
+        edge = await graph.insert_edge(
+            edges, {"_from": first["_id"], "_to": second["_id"]}
+        )
+        assert await graph.has_edge(edge["_id"])
+
+        # Only the disjoint graph must reject edges between regions.
+        cross_region_edge = {"_from": first["_id"], "_to": third["_id"]}
+        if disjoint:
+            with pytest.raises(DocumentInsertError) as err:
+                await graph.insert_edge(edges, cross_region_edge)
+            assert err.value.error_code == INVALID_DISJOINT_SMART_EDGE
+        else:
+            edge = await graph.insert_edge(edges, cross_region_edge)
+            assert await graph.has_edge(edge["_id"])
+    finally:
+        # Remove the graph and its collections even if an assertion fails.
+        await db.delete_graph(graph_name, drop_collections=True)
 
 
 @pytest.mark.asyncio
@@ -60,8 +136,8 @@ async def test_graph_properties(db, bad_graph, cluster, skip_tests):
     # Create a graph
     name = generate_graph_name()
     is_smart = cluster and "enterprise" not in skip_tests
-    options = GraphOptions(number_of_shards=3)
-    graph = await db.create_graph(name, is_smart=is_smart, options=options)
+    options = GraphOptions(number_of_shards=3, is_smart=is_smart)
+    graph = await db.create_graph(name, options=options)
 
     with pytest.raises(GraphPropertiesError):
         await bad_graph.properties()

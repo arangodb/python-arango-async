@@ -1874,6 +1874,16 @@ class GraphProperties(JsonWrapper):
         return cast(bool, self._data.get("isSmart", False))
 
     @property
+    def is_disjoint(self) -> bool:
+        """Check if the graph is a Disjoint SmartGraph."""
+        return cast(bool, self._data.get("isDisjoint", False))
+
+    @property
+    def smart_graph_attribute(self) -> Optional[str]:
+        """Return the sharding attribute for a SmartGraph, if present."""
+        return cast(Optional[str], self._data.get("smartGraphAttribute"))
+
+    @property
     def is_satellite(self) -> bool:
         """Check if the graph is a satellite graph."""
         return cast(bool, self._data.get("isSatellite", False))
@@ -1963,6 +1973,10 @@ class GraphOptions(JsonWrapper):
             Enterprise Edition.
         write_concern (int | None): The write concern for new collections in the
             graph.
+        is_smart (bool | None): Create a SmartGraph when `smart_graph_attribute`
+            is set, or an EnterpriseGraph otherwise. Ignored for SatelliteGraphs.
+        is_disjoint (bool | None): Create a Disjoint SmartGraph. Only has an
+            effect with `smart_graph_attribute` or `is_smart`.
 
     References:
         - `create-a-graph <https://docs.arango.ai/arangodb/stable/develop/http-api/graphs/named-graphs/#create-a-graph>`__
@@ -1975,6 +1989,8 @@ class GraphOptions(JsonWrapper):
         satellites: Optional[List[str]] = None,
         smart_graph_attribute: Optional[str] = None,
         write_concern: Optional[int] = None,
+        is_smart: Optional[bool] = None,
+        is_disjoint: Optional[bool] = None,
     ) -> None:
         data: Json = dict()
         if number_of_shards is not None:
@@ -1987,7 +2003,19 @@ class GraphOptions(JsonWrapper):
             data["smartGraphAttribute"] = smart_graph_attribute
         if write_concern is not None:
             data["writeConcern"] = write_concern
+        if is_smart is not None:
+            data["isSmart"] = is_smart
+        if is_disjoint is not None:
+            data["isDisjoint"] = is_disjoint
         super().__init__(data)
+
+    @property
+    def is_smart(self) -> Optional[bool]:
+        return cast(Optional[bool], self._data.get("isSmart"))
+
+    @property
+    def is_disjoint(self) -> Optional[bool]:
+        return cast(Optional[bool], self._data.get("isDisjoint"))
 
     @property
     def number_of_shards(self) -> Optional[int]:
