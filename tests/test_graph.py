@@ -48,11 +48,11 @@ async def test_graph_create_smart_options(
     )
     try:
         # Check that the server honored the graph creation options.
-        properties = (await graph.properties()).to_dict()
-        assert properties["isSmart"] is True
-        assert properties["isDisjoint"] is disjoint
-        assert properties.get("smartGraphAttribute", "") == (smart_field or "")
-        assert properties["numberOfShards"] == 3
+        properties = await graph.properties()
+        assert properties.is_smart is True
+        assert properties.is_disjoint is disjoint
+        assert (properties.smart_graph_attribute or "") == (smart_field or "")
+        assert properties.number_of_shards == 3
 
         # Add two vertices in one region and a third in another.
         first = await graph.insert_vertex(vertices, {"region": "eu"})

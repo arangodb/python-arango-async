@@ -358,6 +358,17 @@ def test_GraphProperties():
     ]
     assert graph_properties.orphan_collections == ["orphan1", "orphan2"]
 
+    for is_disjoint in (False, True):
+        properties = GraphProperties(
+            {"isDisjoint": is_disjoint, "smartGraphAttribute": "region"}
+        )
+        assert properties.is_disjoint is is_disjoint
+        assert properties.smart_graph_attribute == "region"
+
+    properties = GraphProperties({})
+    assert properties.is_disjoint is False
+    assert properties.smart_graph_attribute is None
+
 
 def test_GraphOptions():
     graph_options = GraphOptions(

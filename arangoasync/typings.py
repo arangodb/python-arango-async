@@ -1874,6 +1874,16 @@ class GraphProperties(JsonWrapper):
         return cast(bool, self._data.get("isSmart", False))
 
     @property
+    def is_disjoint(self) -> bool:
+        """Check if the graph is a Disjoint SmartGraph."""
+        return cast(bool, self._data.get("isDisjoint", False))
+
+    @property
+    def smart_graph_attribute(self) -> Optional[str]:
+        """Return the sharding attribute for a SmartGraph, if present."""
+        return cast(Optional[str], self._data.get("smartGraphAttribute"))
+
+    @property
     def is_satellite(self) -> bool:
         """Check if the graph is a satellite graph."""
         return cast(bool, self._data.get("isSatellite", False))
