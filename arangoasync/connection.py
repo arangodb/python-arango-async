@@ -178,6 +178,7 @@ class BaseConnection(ABC):
 
         if request.prefix_needed:
             request.endpoint = f"{self._db_endpoint}{request.endpoint}"
+            request.prefix_needed = False
         host_index = self._host_resolver.get_host_index()
         for tries in range(self._host_resolver.max_tries):
             try:
@@ -432,6 +433,7 @@ class JwtConnection(BaseConnection):
         ):
             # If the token has expired, refresh it and retry the request
             await self.refresh_token()
+            request.headers["authorization"] = self._auth_header
             resp = await self.process_request(request)
         return resp
 
