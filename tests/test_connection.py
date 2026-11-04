@@ -1,5 +1,9 @@
+import time
 import zlib
+from datetime import datetime, timezone
+from unittest.mock import patch
 
+import jwt
 import pytest
 
 from arangoasync.auth import Auth, JwtToken
@@ -228,6 +232,45 @@ async def test_JwtConnection_ping_success(
     status_code = await connection1.ping()
     assert status_code == 200
     assert connection3.token != connection1.token
+
+
+@pytest.mark.asyncio
+async def test_JwtConnection_expired_token_recovery(
+    client_session, url, sys_db_name, root, password, pytestconfig
+):
+    client = AioHTTPClient()
+    session = client_session(client, url)
+    issued_at = int(time.time()) - 120
+    encoded_token = jwt.encode(
+        {
+            "preferred_username": root,
+            "iss": "arangodb",
+            "iat": issued_at,
+            "exp": issued_at + 60,
+        },
+        key=pytestconfig.getoption("secret"),
+        algorithm="HS256",
+    )
+
+    # Accept the token while valid, then restore the clock before dispatch.
+    with patch("jwt.api_jwt.datetime") as clock:
+        clock.now.return_value = datetime.fromtimestamp(issued_at, timezone.utc)
+        expired_token = JwtToken(encoded_token)
+
+    assert expired_token.needs_refresh()
+    connection = JwtConnection(
+        sessions=[session],
+        host_resolver=DefaultHostResolver(1),
+        http_client=client,
+        db_name=sys_db_name,
+        auth=Auth(username=root, password=password),
+        token=expired_token,
+    )
+
+    # Expect that the token is renewed automatically.
+    assert await connection.ping() == 200
+    assert connection.token.token != expired_token.token
+    assert not connection.token.needs_refresh()
 
 
 @pytest.mark.asyncio
