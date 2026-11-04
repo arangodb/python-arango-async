@@ -163,16 +163,22 @@ class ArangoClient:
                 - "basic": HTTP authentication.
                     Requires the `auth` parameter. The `token` parameter is ignored.
                 - "jwt": User JWT authentication.
-                    At least one of the `auth` or `token` parameters are required.
-                    If `auth` is provided, but the `token` is not, the token will be
-                    refreshed automatically. This assumes that the clocks of the server
-                    and client are synchronized.
+                    At least one of `auth` or `token` is required.
+                    Credentials in `auth` allow token acquisition and renewal,
+                    including when an initial `token` is provided. Without a token,
+                    acquisition happens on the first request. After HTTP 401,
+                    a locally expired token triggers renewal and one replay.
+                    Keep client and server clocks synchronized.
                 - "superuser": Superuser JWT authentication.
                     The `token` parameter is required. The `auth` parameter is ignored.
-            auth (Auth | None): Login information (username and password) or
-                access token.
-            token (JwtToken | None): JWT token.
+            auth (Auth | str | None): Login information (username and password) or
+                access token. A string is used as the password with an empty username.
+            token (JwtToken | None): Initial JWT token. With `auth_method="jwt"`,
+                provide `auth` as well to allow renewal. Without credentials,
+                a 401 after local expiration raises `JWTRefreshError`.
             verify (bool): Verify the connection by sending a test request.
+                For JWT authentication without an initial token, this also triggers
+                acquisition before returning the database wrapper.
             compression (CompressionManager | None): If set, supersedes the
                 client-level compression settings.
             serializer (Serializer | None): If set, supersedes the client-level
@@ -186,6 +192,7 @@ class ArangoClient:
         Raises:
             ValueError: If the authentication is invalid.
             ServerConnectionError: If `verify` is `True` and the connection fails.
+            JWTRefreshError: If `verify` is `True` and JWT acquisition or renewal fails.
         """
         connection: Connection
 
